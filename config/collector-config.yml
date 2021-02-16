@@ -1,0 +1,46 @@
+extensions:
+  health_check:
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:55680
+
+processors:
+  batch:
+  oteltest:
+    traces_ingress:
+      endpoint: 0.0.0.0:7070
+    metrics_ingress:
+      endpoint: 0.0.0.0:7071
+
+exporters:
+  logging:
+  otlp:
+    endpoint: ingest.lightstep.com:443
+    headers:
+      "lightstep-access-token": "${LS_ACCESS_TOKEN}"
+
+service:
+  extensions: [health_check]
+  pipelines:
+    metrics:
+      receivers:
+      - otlp
+      processors:
+      - batch
+      - oteltest
+      exporters:
+      - otlp
+      - logging
+
+    traces:
+      receivers:
+      - otlp
+      processors: 
+      - batch
+      - oteltest
+      exporters:
+      - logging
+      - otlp
