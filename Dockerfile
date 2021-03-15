@@ -1,26 +1,17 @@
-FROM golang:alpine3.13 as builder
-
-RUN apk add --no-cache git
+FROM golang:1.14-stretch as builder
 
 RUN mkdir /build
-RUN go get github.com/open-telemetry/opentelemetry-collector-builder@v0.8.0
-
 WORKDIR /build
+
+RUN GO111MODULE=on go get github.com/open-telemetry/opentelemetry-collector-builder
+
 ADD . .
-
-WORKDIR /build/backstageprocessor
-RUN go mod download
-
-WORKDIR /build/webhookprocessor
-RUN go mod download
-
-WORKDIR /build
 
 RUN /go/bin/opentelemetry-collector-builder --config /build/builder-config.yml
 
-FROM alpine:3.13
+FROM debian:stretch-slim
 COPY --from=builder /build/config .
 COPY --from=builder /tmp/ls-partner-col-distribution/lightstep-partner-collector .
 
 ENTRYPOINT [ "./lightstep-partner-collector" ]
-CMD [ "--config", "./config/collector-config.yml" ]
+CMD [ "--config", "./collector-config.yml" ]
