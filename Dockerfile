@@ -1,4 +1,4 @@
-FROM golang:1.14-stretch as builder
+FROM golang:1.15-stretch as builder
 
 RUN mkdir /build
 WORKDIR /build
@@ -10,8 +10,12 @@ ADD . .
 RUN /go/bin/opentelemetry-collector-builder --config /build/builder-config.yml
 
 FROM debian:stretch-slim
+
+RUN mkdir /otel
+WORKDIR /otel
+
 COPY --from=builder /build/config .
 COPY --from=builder /tmp/ls-partner-col-distribution/lightstep-partner-collector .
 
 ENTRYPOINT [ "./lightstep-partner-collector" ]
-CMD [ "--config", "./collector-config.yml" ]
+CMD [ "--config", "/otel/collector-config.yml" ]
