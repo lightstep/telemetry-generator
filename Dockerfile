@@ -11,11 +11,10 @@ RUN /go/bin/opentelemetry-collector-builder --config /build/builder-config.yml
 
 FROM debian:stretch-slim
 
-RUN mkdir /otel
+RUN mkdir -p /etc/otel
 WORKDIR /otel
 
-COPY --from=builder /build/config .
 COPY --from=builder /tmp/ls-partner-col-distribution/lightstep-partner-collector .
 
 ENTRYPOINT [ "./lightstep-partner-collector" ]
-CMD [ "--config", "/otel/collector-config.yml" ]
+CMD [ "--config", "/etc/otel/config.yaml" ]
