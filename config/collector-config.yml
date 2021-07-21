@@ -23,6 +23,7 @@ processors:
       endpoint: 0.0.0.0:7071
 
 exporters:
+  service:
   logging:
   otlp:
     endpoint: ingest.lightstep.com:443

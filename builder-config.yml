@@ -14,3 +14,7 @@ processors:
   - gomod: "github.com/lightstep/lightstep-partner-sdk/collector/webhookprocessor v0.0.1" # the Go module for the component. Required.
     name: "webhookprocessor" # package name to use in the generated sources. Optional.
     path: "./webhookprocessor" # in case a local version should be used for the module, the path relative to the current dir, or a full path can be specified. Optional.
+exporters:
+  - gomod: "github.com/lightstep/lightstep-partner-sdk/collector/serviceexporter v0.0.1"
+    name: "serviceexporter"
+    path: "./serviceexporter"
