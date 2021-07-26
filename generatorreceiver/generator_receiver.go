@@ -47,7 +47,7 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 				case <-done:
 					return
 				case _ = <-ticker.C:
-					traces := g.traceGen.Generate(r.Service, r.Route, time.Now().Unix())
+					traces := g.traceGen.Generate(r.Service, r.Route, time.Now().UnixNano())
 					_ = g.consumer.ConsumeTraces(context.Background(), *traces)
 				}
 			}

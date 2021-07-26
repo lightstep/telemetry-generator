@@ -96,7 +96,6 @@ func (g *TraceGenerator) createSpanForServiceRouteCall(serviceTier *topology.Ser
 	ownDuration := g.random.Int63n(route.MaxLatencyMillis * 1000000)
 	span.SetStartTimestamp(pdata.TimestampFromTime(time.Unix(0, startTimeMicros)))
 	span.SetEndTimestamp(pdata.TimestampFromTime(time.Unix(0, maxEndTime + ownDuration)))
-	//g.trace.AddSpan(span)
 	g.sequenceNumber = g.sequenceNumber + 1
 	return &span
 }
