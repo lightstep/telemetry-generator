@@ -3,7 +3,7 @@ package generator
 import (
 	"fmt"
 	"github.com/lightstep/lightstep-partner-sdk/collector/generatorreceiver/internal/topology"
-	"go.opentelemetry.io/collector/consumer/pdata"
+	"go.opentelemetry.io/collector/model/pdata"
 	"math/rand"
 	"sync"
 	"time"
