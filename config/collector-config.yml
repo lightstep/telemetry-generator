@@ -2,6 +2,9 @@ extensions:
   health_check:
 
 receivers:
+  # Generate traces from the given file (env var: TOPO_FILE)
+  generator:
+    path: "${TOPO_FILE}"
   otlp:
     protocols:
       http:
@@ -13,9 +16,11 @@ receivers:
 
 processors:
   batch:
+  # Annotate traces with Backstage metadata
   backstage:
     backstage_server: 
       endpoint: http://0.0.0.0:7000
+  # Add/remove trace or metric attributes via webhook
   webhook:
     traces_ingress:
       endpoint: 0.0.0.0:7070
@@ -24,7 +29,10 @@ processors:
 
 exporters:
   service:
+    scraper:
+      endpoint: 0.0.0.0:55688
   logging:
+  # Export to Lightstep Public Satellites
   otlp:
     endpoint: ingest.lightstep.com:443
     insecure_skip_verify: true
@@ -47,10 +55,10 @@ service:
     traces:
       receivers:
       - otlp
+      - generator
       processors: 
       - batch
       - webhook
-      #- backstage
       exporters:
       - logging
       - otlp

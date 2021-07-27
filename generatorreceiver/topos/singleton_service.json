@@ -1,0 +1,54 @@
+{
+  "topology" : {
+    "services" : [
+      {
+        "serviceName" : "frontend",
+        "instances" : [ "frontend-6b654dbf57-zq8dt", "frontend-d847fdcf5-j6s2f", "frontend-79d8c8d6c8-9sbff" ],
+        "tagSets" : [
+          { "weight": 1, "tags": { "version" : "v127", "region" : "us-east-1" }},
+          { "weight": 1, "tags": { "version" : "v125", "region" : "us-east-1" }},
+          { "weight": 2, "tags": { "version" : "v125", "region" : "us-west-1" }}
+        ],
+        "metrics": [
+          {
+            "name": "request.bytes",
+            "type": "Counter",
+            "max": 1000000,
+            "min": 1024
+          },
+          {
+            "name": "render.latency",
+            "type": "ValueRecorder",
+            "max": 5000,
+            "min": 200
+          },
+          {
+            "name": "dns.lookup",
+            "type": "ValueRecorder",
+            "max": 650,
+            "min": 10
+          }
+        ],
+        "routes" : [
+          {
+            "route" : "/product",
+            "downstreamCalls" : { },
+            "maxLatencyMillis": 200,
+            "tagSets": [
+              { "weight": 1, "tags": { "starter" : "charmander"}, "tagGenerators":  [{"numTags":  50, "numVals":  3000, "valLength": 16}]},
+              { "weight": 1, "tags": { "starter" : "squirtle"}},
+              { "weight": 1, "tags": { "starter" : "bulbasaur"}}
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "rootRoutes" : [
+    {
+      "service" : "frontend",
+      "route" : "/product",
+      "tracesPerHour" : 360
+    }
+  ]
+}
