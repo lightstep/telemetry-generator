@@ -5,14 +5,15 @@ import (
 	"github.com/lightstep/lightstep-partner-sdk/collector/generatorreceiver/internal/topology"
 	"go.opentelemetry.io/collector/consumer/pdata"
 	"math/rand"
+	"sync"
 	"time"
 )
 
 type TraceGenerator struct {
 	topology *topology.Topology
-	traces pdata.Traces
 	sequenceNumber int
 	random *rand.Rand
+	sync.Mutex
 	tagNameGenerator topology.Generator
 }
 
@@ -22,13 +23,14 @@ func NewTraceGenerator(t *topology.Topology, seed int64) *TraceGenerator {
 
 	tg := &TraceGenerator{
 		topology: t,
-		traces: pdata.NewTraces(),
 		random: r,
 	}
 	return tg
 }
 
 func (g *TraceGenerator) genTraceId() pdata.TraceID {
+	g.Lock()
+	defer g.Unlock()
 	traceIdBytes := make([]byte, 16)
 	g.random.Read(traceIdBytes)
 	var traceId [16]byte
@@ -37,6 +39,8 @@ func (g *TraceGenerator) genTraceId() pdata.TraceID {
 }
 
 func (g *TraceGenerator) genSpanId() pdata.SpanID {
+	g.Lock()
+	defer g.Unlock()
 	traceIdBytes := make([]byte, 16)
 	g.random.Read(traceIdBytes)
 	var traceId [8]byte
@@ -46,16 +50,17 @@ func (g *TraceGenerator) genSpanId() pdata.SpanID {
 
 func (g *TraceGenerator) Generate(rootServiceName string, rootRouteName string, startTimeMicros int64) *pdata.Traces {
 	rootService := g.topology.GetServiceTier(rootServiceName)
-	g.createSpanForServiceRouteCall(rootService, rootRouteName, startTimeMicros, g.genTraceId(), pdata.NewSpanID([8]byte{0x0}))
-	return &g.traces
+	traces := pdata.NewTraces()
+	g.createSpanForServiceRouteCall(&traces, rootService, rootRouteName, startTimeMicros, g.genTraceId(), pdata.NewSpanID([8]byte{0x0}))
+	return &traces
 }
 
-func (g *TraceGenerator) createSpanForServiceRouteCall(serviceTier *topology.ServiceTier, routeName string, startTimeMicros int64, traceId pdata.TraceID, parentSpanId pdata.SpanID) *pdata.Span {
+func (g *TraceGenerator) createSpanForServiceRouteCall(traces *pdata.Traces, serviceTier *topology.ServiceTier, routeName string, startTimeMicros int64, traceId pdata.TraceID, parentSpanId pdata.SpanID) *pdata.Span {
 	serviceTier.Random = g.random
 	instanceName := serviceTier.GetRandomInstance()
 	route := serviceTier.GetRoute(routeName)
 
-	rspanSlice := g.traces.ResourceSpans()
+	rspanSlice := traces.ResourceSpans()
 	rspan := rspanSlice.AppendEmpty()
 
 	resource := rspan.Resource()
@@ -90,7 +95,7 @@ func (g *TraceGenerator) createSpanForServiceRouteCall(serviceTier *topology.Ser
 	for s, r := range route.DownstreamCalls {
 		childStartTimeMicros := startTimeMicros + (g.random.Int63n(route.MaxLatencyMillis * 1000000))
 		childSvc := g.topology.GetServiceTier(s)
-		g.createSpanForServiceRouteCall(childSvc, r, childStartTimeMicros, traceId, newSpanId)
+		g.createSpanForServiceRouteCall(traces, childSvc, r, childStartTimeMicros, traceId, newSpanId)
 		maxEndTime = Max(maxEndTime, childStartTimeMicros)
 	}
 	ownDuration := g.random.Int63n(route.MaxLatencyMillis * 1000000)

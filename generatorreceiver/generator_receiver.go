@@ -20,6 +20,7 @@ type generatorReceiver struct {
 	topoPath string
 	topoFile topology.File
 	traceGen *generator.TraceGenerator
+	tickers []*time.Ticker
 }
 
 func (g generatorReceiver) Start(ctx context.Context, host component.Host) error {
@@ -39,6 +40,7 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 	g.traceGen = generator.NewTraceGenerator(g.topoFile.Topology, time.Now().Unix())
 	for _, r := range g.topoFile.RootRoutes {
 		ticker := time.NewTicker(time.Duration(360000/r.TracesPerHour) * time.Millisecond)
+		g.tickers = append(g.tickers, ticker)
 		done := make(chan bool)
 
 		go func() {
@@ -58,11 +60,11 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 }
 
 func (g generatorReceiver) Shutdown(ctx context.Context) error {
-	// TODO: stop all tickers
+	for _, t := range g.tickers {
+		t.Stop()
+	}
 	return nil
 }
-
-// https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/receiver/awsxrayreceiver/internal/translator/translator.go#L37
 
 func newReceiver(config *Config,
 	consumer consumer.Traces,
