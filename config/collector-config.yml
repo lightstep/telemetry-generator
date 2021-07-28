@@ -45,6 +45,7 @@ service:
     metrics:
       receivers:
       - otlp
+      - generator
       processors:
       - batch
       - webhook
