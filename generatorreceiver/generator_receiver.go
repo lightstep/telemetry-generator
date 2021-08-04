@@ -28,11 +28,26 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 	}
 
 	if g.metricConsumer != nil {
-		g.metricGen = &generator.MetricGenerator{}
+		g.metricGen = generator.NewMetricGenerator(g.randomSeed)
 		for _, s := range topoFile.Topology.Services {
 			for _, m := range s.Metrics {
-				metrics := g.metricGen.Generate(m.Name, s.ServiceName)
-				g.metricConsumer.ConsumeMetrics(ctx, *metrics)
+				metricTicker := time.NewTicker(1 * time.Second)
+				g.tickers = append(g.tickers, metricTicker)
+				metricDone := make(chan bool)
+				go func() {
+					for {
+						select {
+						case <-metricDone:
+							return
+						case _ = <-metricTicker.C:
+							metrics := g.metricGen.Generate(m.Name, m.Type, s.ServiceName)
+							err := g.metricConsumer.ConsumeMetrics(ctx, metrics)
+							if err != nil {
+								host.ReportFatalError(err)
+							}
+						}
+					}
+				}()
 			}
 		}
 
@@ -40,8 +55,8 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 	if g.traceConsumer != nil {
 		g.traceGen = generator.NewTraceGenerator(topoFile.Topology, g.randomSeed)
 		for _, r := range topoFile.RootRoutes {
-			ticker := time.NewTicker(time.Duration(360000/r.TracesPerHour) * time.Millisecond)
-			g.tickers = append(g.tickers, ticker)
+			traceTicker := time.NewTicker(time.Duration(360000/r.TracesPerHour) * time.Millisecond)
+			g.tickers = append(g.tickers, traceTicker)
 			done := make(chan bool)
 
 			go func() {
@@ -49,7 +64,7 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 					select {
 					case <-done:
 						return
-					case _ = <-ticker.C:
+					case _ = <-traceTicker.C:
 						traces := g.traceGen.Generate(r.Service, r.Route, time.Now().UnixNano())
 						_ = g.traceConsumer.ConsumeTraces(context.Background(), *traces)
 					}
@@ -57,7 +72,6 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 			}()
 		}
 	}
-
 
 	return nil
 }

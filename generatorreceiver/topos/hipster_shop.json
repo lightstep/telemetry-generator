@@ -11,20 +11,20 @@
         ],
         "metrics": [
           {
-            "name": "request.bytes",
+            "name": "gauge.1",
             "type": "Counter",
             "max": 1000000,
             "min": 1024
           },
           {
-            "name": "render.latency",
-            "type": "ValueRecorder",
+            "name": "gauge.2",
+            "type": "Counter",
             "max": 5000,
             "min": 200
           },
           {
-            "name": "dns.lookup",
-            "type": "ValueRecorder",
+            "name": "gauge.3",
+            "type": "Counter",
             "max": 650,
             "min": 10
           }
