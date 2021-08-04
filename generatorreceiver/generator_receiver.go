@@ -16,7 +16,6 @@ type generatorReceiver struct {
 	metricConsumer   consumer.Metrics
 	topoPath   string
 	randomSeed int64
-	traceGen   *generator.TraceGenerator
 	metricGen  *generator.MetricGenerator
 	tickers    []*time.Ticker
 }
@@ -28,19 +27,23 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 	}
 
 	if g.metricConsumer != nil {
-		g.metricGen = generator.NewMetricGenerator(g.randomSeed)
 		for _, s := range topoFile.Topology.Services {
 			for _, m := range s.Metrics {
 				metricTicker := time.NewTicker(1 * time.Second)
 				g.tickers = append(g.tickers, metricTicker)
 				metricDone := make(chan bool)
+				svc := s.ServiceName
+				metricName := m.Name
+				metricType := m.Type
 				go func() {
+					g.logger.Info("generating metrics", zap.String("service", svc), zap.String("name", metricName))
+					metricGen := generator.NewMetricGenerator(g.randomSeed)
 					for {
 						select {
 						case <-metricDone:
 							return
 						case _ = <-metricTicker.C:
-							metrics := g.metricGen.Generate(m.Name, m.Type, s.ServiceName)
+							metrics := metricGen.Generate(metricName, metricType, svc)
 							err := g.metricConsumer.ConsumeMetrics(ctx, metrics)
 							if err != nil {
 								host.ReportFatalError(err)
@@ -53,19 +56,21 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 
 	}
 	if g.traceConsumer != nil {
-		g.traceGen = generator.NewTraceGenerator(topoFile.Topology, g.randomSeed)
 		for _, r := range topoFile.RootRoutes {
 			traceTicker := time.NewTicker(time.Duration(360000/r.TracesPerHour) * time.Millisecond)
 			g.tickers = append(g.tickers, traceTicker)
 			done := make(chan bool)
-
+			svc := r.Service
+			route := r.Route
 			go func() {
+				g.logger.Info("generating traces", zap.String("service", svc), zap.String("route", route))
+				traceGen := generator.NewTraceGenerator(topoFile.Topology, g.randomSeed, svc, route)
 				for {
 					select {
 					case <-done:
 						return
 					case _ = <-traceTicker.C:
-						traces := g.traceGen.Generate(r.Service, r.Route, time.Now().UnixNano())
+						traces := traceGen.Generate(time.Now().UnixNano())
 						_ = g.traceConsumer.ConsumeTraces(context.Background(), *traces)
 					}
 				}

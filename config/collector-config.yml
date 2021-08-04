@@ -2,7 +2,7 @@ extensions:
   health_check:
 
 receivers:
-  # Generate traces from the given file (env var: TOPO_FILE)
+  # Generate traces from the given topology file (env var: TOPO_FILE)
   generator:
     path: "${TOPO_FILE}"
   otlp:

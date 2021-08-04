@@ -5,9 +5,13 @@
         "serviceName" : "frontend",
         "instances" : [ "frontend-6b654dbf57-zq8dt", "frontend-d847fdcf5-j6s2f", "frontend-79d8c8d6c8-9sbff" ],
         "tagSets" : [
-          { "weight": 1, "tags": { "version" : "v127", "region" : "us-east-1" }},
-          { "weight": 1, "tags": { "version" : "v125", "region" : "us-east-1" }},
-          { "weight": 2, "tags": { "version" : "v125", "region" : "us-west-1" }}
+          { "weight": 1, "tags": { "version" : "v127" }},
+          { "weight": 1, "tags": { "version" : "v125" }},
+          { "weight": 2, "tags": { "version" : "v125" }}
+        ],
+        "resourceAttrSets": [
+          { "weight": 1, "resourceAttrs": { "cloud.provider" : "aws", "cloud.region" : "us-east-1", "k8s.cluster.name": "k8s-cluster-1" }},
+          { "weight": 1, "resourceAttrs": { "cloud.provider" : "aws", "cloud.region" : "us-west-2", "k8s.cluster.name": "k8s-cluster-1" }}
         ],
         "metrics": [
           {
@@ -66,6 +70,10 @@
         "serviceName" : "productcatalogservice",
         "instances" : [ "productcatalogservice-6b654dbf57-zq8dt", "productcatalogservice-d847fdcf5-j6s2f" ],
         "tagSets" : [{"tags": { "version" : "v52"}, "inherit":  ["region"]}],
+        "resourceAttrSets": [
+          { "weight": 1, "resourceAttrs": { "cloud.provider" : "azure", "cloud.region" : "Central-US", "k8s.cluster.name": "k8s-cluster-2" }},
+          { "weight": 1, "resourceAttrs": { "cloud.provider" : "azure", "cloud.region" : "West-US", "k8s.cluster.name": "k8s-cluster-2" }}
+        ],
         "routes" : [
           {
             "route" : "/GetProducts",

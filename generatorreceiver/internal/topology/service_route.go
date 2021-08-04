@@ -5,4 +5,5 @@ type ServiceRoute struct {
 	DownstreamCalls map[string]string `json:"downstreamCalls,omitempty"`
 	MaxLatencyMillis int64 `json:"maxLatencyMillis"`
 	TagSets []TagSet `json:"tagSets"`
+	ResourceAttributeSets []ResourceAttributeSet `json:"resourceAttrSets"`
 }

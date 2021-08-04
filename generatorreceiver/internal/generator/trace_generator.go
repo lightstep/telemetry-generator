@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/lightstep/lightstep-partner-sdk/collector/generatorreceiver/internal/topology"
 	"go.opentelemetry.io/collector/model/pdata"
+	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
 	"math/rand"
 	"sync"
 	"time"
@@ -11,19 +12,23 @@ import (
 
 type TraceGenerator struct {
 	topology *topology.Topology
+	service string
+	route string
 	sequenceNumber int
 	random *rand.Rand
 	sync.Mutex
 	tagNameGenerator topology.Generator
 }
 
-func NewTraceGenerator(t *topology.Topology, seed int64) *TraceGenerator {
+func NewTraceGenerator(t *topology.Topology, seed int64, service string, route string) *TraceGenerator {
 	r := rand.New(rand.NewSource(seed))
 	r.Seed(seed)
 
 	tg := &TraceGenerator{
 		topology: t,
 		random: r,
+		service: service,
+		route: route,
 	}
 	return tg
 }
@@ -48,10 +53,10 @@ func (g *TraceGenerator) genSpanId() pdata.SpanID {
 	return pdata.NewSpanID(traceId)
 }
 
-func (g *TraceGenerator) Generate(rootServiceName string, rootRouteName string, startTimeMicros int64) *pdata.Traces {
-	rootService := g.topology.GetServiceTier(rootServiceName)
+func (g *TraceGenerator) Generate(startTimeMicros int64) *pdata.Traces {
+	rootService := g.topology.GetServiceTier(g.service)
 	traces := pdata.NewTraces()
-	g.createSpanForServiceRouteCall(&traces, rootService, rootRouteName, startTimeMicros, g.genTraceId(), pdata.NewSpanID([8]byte{0x0}))
+	g.createSpanForServiceRouteCall(&traces, rootService, g.route, startTimeMicros, g.genTraceId(), pdata.NewSpanID([8]byte{0x0}))
 	return &traces
 }
 
@@ -64,8 +69,17 @@ func (g *TraceGenerator) createSpanForServiceRouteCall(traces *pdata.Traces, ser
 	rspan := rspanSlice.AppendEmpty()
 
 	resource := rspan.Resource()
-	resource.Attributes().InsertString("service.name", serviceTier.ServiceName)
-	resource.Attributes().InsertString("host.name", instanceName)
+
+	resource.Attributes().InsertString(string(semconv.ServiceNameKey), serviceTier.ServiceName)
+	resource.Attributes().InsertString(string(semconv.HostNameKey), instanceName)
+
+	resourceAttributeSet := serviceTier.GetResourceAttributeSet(); if resourceAttributeSet != nil {
+		for k, v := range resourceAttributeSet.ResourceAttributes {
+			resource.Attributes().InsertString(k, fmt.Sprintf("%v", v))
+		}
+	}
+
+
 	ils := rspan.InstrumentationLibrarySpans().AppendEmpty()
 	spans := ils.Spans()
 
