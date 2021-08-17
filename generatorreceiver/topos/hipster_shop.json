@@ -71,8 +71,8 @@
         "instances" : [ "productcatalogservice-6b654dbf57-zq8dt", "productcatalogservice-d847fdcf5-j6s2f" ],
         "tagSets" : [{"tags": { "version" : "v52"}, "inherit":  ["region"]}],
         "resourceAttrSets": [
-          { "weight": 1, "resourceAttrs": { "cloud.provider" : "azure", "cloud.region" : "Central-US", "k8s.cluster.name": "k8s-cluster-2" }},
-          { "weight": 1, "resourceAttrs": { "cloud.provider" : "azure", "cloud.region" : "West-US", "k8s.cluster.name": "k8s-cluster-2" }}
+          { "weight": 1, "resourceAttrs": { "cloud.provider" : "azure", "cloud.region" : "Central-US", "k8s.cluster.name": "k8s-cluster-2", "host.type": "t3.medium" }},
+          { "weight": 1, "resourceAttrs": { "cloud.provider" : "azure", "cloud.region" : "West-US", "k8s.cluster.name": "k8s-cluster-2", "host.type": "t3.medium" }}
         ],
         "routes" : [
           {
@@ -98,6 +98,10 @@
         "serviceName" : "recommendationservice",
         "instances" : [ "recommendationservice-6b654dbf57-zq8dt", "recommendationservice-d847fdcf5-j6s2f" ],
         "tagSets" : [{"tags" : { "version" : "v234", "region" : "us-east-1" }}],
+        "resourceAttrSets": [
+          { "weight": 1, "resourceAttrs": { "cloud.provider" : "aws", "cloud.region" : "us-west-2", "k8s.cluster.name": "k8s-cluster-3" }},
+          { "weight": 1, "resourceAttrs": { "cloud.provider" : "aws", "cloud.region" : "us-west-1", "k8s.cluster.name": "k8s-cluster-3" }}
+        ],
         "routes" : [
           {
             "route" : "/GetRecommendations",
