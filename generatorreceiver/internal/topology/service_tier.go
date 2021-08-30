@@ -5,16 +5,10 @@ import "math/rand"
 type ServiceTier struct {
 	ServiceName string `json:"serviceName"`
 	Routes []ServiceRoute `json:"routes"`
-	Instances []string `json:"instances"`
 	TagSets []TagSet `json:"tagSets"`
 	ResourceAttributeSets []ResourceAttributeSet `json:"resourceAttrSets"`
 	Metrics []Metric `json:"metrics"`
 	Random *rand.Rand
-}
-
-func (st *ServiceTier) GetRandomInstance() string {
-	randomIndex := st.Random.Intn(len(st.Instances))
-	return st.Instances[randomIndex]
 }
 
 func (st *ServiceTier) GetTagSet(routeName string) []TagSet {

@@ -62,7 +62,6 @@ func (g *TraceGenerator) Generate(startTimeMicros int64) *pdata.Traces {
 
 func (g *TraceGenerator) createSpanForServiceRouteCall(traces *pdata.Traces, serviceTier *topology.ServiceTier, routeName string, startTimeMicros int64, traceId pdata.TraceID, parentSpanId pdata.SpanID) *pdata.Span {
 	serviceTier.Random = g.random
-	instanceName := serviceTier.GetRandomInstance()
 	route := serviceTier.GetRoute(routeName)
 
 	rspanSlice := traces.ResourceSpans()
@@ -71,7 +70,6 @@ func (g *TraceGenerator) createSpanForServiceRouteCall(traces *pdata.Traces, ser
 	resource := rspan.Resource()
 
 	resource.Attributes().InsertString(string(semconv.ServiceNameKey), serviceTier.ServiceName)
-	resource.Attributes().InsertString(string(semconv.HostNameKey), instanceName)
 
 	resourceAttributeSet := serviceTier.GetResourceAttributeSet(); if resourceAttributeSet != nil {
 		for k, v := range resourceAttributeSet.ResourceAttributes {

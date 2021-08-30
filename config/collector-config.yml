@@ -63,3 +63,4 @@ service:
       exporters:
       - logging
       - otlp
+      - service
