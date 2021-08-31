@@ -7,6 +7,7 @@ receivers:
     organization: LightStep
     project: Robin-Hipster-Shop
     api_key: "${LIGHTSTEP_API_KEY}"
+    stream_id: QQRrtJmW
   generator:
     path: "${TOPO_FILE}"
   otlp:
