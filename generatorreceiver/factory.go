@@ -14,7 +14,7 @@ const (
 	DefaultTopoFile = "topo.json"
 )
 
-// NewFactory creates a factory for AWS receiver.
+// NewFactory creates a factory for the receiver.
 func NewFactory() component.ReceiverFactory {
 	return receiverhelper.NewFactory(
 		typeStr,

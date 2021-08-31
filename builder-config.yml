@@ -22,3 +22,6 @@ receivers:
   - gomod: "github.com/lightstep/lightstep-partner-sdk/collector/generatorreceiver v0.0.1"
     name: "generatorreceiver"
     path: "./generatorreceiver"
+  - gomod: "github.com/lightstep/lightstep-partner-sdk/collector/streamreceiver v0.0.1"
+    name: "streamreceiver"
+    path: "./streamreceiver"

@@ -3,6 +3,10 @@ extensions:
 
 receivers:
   # Generate traces from the given topology file (env var: TOPO_FILE)
+  lightstep-streams:
+    organization: LightStep
+    project: Robin-Hipster-Shop
+    api_key: "${LIGHTSTEP_API_KEY}"
   generator:
     path: "${TOPO_FILE}"
   otlp:
@@ -57,6 +61,7 @@ service:
       receivers:
       - otlp
       - generator
+      - lightstep-streams
       processors: 
       - batch
       - webhook
