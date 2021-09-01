@@ -11,6 +11,11 @@ RUN /go/bin/opentelemetry-collector-builder --config /build/builder-config.yml -
 
 FROM debian:stretch-slim
 
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends ca-certificates
+
+RUN update-ca-certificates
+
 RUN mkdir -p /etc/otel
 WORKDIR /otel
 
