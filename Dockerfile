@@ -25,6 +25,7 @@ COPY --from=builder /build/config/collector-config.yml /etc/otel/config.yaml
 
 ENV TOPO_FILE=/etc/otel/hipster_shop.json
 ENV OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=ingest.lightstep.com:443
+ENV OTEL_INSECURE=false
 
 ENTRYPOINT [ "./lightstep-partner-collector" ]
 CMD [ "--config", "/etc/otel/config.yaml" ]

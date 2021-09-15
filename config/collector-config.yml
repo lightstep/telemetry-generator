@@ -41,6 +41,7 @@ exporters:
   otlp:
     endpoint: "${OTEL_EXPORTER_OTLP_TRACES_ENDPOINT}"
     insecure_skip_verify: true
+    insecure: "${OTEL_INSECURE}"
     headers:
       "lightstep-access-token": "${LS_ACCESS_TOKEN}"
 
