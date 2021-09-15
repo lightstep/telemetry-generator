@@ -39,7 +39,7 @@ exporters:
   logging:
   # Export to Lightstep Public Satellites
   otlp:
-    endpoint: ingest.lightstep.com:443
+    endpoint: "${OTEL_EXPORTER_OTLP_TRACES_ENDPOINT}"
     insecure_skip_verify: true
     headers:
       "lightstep-access-token": "${LS_ACCESS_TOKEN}"
