@@ -111,8 +111,8 @@ func (g *TraceGenerator) createSpanForServiceRouteCall(traces *pdata.Traces, ser
 		maxEndTime = Max(maxEndTime, childStartTimeMicros)
 	}
 	ownDuration := g.random.Int63n(route.MaxLatencyMillis * 1000000)
-	span.SetStartTimestamp(pdata.TimestampFromTime(time.Unix(0, startTimeMicros)))
-	span.SetEndTimestamp(pdata.TimestampFromTime(time.Unix(0, maxEndTime + ownDuration)))
+	span.SetStartTimestamp(pdata.NewTimestampFromTime(time.Unix(0, startTimeMicros)))
+	span.SetEndTimestamp(pdata.NewTimestampFromTime(time.Unix(0, maxEndTime + ownDuration)))
 	g.sequenceNumber = g.sequenceNumber + 1
 	return &span
 }

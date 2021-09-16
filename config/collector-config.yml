@@ -1,13 +1,10 @@
-extensions:
-  health_check:
-
 receivers:
   # Generate traces from the given topology file (env var: TOPO_FILE)
-  lightstep-streams:
-    organization: LightStep
-    project: Robin-Hipster-Shop
-    api_key: "${LIGHTSTEP_API_KEY}"
-    stream_id: QQRrtJmW
+  # lightstep-streams:
+  #  organization: LightStep
+  #  project: Robin-Hipster-Shop
+  #  api_key: "${LIGHTSTEP_API_KEY}"
+  #  stream_id: QQRrtJmW
   generator:
     path: "${TOPO_FILE}"
   otlp:
@@ -21,10 +18,6 @@ receivers:
 
 processors:
   batch:
-  # Annotate traces with Backstage metadata
-  backstage:
-    backstage_server: 
-      endpoint: http://0.0.0.0:7000
   # Add/remove trace or metric attributes via webhook
   webhook:
     traces_ingress:
@@ -46,7 +39,6 @@ exporters:
       "lightstep-access-token": "${LS_ACCESS_TOKEN}"
 
 service:
-  extensions: [health_check]
   pipelines:
     metrics:
       receivers:
@@ -54,7 +46,7 @@ service:
       - generator
       processors:
       - batch
-      - webhook
+#     - webhook
       exporters:
       - otlp
       - logging
@@ -63,7 +55,7 @@ service:
       receivers:
       - otlp
       - generator
-      - lightstep-streams
+#      - lightstep-streams
       processors: 
       - batch
       - webhook
