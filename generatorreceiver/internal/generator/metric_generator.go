@@ -31,8 +31,8 @@ func (g *MetricGenerator) Generate(metricName string, metricType string, service
 	m.SetName(metricName)
 	m.SetDataType(pdata.MetricDataTypeGauge)
 	dp := m.Gauge().DataPoints().AppendEmpty()
-	dp.SetTimestamp(pdata.TimestampFromTime(time.Now()))
-	dp.SetValue((math.Sin(.01 * float64(g.metricCount)) + 1) * 100)
+	dp.SetTimestamp(pdata.NewTimestampFromTime(time.Now()))
+	dp.SetDoubleVal((math.Sin(.01 * float64(g.metricCount)) + 1) * 100)
 
 	g.metricCount = g.metricCount + 1
 	return metrics

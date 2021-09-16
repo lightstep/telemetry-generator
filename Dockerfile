@@ -7,7 +7,7 @@ RUN GO111MODULE=on go get github.com/open-telemetry/opentelemetry-collector-buil
 
 ADD . .
 
-RUN /go/bin/opentelemetry-collector-builder --config /build/builder-config.yml --otelcol-version 0.30.0
+RUN /go/bin/opentelemetry-collector-builder --config /build/builder-config.yml
 
 FROM debian:stretch-slim
 
