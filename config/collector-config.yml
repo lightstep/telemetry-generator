@@ -18,16 +18,12 @@ receivers:
 
 processors:
   batch:
-  # Annotate traces with Backstage metadata
-  # backstage:
-  #  backstage_server:
-  #    endpoint: http://0.0.0.0:7000
   # Add/remove trace or metric attributes via webhook
-  # webhook:
-  #  traces_ingress:
-  #    endpoint: 0.0.0.0:7070
-  #  metrics_ingress:
-  #    endpoint: 0.0.0.0:7071
+  webhook:
+    traces_ingress:
+      endpoint: 0.0.0.0:7070
+    metrics_ingress:
+      endpoint: 0.0.0.0:7071
 
 exporters:
   service:
@@ -62,7 +58,7 @@ service:
 #      - lightstep-streams
       processors: 
       - batch
-#      - webhook
+      - webhook
       exporters:
       - logging
       - otlp
