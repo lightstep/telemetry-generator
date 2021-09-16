@@ -1,9 +1,9 @@
-FROM golang:1.15-stretch as builder
+FROM golang:1.17-stretch as builder
 
 RUN mkdir /build
 WORKDIR /build
 
-RUN GO111MODULE=on go get github.com/open-telemetry/opentelemetry-collector-builder
+RUN GO111MODULE=on go get github.com/open-telemetry/opentelemetry-collector-builder@v0.30.0
 
 ADD . .
 
