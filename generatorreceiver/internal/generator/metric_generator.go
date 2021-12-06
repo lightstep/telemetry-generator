@@ -29,10 +29,17 @@ func (g *MetricGenerator) Generate(metricName string, metricType string, service
 
 	m := rms.InstrumentationLibraryMetrics().AppendEmpty().Metrics().AppendEmpty()
 	m.SetName(metricName)
-	m.SetDataType(pdata.MetricDataTypeGauge)
-	dp := m.Gauge().DataPoints().AppendEmpty()
-	dp.SetTimestamp(pdata.NewTimestampFromTime(time.Now()))
-	dp.SetDoubleVal((math.Sin(.01 * float64(g.metricCount)) + 1) * 100)
+	if metricType == "Gauge" {
+		m.SetDataType(pdata.MetricDataTypeGauge)
+		dp := m.Gauge().DataPoints().AppendEmpty()
+		dp.SetTimestamp(pdata.NewTimestampFromTime(time.Now()))
+		dp.SetDoubleVal((math.Sin(.01 * float64(g.metricCount)) + 1) * 100)
+	} else if metricType == "Sum" {
+		m.SetDataType(pdata.MetricDataTypeSum)
+		dp := m.Sum().DataPoints().AppendEmpty()
+		dp.SetTimestamp(pdata.NewTimestampFromTime(time.Now()))
+		dp.SetDoubleVal((math.Sin(.01 * float64(g.metricCount)) + 1) * 100)
+	}
 
 	g.metricCount = g.metricCount + 1
 	return metrics

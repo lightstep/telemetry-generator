@@ -15,21 +15,33 @@
         "metrics": [
           {
             "name": "gauge.1",
-            "type": "Counter",
+            "type": "Gauge",
             "max": 1000000,
             "min": 1024
           },
           {
             "name": "gauge.2",
-            "type": "Counter",
+            "type": "Gauge",
             "max": 5000,
             "min": 200
           },
           {
             "name": "gauge.3",
-            "type": "Counter",
+            "type": "Gauge",
             "max": 650,
             "min": 10
+          },
+          {
+            "name": "sum.1",
+            "type": "Sum"
+          },
+          {
+            "name": "sum.2",
+            "type": "Sum"
+          },
+          {
+            "name": "sum.3",
+            "type": "Sum"
           }
         ],
         "routes" : [
