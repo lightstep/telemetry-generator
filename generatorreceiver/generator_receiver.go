@@ -2,7 +2,10 @@ package generatorreceiver
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"github.com/lightstep/lightstep-partner-sdk/collector/generatorreceiver/internal/generator"
+	"github.com/lightstep/lightstep-partner-sdk/collector/generatorreceiver/internal/topology"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/component/componenterror"
 	"go.opentelemetry.io/collector/consumer"
@@ -15,13 +18,34 @@ type generatorReceiver struct {
 	traceConsumer   consumer.Traces
 	metricConsumer   consumer.Metrics
 	topoPath   string
+	topoInline    string
 	randomSeed int64
 	metricGen  *generator.MetricGenerator
 	tickers    []*time.Ticker
 }
 
+func (g generatorReceiver) loadTopoFile(topoInline string, path string) (*topology.File, error) {
+	var topoFile topology.File
+
+	// fetch from env var.
+	if len(topoInline) > 0 {
+		g.logger.Info("reading topo inline")
+		err := json.Unmarshal([]byte(topoInline), &topoFile)
+		if err != nil {
+			return nil, fmt.Errorf("could not parse inline json file: %v", err)
+		}
+		return &topoFile, nil
+	}
+	g.logger.Info("reading topo from file path", zap.String("path", g.topoPath))
+	parsedFile, err := parseTopoFile(path)
+	if err != nil {
+		return nil, err
+	}
+	return parsedFile, nil
+}
+
 func (g generatorReceiver) Start(ctx context.Context, host component.Host) error {
-	topoFile, err := parseTopoFile(g.topoPath)
+	topoFile, err := g.loadTopoFile(g.topoInline, g.topoPath)
 	if err != nil {
 		host.ReportFatalError(err)
 	}
@@ -100,6 +124,7 @@ func newMetricReceiver(config *Config,
 
 	genReceiver.logger = logger
 	genReceiver.topoPath = config.Path
+	genReceiver.topoInline = config.InlineFile
 	genReceiver.randomSeed = randomSeed
 	genReceiver.metricConsumer = consumer
 	return &genReceiver, nil

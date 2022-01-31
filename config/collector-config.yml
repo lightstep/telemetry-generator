@@ -2,6 +2,7 @@ receivers:
   # Generate traces from the given topology file (env var: TOPO_FILE)
   generator:
     path: "${TOPO_FILE}"
+    inline: "${TOPO_INLINE}"
 
   # Dummy receiver that's never used, because a pipeline is required to have one.
   otlp/spanmetrics:
