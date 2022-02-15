@@ -1,3 +1,7 @@
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+
 receivers:
   # Generate traces from the given topology file (env var: TOPO_FILE)
   generator:
@@ -13,7 +17,7 @@ receivers:
   otlp:
     protocols:
       http:
-        endpoint: 0.0.0.0:55681
+        endpoint: 0.0.0.0:58888
         cors_allowed_origins:
           - '*'
       grpc:
@@ -48,6 +52,7 @@ exporters:
       "lightstep-access-token": "${LS_ACCESS_TOKEN}"
 
 service:
+  extensions: [health_check]
   pipelines:
     metrics:
       receivers:

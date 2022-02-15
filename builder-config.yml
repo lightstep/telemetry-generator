@@ -24,3 +24,6 @@ receivers:
   - gomod: "github.com/lightstep/lightstep-partner-sdk/collector/streamreceiver v0.0.1"
     name: "streamreceiver"
     path: "./streamreceiver"
+extensions:
+  - gomod: "github.com/open-telemetry/opentelemetry-collector-contrib/extension/healthcheckextension v0.35.0"
+    name: "healthcheckextension"
