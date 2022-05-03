@@ -13,6 +13,8 @@ processors:
     path: "./webhookprocessor" # in case a local version should be used for the module, the path relative to the current dir, or a full path can be specified. Optional.
   - gomod: "github.com/open-telemetry/opentelemetry-collector-contrib/processor/spanmetricsprocessor v0.35.0"
     name: "spanmetricsprocessor"
+  - gomod: "github.com/open-telemetry/opentelemetry-collector-contrib/processor/resourcedetectionprocessor v0.35.0"
+    name: "resourcedetectionprocessor"
 exporters:
   - gomod: "github.com/lightstep/lightstep-partner-sdk/collector/serviceexporter v0.0.1"
     name: "serviceexporter"
