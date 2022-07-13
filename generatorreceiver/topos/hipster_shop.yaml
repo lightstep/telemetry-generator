@@ -1,0 +1,293 @@
+topology:
+  services:
+    - serviceName: frontend
+      tagSets:
+        - weight: 1
+          tags:
+            version: v127
+        - weight: 1
+          tags:
+            version: v125
+        - weight: 2
+          tags:
+            version: v125
+      resourceAttrSets:
+        - weight: 1
+          resourceAttrs:
+            cloud.provider: aws
+            cloud.region: us-east-1
+            k8s.cluster.name: k8s-cluster-1
+            host.name: ip-172-31-41-139.us-west-2.compute.internal
+            host.id: i-0109aa378a31b4e29
+        - weight: 1
+          resourceAttrs:
+            cloud.provider: aws
+            cloud.region: us-west-2
+            k8s.cluster.name: k8s-cluster-1
+            host.name: ip-172-31-41-140.us-west-2.compute.internal
+      metrics:
+        - name: gauge.1
+          type: Gauge
+          max: 1000000
+          min: 1024
+        - name: gauge.2
+          type: Gauge
+          max: 5000
+          min: 200
+        - name: gauge.3
+          type: Gauge
+          max: 650
+          min: 10
+        - name: sum.1
+          type: Sum
+        - name: sum.2
+          type: Sum
+        - name: sum.3
+          type: Sum
+      routes:
+        - route: /product
+          downstreamCalls:
+            productcatalogservice: /GetProducts
+            recommendationservice: /GetRecommendations
+            adservice: /AdRequest
+          maxLatencyMillis: 200
+          tagSets:
+            - weight: 1
+              tags:
+                starter: charmander
+              tagGenerators:
+                - numTags: 50
+                  numVals: 3000
+                  valLength: 16
+            - weight: 1
+              tags:
+                starter: squirtle
+            - weight: 1
+              tags:
+                starter: bulbasaur
+        - route: /cart
+          downstreamCalls:
+            cartservice: /GetCart
+            recommendationservice: /GetRecommendations
+          maxLatencyMillis: 100
+        - route: /checkout
+          downstreamCalls:
+            checkoutservice: /PlaceOrder
+          maxLatencyMillis: 800
+        - route: /shipping
+          downstreamCalls:
+            shippingservice: /GetQuote
+          maxLatencyMillis: 50
+        - route: /currency
+          downstreamCalls:
+            currencyservice: /GetConversion
+          maxLatencyMillis: 50
+    - serviceName: productcatalogservice
+      tagSets:
+        - tags:
+            version: v52
+          inherit:
+            - region
+      resourceAttrSets:
+        - weight: 1
+          resourceAttrs:
+            cloud.provider: azure
+            cloud.region: Central-US
+            k8s.cluster.name: k8s-cluster-2
+            host.type: t3.medium
+            host.name: productcatalogservice-d847fdcf5-j6s2f
+        - weight: 1
+          resourceAttrs:
+            cloud.provider: azure
+            cloud.region: West-US
+            k8s.cluster.name: k8s-cluster-2
+            host.type: t3.medium
+            host.name: productcatalogservice-6b654dbf57-zq8dt
+      routes:
+        - route: /GetProducts
+          downstreamCalls: {}
+          maxLatencyMillis: 100
+          tagSets:
+            - inherit:
+                - starter
+        - route: /SearchProducts
+          downstreamCalls: {}
+          tagSets:
+            - weight: 15
+              tags:
+                error: true
+                http.status_code: 503
+            - weight: 85
+              tags: {}
+          maxLatencyMillis: 400
+    - serviceName: recommendationservice
+      tagSets:
+        - tags:
+            version: v234
+            region: us-east-1
+      resourceAttrSets:
+        - weight: 1
+          resourceAttrs:
+            cloud.provider: aws
+            cloud.region: us-west-2
+            k8s.cluster.name: k8s-cluster-3
+            host.name: recommendationservice-6b654dbf57-zq8dt
+        - weight: 1
+          resourceAttrs:
+            cloud.provider: aws
+            cloud.region: us-west-1
+            k8s.cluster.name: k8s-cluster-3
+            host.name: recommendationservice-d847fdcf5-j6s2f
+      routes:
+        - route: /GetRecommendations
+          downstreamCalls:
+            productcatalogservice: /GetProducts
+          maxLatencyMillis: 200
+    - serviceName: cartservice
+      tagSets:
+        - tags:
+            version: v5
+            region: us-east-1
+      resourceAttrSets:
+        - weight: 1
+          resourceAttrs:
+            host.name: cartservice-hostname
+      routes:
+        - route: /GetCart
+          downstreamCalls: {}
+          maxLatencyMillis: 200
+    - serviceName: checkoutservice
+      tagSets:
+        - tags:
+            version: v37
+            region: us-east-1
+      resourceAttrSets:
+        - weight: 1
+          resourceAttrs:
+            host.name: checkoutservice-hostname
+      routes:
+        - route: /PlaceOrder
+          downstreamCalls:
+            paymentservice: /CreditCardInfo
+            shippingservice: /Address
+            currencyservice: /GetConversion
+            cartservice: /GetCart
+            emailservice: /SendOrderConfirmation
+          tagSets:
+            - weight: 25
+              tags:
+                error: true
+                http.status_code: 503
+            - weight: 85
+              tags: {}
+          maxLatencyMillis: 500
+    - serviceName: paymentservice
+      tagSets:
+        - tags:
+            version: v177
+            region: us-east-1
+      resourceAttrSets:
+        - weight: 1
+          resourceAttrs:
+            host.name: paymentservice-hostname
+      routes:
+        - route: /ChargeRequest
+          downstreamCalls:
+            paymentservice: /CreditCardInfo
+          maxLatencyMillis: 700
+        - route: /CreditCardInfo
+          downstreamCalls: {}
+          maxLatencyMillis: 50
+    - serviceName: shippingservice
+      tagSets:
+        - tags:
+            version: v127
+            region: us-east-1
+      resourceAttrSets:
+        - weight: 1
+          resourceAttrs:
+            host.name: shippingservice-hostname
+      routes:
+        - route: /GetQuote
+          downstreamCalls:
+            shippingservice: /Address
+          maxLatencyMillis: 250
+        - route: /ShipOrder
+          downstreamCalls:
+            shippingservice: /Address
+          maxLatencyMillis: 500
+        - route: /Address
+          downstreamCalls: {}
+          maxLatencyMillis: 100
+    - serviceName: emailservice
+      tagSets:
+        - tags:
+            version: v27
+            region: us-east-1
+      resourceAttrSets:
+        - weight: 1
+          resourceAttrs:
+            host.name: emailservice-hostname
+      routes:
+        - route: /SendOrderConfirmation
+          downstreamCalls:
+            emailservice: /OrderResult
+          tagSets:
+            - weight: 15
+              tags:
+                error: true
+                http.status_code: 503
+            - weight: 85
+              tags: {}
+          maxLatencyMillis: 500
+        - route: /OrderResult
+          downstreamCalls: {}
+          maxLatencyMillis: 100
+    - serviceName: currencyservice
+      tagSets:
+        - tags:
+            version: v27
+            region: us-east-1
+      resourceAttrSets:
+        - weight: 1
+          resourceAttrs:
+            host.name: currencyservice-hostname
+      routes:
+        - route: /GetConversion
+          downstreamCalls:
+            currencyservice: /Money
+          maxLatencyMillis: 100
+        - route: /Money
+          downstreamCalls: {}
+          maxLatencyMillis: 100
+    - serviceName: adservice
+      tagSets:
+        - version: v37
+          region: us-east-1
+      resourceAttrSets:
+        - weight: 1
+          resourceAttrs:
+            host.name: adservice-hostname
+      routes:
+        - route: /AdRequest
+          downstreamCalls: {}
+          maxLatencyMillis: 500
+        - route: /Ad
+          downstreamCalls: {}
+          maxLatencyMillis: 500
+rootRoutes:
+  - service: frontend
+    route: /product
+    tracesPerHour: 2880
+  - service: frontend
+    route: /cart
+    tracesPerHour: 1400
+  - service: frontend
+    route: /shipping
+    tracesPerHour: 480
+  - service: frontend
+    route: /currency
+    tracesPerHour: 200
+  - service: frontend
+    route: /checkout
+    tracesPerHour: 480
