@@ -3,9 +3,9 @@ package topology
 import "math/rand"
 
 type TagGenerator struct {
-	ValLength int `json:"valLength,omitempty"`
-	NumTags int `json:"numTags,omitempty"`
-	NumVals int `json:"numVals,omitempty"`
+	ValLength int `json:"valLength,omitempty" yaml:"valLength,omitempty"`
+	NumTags int `json:"numTags,omitempty" yaml:"numTags,omitempty"`
+	NumVals int `json:"numVals,omitempty" yaml:"numVals,omitempty"`
 	Random *rand.Rand
 }
 

@@ -38,6 +38,7 @@ func (g generatorReceiver) loadTopoFile(topoInline string, path string) (*topolo
 	}
 	g.logger.Info("reading topo from file path", zap.String("path", g.topoPath))
 	parsedFile, err := parseTopoFile(path)
+
 	if err != nil {
 		return nil, err
 	}

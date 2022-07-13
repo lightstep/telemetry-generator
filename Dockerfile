@@ -20,7 +20,7 @@ RUN mkdir -p /etc/otel
 WORKDIR /otel
 
 COPY --from=builder /tmp/ls-partner-col-distribution/lightstep-partner-collector .
-COPY --from=builder /build/generatorreceiver/topos/hipster_shop.json /etc/otel/hipster_shop.json
+COPY --from=builder /build/generatorreceiver/topos/* /etc/otel/
 COPY --from=builder /build/config/collector-config.yml /etc/otel/config.yaml
 
 ENV TOPO_FILE=/etc/otel/hipster_shop.json

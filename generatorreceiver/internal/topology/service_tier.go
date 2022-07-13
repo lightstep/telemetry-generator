@@ -3,11 +3,11 @@ package topology
 import "math/rand"
 
 type ServiceTier struct {
-	ServiceName string `json:"serviceName"`
-	Routes []ServiceRoute `json:"routes"`
-	TagSets []TagSet `json:"tagSets"`
-	ResourceAttributeSets []ResourceAttributeSet `json:"resourceAttrSets"`
-	Metrics []Metric `json:"metrics"`
+	ServiceName string `json:"serviceName" yaml:"serviceName"`
+	Routes []ServiceRoute `json:"routes" yaml:"routes"`
+	TagSets []TagSet `json:"tagSets" yaml:"tagSets"`
+	ResourceAttributeSets []ResourceAttributeSet `json:"resourceAttrSets" yaml:"resourceAttrSets"`
+	Metrics []Metric `json:"metrics" yaml:"metrics"`
 	Random *rand.Rand
 }
 

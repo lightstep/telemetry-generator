@@ -3,7 +3,7 @@ package topology
 
 
 type Topology struct  {
-	Services []ServiceTier `json:"services"`
+	Services []ServiceTier `json:"services" yaml:"services"`
 }
 
 func (t *Topology) GetServiceTier(serviceName string) *ServiceTier {
