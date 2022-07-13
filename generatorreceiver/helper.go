@@ -7,7 +7,18 @@ import (
 	"github.com/lightstep/lightstep-partner-sdk/collector/generatorreceiver/internal/topology"
 	"io/ioutil"
 	"os"
+	"fmt"
 )
+
+func hasAnySuffix(s string, suffixes []string) bool {
+	for _, suffix := range suffixes {
+		if strings.HasSuffix(s, suffix) {
+			return true
+		}
+	}
+
+	return false
+}
 
 func parseTopoFile(topoPath string) (*topology.File, error){
 	var topo topology.File
@@ -22,8 +33,10 @@ func parseTopoFile(topoPath string) (*topology.File, error){
 	lowerTopoPath := strings.ToLower(topoPath)
 	if strings.HasSuffix(lowerTopoPath, ".json") {
 		err = json.Unmarshal(byteValue, &topo)
-	} else if strings.HasSuffix(lowerTopoPath, ".yaml") {
+	} else if hasAnySuffix(lowerTopoPath, []string{".yaml", ".yml"}) {
 		err = yaml.Unmarshal(byteValue, &topo)
+	} else {
+		err = fmt.Errorf("Unrecognized topology file type: %s", topoPath)
 	}
 
 	if err != nil {
