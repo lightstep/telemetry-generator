@@ -63,23 +63,35 @@ func (g *TraceGenerator) genSpanId() pdata.SpanID {
 func (g *TraceGenerator) Generate(startTimeMicros int64) *pdata.Traces {
 	rootService := g.topology.GetServiceTier(g.service)
 	traces := pdata.NewTraces()
-	g.createSpanForServiceRouteCall(&traces, rootService, g.route, startTimeMicros, g.genTraceId(), pdata.NewSpanID([8]byte{0x0}))
+	if g.shouldCreateSpanForRoute(rootService, g.route) {
+		g.createSpanForServiceRouteCall(&traces, rootService, g.route, startTimeMicros, g.genTraceId(), pdata.NewSpanID([8]byte{0x0}))
+	}
 	return &traces
 }
 
+func (g *TraceGenerator) shouldCreateSpanForRoute(serviceTier *topology.ServiceTier, r string) bool {
+	// TODO: multiple routes with the same name not supported
+	route := serviceTier.GetRoute(r)
+
+	if len(route.FlagSet) > 0 {
+		f := g.flagManager.GetFlag(route.FlagSet)
+		return f.Enabled()
+	} else if len(route.FlagUnset) > 0 {
+		f := g.flagManager.GetFlag(route.FlagUnset)
+		return !f.Enabled()
+	}
+	return true
+}
+
 func (g *TraceGenerator) createSpanForServiceRouteCall(traces *pdata.Traces, serviceTier *topology.ServiceTier, routeName string, startTimeMicros int64, traceId pdata.TraceID, parentSpanId pdata.SpanID) *pdata.Span {
+	logger := log.New(os.Stdout, "trace_generator: ", log.LstdFlags)
 	serviceTier.Random = g.random
 	route := serviceTier.GetRoute(routeName)
-
-	// TODO: toggle span generate based on flag set/unset
-	//flagSet := route.FlagSet
-	//flagUnset := route.FlagUnset
-	//g.flagManager.GetFlag(flagSet)
-	logger := log.New(os.Stdout, "trace_generator: ", log.LstdFlags)
 	if route.LatencyPercentiles != nil {
 		p50, p95, p99, p999, _ := route.LatencyPercentiles.ParseDurations()
 		logger.Printf("Latency Percentiles Parsed: %s, %s, %s, %s", p50, p95, p99, p999)
 	}
+
 	rspanSlice := traces.ResourceSpans()
 	rspan := rspanSlice.AppendEmpty()
 
@@ -132,7 +144,9 @@ func (g *TraceGenerator) createSpanForServiceRouteCall(traces *pdata.Traces, ser
 			childStartTimeMicros = startTimeMicros + (g.random.Int63n(route.MaxLatencyMillis * 1000000))
 		}
 		childSvc := g.topology.GetServiceTier(s)
-		g.createSpanForServiceRouteCall(traces, childSvc, r, childStartTimeMicros, traceId, newSpanId)
+		if g.shouldCreateSpanForRoute(childSvc, r) {
+			g.createSpanForServiceRouteCall(traces, childSvc, r, childStartTimeMicros, traceId, newSpanId)
+		}
 		maxEndTime = Max(maxEndTime, childStartTimeMicros)
 	}
 

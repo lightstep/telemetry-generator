@@ -17,12 +17,14 @@ type Flag struct {
 }
 
 func (g *Flag) Enabled() bool {
-	return g.state == 0
+	return g.state > 0
 }
 
 type FlagManager struct {
 	Flags []*Flag
 }
+const DISABLED_STATE = -1.0
+const ENABLED_STATE = 1.0
 
 func NewFlagManager(configFlags []Flag, logger *zap.Logger) *FlagManager {
 	var flags []*Flag
@@ -33,7 +35,7 @@ func NewFlagManager(configFlags []Flag, logger *zap.Logger) *FlagManager {
 				cron.PrintfLogger(log.New(os.Stdout, "cron: ", log.LstdFlags))))
 		_, err := v.cron.AddFunc(v.Start, func() {
 			logger.Info("toggling flag on", zap.String("flag", v.Name))
-			v.state = 1.0
+			v.state = ENABLED_STATE
 		})
 		if err != nil {
 			logger.Error("error adding flag start schedule", zap.Error(err))
@@ -41,7 +43,7 @@ func NewFlagManager(configFlags []Flag, logger *zap.Logger) *FlagManager {
 
 		_, err = v.cron.AddFunc(v.End, func() {
 			logger.Info("toggling flag off", zap.String("flag", v.Name))
-			v.state = 0.0
+			v.state = DISABLED_STATE
 		})
 		if err != nil {
 			logger.Error("error adding flag stop schedule", zap.Error(err))
