@@ -13,14 +13,14 @@ import (
 )
 
 type TraceGenerator struct {
-	topology *topology.Topology
-	service string
-	route string
+	topology       *topology.Topology
+	service        string
+	route          string
 	sequenceNumber int
-	random *rand.Rand
+	random         *rand.Rand
 	sync.Mutex
 	tagNameGenerator topology.Generator
-	flagManager *flags.FlagManager
+	flagManager      *flags.FlagManager
 }
 
 func NewTraceGenerator(t *topology.Topology, seed int64, service string, route string, fm *flags.FlagManager) *TraceGenerator {
@@ -28,10 +28,10 @@ func NewTraceGenerator(t *topology.Topology, seed int64, service string, route s
 	r.Seed(seed)
 
 	tg := &TraceGenerator{
-		topology: t,
-		random: r,
-		service: service,
-		route: route,
+		topology:    t,
+		random:      r,
+		service:     service,
+		route:       route,
 		flagManager: fm,
 	}
 	return tg
@@ -57,6 +57,7 @@ func (g *TraceGenerator) genSpanId() pdata.SpanID {
 	return pdata.NewSpanID(traceId)
 }
 
+// starts from now
 func (g *TraceGenerator) Generate(startTimeMicros int64) *pdata.Traces {
 	rootService := g.topology.GetServiceTier(g.service)
 	traces := pdata.NewTraces()
@@ -80,12 +81,12 @@ func (g *TraceGenerator) createSpanForServiceRouteCall(traces *pdata.Traces, ser
 
 	resource.Attributes().InsertString(string(semconv.ServiceNameKey), serviceTier.ServiceName)
 
-	resourceAttributeSet := serviceTier.GetResourceAttributeSet(); if resourceAttributeSet != nil {
+	resourceAttributeSet := serviceTier.GetResourceAttributeSet()
+	if resourceAttributeSet != nil {
 		for k, v := range resourceAttributeSet.ResourceAttributes {
 			resource.Attributes().InsertString(k, fmt.Sprintf("%v", v))
 		}
 	}
-
 
 	ils := rspan.InstrumentationLibrarySpans().AppendEmpty()
 	spans := ils.Spans()
@@ -114,14 +115,26 @@ func (g *TraceGenerator) createSpanForServiceRouteCall(traces *pdata.Traces, ser
 
 	maxEndTime := startTimeMicros
 	for s, r := range route.DownstreamCalls {
-		childStartTimeMicros := startTimeMicros + (g.random.Int63n(route.MaxLatencyMillis * 1000000))
+		var childStartTimeMicros int64
+		if route.LatencyPercentiles != nil {
+			childStartTimeMicros = startTimeMicros + calculateLatencyBasedOnPercentiles(route.LatencyPercentiles)
+		} else {
+			childStartTimeMicros = startTimeMicros + (g.random.Int63n(route.MaxLatencyMillis * 1000000))
+		}
 		childSvc := g.topology.GetServiceTier(s)
 		g.createSpanForServiceRouteCall(traces, childSvc, r, childStartTimeMicros, traceId, newSpanId)
 		maxEndTime = Max(maxEndTime, childStartTimeMicros)
 	}
-	ownDuration := g.random.Int63n(route.MaxLatencyMillis * 1000000)
+
+	var ownDuration int64
+	if route.LatencyPercentiles != nil {
+		ownDuration = calculateLatencyBasedOnPercentiles(route.LatencyPercentiles)
+	} else {
+		ownDuration = g.random.Int63n(route.MaxLatencyMillis * 1000000)
+	}
+
 	span.SetStartTimestamp(pdata.NewTimestampFromTime(time.Unix(0, startTimeMicros)))
-	span.SetEndTimestamp(pdata.NewTimestampFromTime(time.Unix(0, maxEndTime + ownDuration)))
+	span.SetEndTimestamp(pdata.NewTimestampFromTime(time.Unix(0, maxEndTime+ownDuration)))
 	g.sequenceNumber = g.sequenceNumber + 1
 	return &span
 }
@@ -131,4 +144,22 @@ func Max(x, y int64) int64 {
 		return y
 	}
 	return x
+}
+
+func calculateLatencyBasedOnPercentiles(routePercentiles *topology.LatencyPercentiles) int64 {
+	p50, p90, p999, err := routePercentiles.ParseDurations()
+	if err != nil {
+		return 0
+	}
+	genNumber := rand.Float64()
+	switch {
+	case genNumber < 0.5:
+		return p50.Microseconds()
+	case genNumber < 0.9:
+		return p90.Microseconds()
+	case genNumber < 0.999:
+		return p999.Microseconds()
+	default:
+		return 0
+	}
 }

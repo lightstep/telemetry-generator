@@ -8,7 +8,7 @@ type LatencyPercentiles struct {
 	P999 string `json:"p99.9" yaml:"p99.9"`
 }
 
-func (l *LatencyPercentiles) parseDurations() (time.Duration, time.Duration, time.Duration, error) {
+func (l *LatencyPercentiles) ParseDurations() (time.Duration, time.Duration, time.Duration, error) {
 	// TODO/future things:
 	// 		normalize function for config parsing
 	// 		maybe enforce either MaxLatencyMillis or LatencyPercentiles but not both?
