@@ -275,6 +275,11 @@ topology:
         - route: /Ad
           downstreamCalls: {}
           maxLatencyMillis: 500
+flags:
+  - name: incident1
+    # https://crontab.guru/#15,30,45_*_*_*_*
+    start: "* * * * *"
+    end: "30 * * * *"
 rootRoutes:
   - service: frontend
     route: /product

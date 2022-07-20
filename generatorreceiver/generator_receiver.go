@@ -24,6 +24,7 @@ type generatorReceiver struct {
 	randomSeed int64
 	metricGen  *generator.MetricGenerator
 	tickers    []*time.Ticker
+	fm *flags.FlagManager
 }
 
 func (g generatorReceiver) loadTopoFile(topoInline string, path string) (*topology.File, error) {
@@ -53,7 +54,9 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 		host.ReportFatalError(err)
 	}
 
-	fm := flags.NewFlagManager()
+	g.fm = flags.NewFlagManager(topoFile.Flags, g.logger)
+	g.logger.Info("starting flag manager", zap.Int("flag_count", len(g.fm.Flags)))
+	g.fm.Start()
 
 	if g.metricConsumer != nil {
 		for _, s := range topoFile.Topology.Services {
@@ -68,7 +71,7 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 				flagUnset := m.FlagUnset
 				go func() {
 					g.logger.Info("generating metrics", zap.String("service", svc), zap.String("name", metricName))
-					metricGen := generator.NewMetricGenerator(g.randomSeed, fm)
+					metricGen := generator.NewMetricGenerator(g.randomSeed, g.fm)
 					for {
 						select {
 						case <-metricDone:
@@ -95,7 +98,7 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 			route := r.Route
 			go func() {
 				g.logger.Info("generating traces", zap.String("service", svc), zap.String("route", route))
-				traceGen := generator.NewTraceGenerator(topoFile.Topology, g.randomSeed, svc, route, fm)
+				traceGen := generator.NewTraceGenerator(topoFile.Topology, g.randomSeed, svc, route, g.fm)
 				for {
 					select {
 					case <-done:
@@ -118,6 +121,7 @@ func (g generatorReceiver) Shutdown(ctx context.Context) error {
 	for _, t := range g.tickers {
 		t.Stop()
 	}
+	g.fm.Stop()
 	return nil
 }
 
