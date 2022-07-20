@@ -2,7 +2,9 @@ package generator
 
 import (
 	"fmt"
+	"log"
 	"math/rand"
+	"os"
 	"sync"
 	"time"
 
@@ -73,7 +75,11 @@ func (g *TraceGenerator) createSpanForServiceRouteCall(traces *pdata.Traces, ser
 	//flagSet := route.FlagSet
 	//flagUnset := route.FlagUnset
 	//g.flagManager.GetFlag(flagSet)
-
+	logger := log.New(os.Stdout, "trace_generator: ", log.LstdFlags)
+	if route.LatencyPercentiles != nil {
+		p50, p95, p99, p999, _ := route.LatencyPercentiles.ParseDurations()
+		logger.Printf("Latency Percentiles Parsed: %s, %s, %s, %s", p50, p95, p99, p999)
+	}
 	rspanSlice := traces.ResourceSpans()
 	rspan := rspanSlice.AppendEmpty()
 
@@ -114,10 +120,14 @@ func (g *TraceGenerator) createSpanForServiceRouteCall(traces *pdata.Traces, ser
 	}
 
 	maxEndTime := startTimeMicros
+	var percentileBasedLatency int64
+	if route.LatencyPercentiles != nil {
+		percentileBasedLatency = calculateLatencyBasedOnPercentiles(route.LatencyPercentiles)
+	}
 	for s, r := range route.DownstreamCalls {
 		var childStartTimeMicros int64
 		if route.LatencyPercentiles != nil {
-			childStartTimeMicros = startTimeMicros + calculateLatencyBasedOnPercentiles(route.LatencyPercentiles)
+			childStartTimeMicros = startTimeMicros + percentileBasedLatency
 		} else {
 			childStartTimeMicros = startTimeMicros + (g.random.Int63n(route.MaxLatencyMillis * 1000000))
 		}
@@ -128,7 +138,7 @@ func (g *TraceGenerator) createSpanForServiceRouteCall(traces *pdata.Traces, ser
 
 	var ownDuration int64
 	if route.LatencyPercentiles != nil {
-		ownDuration = calculateLatencyBasedOnPercentiles(route.LatencyPercentiles)
+		ownDuration = percentileBasedLatency
 	} else {
 		ownDuration = g.random.Int63n(route.MaxLatencyMillis * 1000000)
 	}
@@ -147,19 +157,23 @@ func Max(x, y int64) int64 {
 }
 
 func calculateLatencyBasedOnPercentiles(routePercentiles *topology.LatencyPercentiles) int64 {
-	p50, p90, p999, err := routePercentiles.ParseDurations()
+	p50, p95, p99, p999, err := routePercentiles.ParseDurations()
 	if err != nil {
 		return 0
 	}
 	genNumber := rand.Float64()
 	switch {
+	// TODO: Need some uniform jitter to make the actual spans not just all in lines which is super unrealistic
+	// TODO - math is wrong somewhere here, in the product even though the duration here is 10 seconds etc. it looks like it gets 10 order of magnitude smaller
 	case genNumber < 0.5:
 		return p50.Microseconds()
-	case genNumber < 0.9:
-		return p90.Microseconds()
+	case genNumber < 0.95:
+		return p95.Microseconds()
+	case genNumber < 0.99:
+		return p99.Microseconds()
 	case genNumber < 0.999:
 		return p999.Microseconds()
 	default:
-		return 0
+		return 0 // fornow
 	}
 }

@@ -12,24 +12,27 @@ import (
 
 func TestLatencyPercentiles(t *testing.T) {
 	percentiles := &topology.LatencyPercentiles{
-		P50:  "50ms",
-		P90:  "100ms",
-		P999: "1000ms",
+		P50:  "10ms",
+		P95:  "100ms",
+		P99:  "1000ms",
+		P999: "10000ms",
 	}
 
-	p50, p90, p999, err := percentiles.ParseDurations()
+	p50, p95, p99, p999, err := percentiles.ParseDurations()
 	require.NoError(t, err)
 
-	p50expected := time.Duration(50 * time.Millisecond)
-	p90expected := time.Duration(100 * time.Millisecond)
-	p999expected := time.Duration(1000 * time.Millisecond)
+	p50expected := time.Duration(10 * time.Millisecond)
+	p95expected := time.Duration(100 * time.Millisecond)
+	p99expected := time.Duration(1000 * time.Millisecond)
+	p999expected := time.Duration(10000 * time.Millisecond)
 
 	require.Equal(t, p50expected, p50)
-	require.Equal(t, p90expected, p90)
+	require.Equal(t, p95expected, p95)
+	require.Equal(t, p99expected, p99)
 	require.Equal(t, p999expected, p999)
 
 	var samples []float64
-	sampleSize := 100
+	sampleSize := 1000
 	for i := 0; i < sampleSize; i++ {
 		samples = append(samples, float64(calculateLatencyBasedOnPercentiles(percentiles)))
 	}
@@ -38,9 +41,13 @@ func TestLatencyPercentiles(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, p50expected.Microseconds(), int64(p50actual))
 
-	p90actual, err := stats.Percentile(samples, 90)
+	p95actual, err := stats.Percentile(samples, 95)
 	require.NoError(t, err)
-	require.Equal(t, p90expected.Microseconds(), int64(p90actual))
+	require.Equal(t, p95expected.Microseconds(), int64(p95actual))
+
+	p99actual, err := stats.Percentile(samples, 99)
+	require.NoError(t, err)
+	require.Equal(t, p99expected.Microseconds(), int64(p99actual))
 
 	p999actual, err := stats.Percentile(samples, 99.9)
 	require.NoError(t, err)
