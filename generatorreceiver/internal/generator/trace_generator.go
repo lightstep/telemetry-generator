@@ -2,12 +2,14 @@ package generator
 
 import (
 	"fmt"
-	"github.com/lightstep/lightstep-partner-sdk/collector/generatorreceiver/internal/topology"
-	"go.opentelemetry.io/collector/model/pdata"
-	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
 	"math/rand"
 	"sync"
 	"time"
+
+	"github.com/lightstep/lightstep-partner-sdk/collector/generatorreceiver/internal/flags"
+	"github.com/lightstep/lightstep-partner-sdk/collector/generatorreceiver/internal/topology"
+	"go.opentelemetry.io/collector/model/pdata"
+	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
 )
 
 type TraceGenerator struct {
@@ -18,9 +20,10 @@ type TraceGenerator struct {
 	random *rand.Rand
 	sync.Mutex
 	tagNameGenerator topology.Generator
+	flagManager *flags.FlagManager
 }
 
-func NewTraceGenerator(t *topology.Topology, seed int64, service string, route string) *TraceGenerator {
+func NewTraceGenerator(t *topology.Topology, seed int64, service string, route string, fm *flags.FlagManager) *TraceGenerator {
 	r := rand.New(rand.NewSource(seed))
 	r.Seed(seed)
 
@@ -29,6 +32,7 @@ func NewTraceGenerator(t *topology.Topology, seed int64, service string, route s
 		random: r,
 		service: service,
 		route: route,
+		flagManager: fm,
 	}
 	return tg
 }
@@ -63,6 +67,11 @@ func (g *TraceGenerator) Generate(startTimeMicros int64) *pdata.Traces {
 func (g *TraceGenerator) createSpanForServiceRouteCall(traces *pdata.Traces, serviceTier *topology.ServiceTier, routeName string, startTimeMicros int64, traceId pdata.TraceID, parentSpanId pdata.SpanID) *pdata.Span {
 	serviceTier.Random = g.random
 	route := serviceTier.GetRoute(routeName)
+
+	// TODO: toggle span generate based on flag set/unset
+	//flagSet := route.FlagSet
+	//flagUnset := route.FlagUnset
+	//g.flagManager.GetFlag(flagSet)
 
 	rspanSlice := traces.ResourceSpans()
 	rspan := rspanSlice.AppendEmpty()

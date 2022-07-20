@@ -4,13 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
+
 	"github.com/lightstep/lightstep-partner-sdk/collector/generatorreceiver/internal/generator"
 	"github.com/lightstep/lightstep-partner-sdk/collector/generatorreceiver/internal/topology"
+	"github.com/lightstep/lightstep-partner-sdk/collector/generatorreceiver/internal/flags"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/component/componenterror"
 	"go.opentelemetry.io/collector/consumer"
 	"go.uber.org/zap"
-	"time"
 )
 
 type generatorReceiver struct {
@@ -51,6 +53,8 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 		host.ReportFatalError(err)
 	}
 
+	fm := flags.NewFlagManager()
+
 	if g.metricConsumer != nil {
 		for _, s := range topoFile.Topology.Services {
 			for _, m := range s.Metrics {
@@ -60,15 +64,17 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 				svc := s.ServiceName
 				metricName := m.Name
 				metricType := m.Type
+				flagSet := m.FlagSet
+				flagUnset := m.FlagUnset
 				go func() {
 					g.logger.Info("generating metrics", zap.String("service", svc), zap.String("name", metricName))
-					metricGen := generator.NewMetricGenerator(g.randomSeed)
+					metricGen := generator.NewMetricGenerator(g.randomSeed, fm)
 					for {
 						select {
 						case <-metricDone:
 							return
 						case _ = <-metricTicker.C:
-							metrics := metricGen.Generate(metricName, metricType, svc)
+							metrics := metricGen.Generate(metricName, metricType, svc, flagSet, flagUnset)
 							err := g.metricConsumer.ConsumeMetrics(ctx, metrics)
 							if err != nil {
 								host.ReportFatalError(err)
@@ -89,7 +95,7 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 			route := r.Route
 			go func() {
 				g.logger.Info("generating traces", zap.String("service", svc), zap.String("route", route))
-				traceGen := generator.NewTraceGenerator(topoFile.Topology, g.randomSeed, svc, route)
+				traceGen := generator.NewTraceGenerator(topoFile.Topology, g.randomSeed, svc, route, fm)
 				for {
 					select {
 					case <-done:
