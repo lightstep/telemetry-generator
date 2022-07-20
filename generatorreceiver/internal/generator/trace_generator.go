@@ -66,6 +66,17 @@ func (g *TraceGenerator) Generate(startTimeMicros int64) *pdata.Traces {
 	return &traces
 }
 
+func (g *TraceGenerator) shouldCreateTagSet(ts topology.TagSet) bool {
+	if len(ts.FlagSet) > 0 {
+		f := g.flagManager.GetFlag(ts.FlagSet)
+		return f.Enabled()
+	} else if len(ts.FlagUnset) > 0 {
+		f := g.flagManager.GetFlag(ts.FlagUnset)
+		return !f.Enabled()
+	}
+	return true
+}
+
 func (g *TraceGenerator) shouldCreateSpanForRoute(serviceTier *topology.ServiceTier, r string) bool {
 	// TODO: multiple routes with the same name not supported
 	route := serviceTier.GetRoute(r)
@@ -112,6 +123,9 @@ func (g *TraceGenerator) createSpanForServiceRouteCall(traces *pdata.Traces, ser
 
 	tagSet := serviceTier.GetTagSet(routeName)
 	for _, ts := range tagSet {
+		if !g.shouldCreateTagSet(ts) {
+			continue
+		}
 		for k, v := range ts.Tags {
 			span.Attributes().InsertString(k, fmt.Sprintf("%v", v))
 		}

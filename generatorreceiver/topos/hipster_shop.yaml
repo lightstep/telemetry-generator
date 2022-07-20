@@ -11,6 +11,10 @@ topology:
         - weight: 2
           tags:
             version: v125
+        - weight: 1
+          flag_set: frontend_errors
+          tags:
+            error: "true"
       resourceAttrSets:
         - weight: 1
           resourceAttrs:
@@ -81,7 +85,6 @@ topology:
         - route: /currency
           downstreamCalls:
             currencyservice: /GetConversion
-          flag_set: currency_conversion_incident
           maxLatencyMillis: 1500
     - serviceName: productcatalogservice
       tagSets:
@@ -237,6 +240,7 @@ topology:
             - weight: 15
               tags:
                 error: true
+                service.version: v122
                 http.status_code: 503
             - weight: 85
               tags: {}
@@ -277,7 +281,7 @@ topology:
           downstreamCalls: {}
           maxLatencyMillis: 500
 flags:
-  - name: currency_conversion_incident
+  - name: frontend_errors
     # use https://crontab.guru/
     start: "0,10,20,30,40,50 * * * *"
     end: "5,15,25,35,45,55 * * * *"
