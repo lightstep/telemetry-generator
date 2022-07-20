@@ -81,7 +81,8 @@ topology:
         - route: /currency
           downstreamCalls:
             currencyservice: /GetConversion
-          maxLatencyMillis: 50
+          flag_set: currency_conversion_incident
+          maxLatencyMillis: 1500
     - serviceName: productcatalogservice
       tagSets:
         - tags:
@@ -276,10 +277,10 @@ topology:
           downstreamCalls: {}
           maxLatencyMillis: 500
 flags:
-  - name: incident1
-    # https://crontab.guru/#15,30,45_*_*_*_*
-    start: "* * * * *"
-    end: "30 * * * *"
+  - name: currency_conversion_incident
+    # use https://crontab.guru/
+    start: "0,10,20,30,40,50 * * * *"
+    end: "5,15,25,35,45,55 * * * *"
 rootRoutes:
   - service: frontend
     route: /product
