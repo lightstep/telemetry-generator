@@ -13,14 +13,14 @@ import (
 )
 
 type TraceGenerator struct {
-	topology *topology.Topology
-	service string
-	route string
+	topology       *topology.Topology
+	service        string
+	route          string
 	sequenceNumber int
-	random *rand.Rand
+	random         *rand.Rand
 	sync.Mutex
 	tagNameGenerator topology.Generator
-	flagManager *flags.FlagManager
+	flagManager      *flags.FlagManager
 }
 
 func NewTraceGenerator(t *topology.Topology, seed int64, service string, route string, fm *flags.FlagManager) *TraceGenerator {
@@ -28,10 +28,10 @@ func NewTraceGenerator(t *topology.Topology, seed int64, service string, route s
 	r.Seed(seed)
 
 	tg := &TraceGenerator{
-		topology: t,
-		random: r,
-		service: service,
-		route: route,
+		topology:    t,
+		random:      r,
+		service:     service,
+		route:       route,
 		flagManager: fm,
 	}
 	return tg
@@ -102,12 +102,12 @@ func (g *TraceGenerator) createSpanForServiceRouteCall(traces *pdata.Traces, ser
 
 	resource.Attributes().InsertString(string(semconv.ServiceNameKey), serviceTier.ServiceName)
 
-	resourceAttributeSet := serviceTier.GetResourceAttributeSet(); if resourceAttributeSet != nil {
+	resourceAttributeSet := serviceTier.GetResourceAttributeSet()
+	if resourceAttributeSet != nil {
 		for k, v := range resourceAttributeSet.ResourceAttributes {
 			resource.Attributes().InsertString(k, fmt.Sprintf("%v", v))
 		}
 	}
-
 
 	ils := rspan.InstrumentationLibrarySpans().AppendEmpty()
 	spans := ils.Spans()
@@ -127,12 +127,12 @@ func (g *TraceGenerator) createSpanForServiceRouteCall(traces *pdata.Traces, ser
 			continue
 		}
 		for k, v := range ts.Tags {
-			span.Attributes().InsertString(k, fmt.Sprintf("%v", v))
+			span.Attributes().InsertString(k, v)
 		}
 		for _, tg := range ts.TagGenerators {
 			tg.Random = g.random
 			for k, v := range tg.GenerateTags() {
-				span.Attributes().InsertString(k, fmt.Sprintf("%v", v))
+				span.Attributes().InsertString(k, v)
 			}
 		}
 	}
@@ -148,7 +148,7 @@ func (g *TraceGenerator) createSpanForServiceRouteCall(traces *pdata.Traces, ser
 	}
 	ownDuration := g.random.Int63n(route.MaxLatencyMillis * 1000000)
 	span.SetStartTimestamp(pdata.NewTimestampFromTime(time.Unix(0, startTimeMicros)))
-	span.SetEndTimestamp(pdata.NewTimestampFromTime(time.Unix(0, maxEndTime + ownDuration)))
+	span.SetEndTimestamp(pdata.NewTimestampFromTime(time.Unix(0, maxEndTime+ownDuration)))
 	g.sequenceNumber = g.sequenceNumber + 1
 	return &span
 }

@@ -1,7 +1,7 @@
 package generator
 
 import (
-	"math"
+	"github.com/lightstep/lightstep-partner-sdk/collector/generatorreceiver/internal/topology"
 	"math/rand"
 	"time"
 
@@ -11,7 +11,7 @@ import (
 
 type MetricGenerator struct {
 	metricCount int
-	random *rand.Rand
+	random      *rand.Rand
 	flagManager *flags.FlagManager
 }
 
@@ -20,34 +20,42 @@ func NewMetricGenerator(seed int64, fm *flags.FlagManager) *MetricGenerator {
 	r.Seed(seed)
 	return &MetricGenerator{
 		metricCount: 0,
-		random: r,
+		random:      r,
 		flagManager: fm,
 	}
 }
 
-func (g *MetricGenerator) Generate(metricName string, metricType string, serviceName string, flagSet string, flagUnset string) pdata.Metrics {
+func (g *MetricGenerator) Generate(metric topology.Metric, serviceName string) (pdata.Metrics, bool) {
 	metrics := pdata.NewMetrics()
 
-	// TODO: toggle metric gen based on flagSet/flagUnset
-	// g.flagManager.GetFlag(flagSet)
+	if !metric.ShouldGenerate(g.flagManager) {
+		return metrics, false
+	}
 
 	rms := metrics.ResourceMetrics().AppendEmpty()
 	rms.Resource().Attributes().InsertString("service.name", serviceName)
 
 	m := rms.InstrumentationLibraryMetrics().AppendEmpty().Metrics().AppendEmpty()
-	m.SetName(metricName)
-	if metricType == "Gauge" {
+	m.SetName(metric.Name)
+	if metric.Type == "Gauge" {
 		m.SetDataType(pdata.MetricDataTypeGauge)
 		dp := m.Gauge().DataPoints().AppendEmpty()
 		dp.SetTimestamp(pdata.NewTimestampFromTime(time.Now()))
-		dp.SetDoubleVal((math.Sin(.01 * float64(g.metricCount)) + 1) * 100)
-	} else if metricType == "Sum" {
+		dp.SetDoubleVal(metric.GetValue())
+		for k, v := range metric.Tags {
+			dp.Attributes().UpsertString(k, v)
+		}
+	} else if metric.Type == "Sum" {
+		// TODO: support histograms instead :-D
 		m.SetDataType(pdata.MetricDataTypeSum)
 		dp := m.Sum().DataPoints().AppendEmpty()
 		dp.SetTimestamp(pdata.NewTimestampFromTime(time.Now()))
-		dp.SetDoubleVal((math.Sin(.01 * float64(g.metricCount)) + 1) * 100)
+		dp.SetDoubleVal(metric.GetValue())
+		for k, v := range metric.Tags {
+			dp.Attributes().UpsertString(k, v)
+		}
 	}
 
 	g.metricCount = g.metricCount + 1
-	return metrics
+	return metrics, true
 }

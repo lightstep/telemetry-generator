@@ -9,11 +9,11 @@ import (
 )
 
 type Flag struct {
-	Name string `json:"name" yaml:"name"`
+	Name  string `json:"name" yaml:"name"`
 	Start string `json:"start" yaml:"start"`
-	End string `json:"end" yaml:"end"`
+	End   string `json:"end" yaml:"end"`
 	state float64
-	cron *cron.Cron
+	cron  *cron.Cron
 }
 
 func (g *Flag) Enabled() bool {
@@ -21,40 +21,43 @@ func (g *Flag) Enabled() bool {
 }
 
 type FlagManager struct {
-	Flags []*Flag
+	Flags map[string]*Flag
 }
+
 const DISABLED_STATE = -1.0
 const ENABLED_STATE = 1.0
 
 func NewFlagManager(configFlags []Flag, logger *zap.Logger) *FlagManager {
-	var flags []*Flag
+	fm := FlagManager{make(map[string]*Flag)}
 
-	for _, v := range configFlags {
-		v.cron = cron.New(
-			cron.WithLogger(
-				cron.PrintfLogger(log.New(os.Stdout, "cron: ", log.LstdFlags))))
-		_, err := v.cron.AddFunc(v.Start, func() {
-			logger.Info("toggling flag on", zap.String("flag", v.Name))
-			v.state = ENABLED_STATE
-		})
-		if err != nil {
-			logger.Error("error adding flag start schedule", zap.Error(err))
-		}
-
-		_, err = v.cron.AddFunc(v.End, func() {
-			logger.Info("toggling flag off", zap.String("flag", v.Name))
-			v.state = DISABLED_STATE
-		})
-		if err != nil {
-			logger.Error("error adding flag stop schedule", zap.Error(err))
-		}
-
-		flags = append(flags, &v)
+	for _, f := range configFlags {
+		fm.AddFlag(f, logger)
 	}
 
-	return &FlagManager{
-		Flags: flags,
+	return &fm
+}
+
+func (g *FlagManager) AddFlag(f Flag, logger *zap.Logger) {
+	f.cron = cron.New(
+		cron.WithLogger(
+			cron.PrintfLogger(log.New(os.Stdout, "cron: ", log.LstdFlags))))
+	_, err := f.cron.AddFunc(f.Start, func() {
+		logger.Info("toggling flag on", zap.String("flag", f.Name))
+		g.Enable(f.Name)
+	})
+	if err != nil {
+		logger.Error("error adding flag start schedule", zap.Error(err))
 	}
+
+	_, err = f.cron.AddFunc(f.End, func() {
+		logger.Info("toggling flag off", zap.String("flag", f.Name))
+		g.Disable(f.Name)
+	})
+	if err != nil {
+		logger.Error("error adding flag stop schedule", zap.Error(err))
+	}
+
+	g.Flags[f.Name] = &f
 }
 
 func (g *FlagManager) Start() {
@@ -70,10 +73,16 @@ func (g *FlagManager) Stop() {
 }
 
 func (g *FlagManager) GetFlag(name string) *Flag {
-	for _, f := range g.Flags {
-		if f.Name == name {
-			return f
-		}
-	}
-	return nil
+	return g.Flags[name]
+}
+
+func (g *FlagManager) Enable(name string) {
+	// TODO: de-hybridize this enabled / state thing
+	g.Flags[name].state = ENABLED_STATE
+}
+
+func (g *FlagManager) Disable(name string) {
+	// TODO: de-hybridize this enabled / state thing
+	g.Flags[name].state = DISABLED_STATE
+
 }

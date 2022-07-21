@@ -3,18 +3,14 @@ topology:
     - serviceName: frontend
       tagSets:
         - weight: 1
-          tags:
-            version: v127
-        - weight: 1
-          tags:
-            version: v125
-        - weight: 2
-          tags:
-            version: v125
-        - weight: 1
           flag_set: frontend_errors
           tags:
-            error: "true"
+            version: v127
+            error: true
+        - weight: 1
+          flag_unset: frontend_errors
+          tags:
+            version: v125
       resourceAttrSets:
         - weight: 1
           resourceAttrs:
@@ -30,24 +26,22 @@ topology:
             k8s.cluster.name: k8s-cluster-1
             host.name: ip-172-31-41-140.us-west-2.compute.internal
       metrics:
-        - name: gauge.1
+        - name: the_gauge
           type: Gauge
-          max: 1000000
-          min: 1024
-        - name: gauge.2
+          max: 10000
+          min: 1000
+          period: 2m
+          flag_set: frontend_errors
+          tags:
+            something: bad
+        - name: the_gauge
           type: Gauge
-          max: 5000
-          min: 200
-        - name: gauge.3
-          type: Gauge
-          max: 650
-          min: 10
-        - name: sum.1
-          type: Sum
-        - name: sum.2
-          type: Sum
-        - name: sum.3
-          type: Sum
+          max: 20000
+          min: 10000
+          period: 2m
+          flag_unset: frontend_errors
+          tags:
+            something: good
       routes:
         - route: /product
           downstreamCalls:
