@@ -25,6 +25,7 @@ type generatorReceiver struct {
 	metricGen      *generator.MetricGenerator
 	tickers        []*time.Ticker
 	fm             *flags.FlagManager
+	server         *httpServer
 }
 
 func (g generatorReceiver) loadTopoFile(topoInline string, path string) (*topology.File, error) {
@@ -57,6 +58,13 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 	g.fm = flags.NewFlagManager(topoFile.Flags, g.logger)
 	g.logger.Info("starting flag manager", zap.Int("flag_count", len(g.fm.Flags)))
 	g.fm.Start()
+
+	if g.server != nil {
+		err := g.server.Start(ctx, host, g.fm)
+		if err != nil {
+			g.logger.Fatal("could not start server", zap.Error(err))
+		}
+	}
 
 	if g.metricConsumer != nil {
 		for _, s := range topoFile.Topology.Services {
@@ -134,6 +142,16 @@ func newMetricReceiver(config *Config,
 	genReceiver.topoInline = config.InlineFile
 	genReceiver.randomSeed = randomSeed
 	genReceiver.metricConsumer = consumer
+
+	// TODO: share server between trace and metric pipelines
+	if config.ApiIngress.Endpoint != "" {
+		server, err := newHTTPServer(config, logger)
+		if err != nil {
+			logger.Fatal("could not start http server")
+		}
+		genReceiver.server = server
+	}
+
 	return &genReceiver, nil
 }
 
