@@ -66,7 +66,7 @@ topology:
           type: Gauge
           max: 50000
           min: 0
-          period: 2m
+          period: 5m
           shape: sawtooth
           tags:
             host.name: frontend.internal
@@ -76,7 +76,7 @@ topology:
           type: Gauge
           max: 2147483648
           min: 1000000000
-          period: 2m
+          period: 5m
           shape: sawtooth
           tags:
             host.name: frontend.internal
@@ -86,8 +86,20 @@ topology:
           type: Gauge
           max: 2147483648
           min: 20000
-          period: 2m
+          period: 5m
           shape: sawtooth
+          flag_unset: currencyservice_oom.phase_2
+          tags:
+            host.name: frontend.internal
+            net.host.name: frontend.internal
+            namespace: hipster-shop
+        - name: node_memory_MemAvailable_bytes
+          type: Gauge
+          max: 200000
+          min: 20000
+          period: 5m
+          shape: sawtooth
+          flag_set: currencyservice_oom.phase_2
           tags:
             host.name: frontend.internal
             net.host.name: frontend.internal
@@ -140,6 +152,11 @@ topology:
           downstreamCalls:
             currencyservice: /GetConversion
           maxLatencyMillis: 1500
+        - route: /currency_slow
+          downstreamCalls:
+            currencyservice: /DoSomethingSlow
+          flag_set: currencyservice_oom.phase_1
+          maxLatencyMillis: 3500
     - serviceName: productcatalogservice
       tagSets:
         - tags:
@@ -314,21 +331,35 @@ topology:
       metrics:
         - name: node_memory_MemTotal_bytes
           type: Gauge
-          max: 50000
-          min: 0
-          period: 2m
+          max: 2147483648
+          min: 2000000000
+          period: 5m
           shape: sawtooth    
           tags:
             host.name: currencyservice.internal
+            net.host.name: currencyservice.internal
             namespace: hipster-shop
         - name: node_memory_MemAvailable_bytes
           type: Gauge
-          max: 50000
-          min: 20000
-          period: 2m
+          max: 1500000000
+          min: 1000000000
+          flag_set: currencyservice_oom.default
+          period: 5m
           shape: sawtooth
           tags:
             host.name: currencyservice.internal
+            net.host.name: currencyservice.internal
+            namespace: hipster-shop
+        - name: node_memory_MemAvailable_bytes
+          type: Gauge
+          flag_set: currencyservice_oom.phase_1
+          max: 10000000
+          min: 2000000
+          period: 5m
+          shape: sawtooth
+          tags:
+            host.name: currencyservice.internal
+            net.host.name: currencyservice.internal
             namespace: hipster-shop
       routes:
         - route: /GetConversion
@@ -338,6 +369,10 @@ topology:
         - route: /Money
           downstreamCalls: {}
           maxLatencyMillis: 100
+        - route: /DoSomethingSlow
+          downstreamCalls: {}
+          maxLatencyMillis: 4000
+          flag_set: currencyservice_oom.phase_1
     - serviceName: adservice
       tagSets:
         - version: v37
@@ -360,6 +395,22 @@ flags:
     # use https://crontab.guru/
     start: "0,10,20,30,40,50 * * * *"
     end: "5,15,25,35,45,55 * * * *"
+  - name: runs_on_azure
+  - name: sev0_total_failure
+  - name: database_outage
+  # OOM on currency service + slower span latency from frontend -> currencyservice
+  - name: currencyservice_oom.default
+    incident: currencyservice_fail
+    start: 0m
+    end: 10m
+  - name: currencyservice_oom.phase_1
+    incident: currencyservice_fail
+    start: 0m
+    end: 10m
+  - name: currencyservice_oom.phase_2
+    incident: currencyservice_fail
+    start: 3m
+    end: 10m
   # This is an incident-style flag; start and end are relative to incident start
   - name: frontend_doom.default # .default flags are enabled when the incident is not active
     incident: frontend_doom
