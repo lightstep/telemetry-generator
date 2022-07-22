@@ -51,6 +51,57 @@ topology:
           flag_set: frontend_doom.phase_2
           tags:
             something: worse
+        - name: node_cpu_seconds_total
+          type: Counter
+          max: 50000
+          min: 0
+          period: 2m
+          shape: sawtooth
+          tags:
+            host.name: frontend.internal
+            net.host.name: frontend.internal
+            cpu: "1"
+            namespace: hipster-shop
+        - name: node_memory_Active_bytes
+          type: Gauge
+          max: 50000
+          min: 0
+          period: 2m
+          shape: sawtooth
+          tags:
+            host.name: frontend.internal
+            net.host.name: frontend.internal
+            namespace: hipster-shop
+        - name: node_memory_MemTotal_bytes
+          type: Gauge
+          max: 2147483648
+          min: 1000000000
+          period: 2m
+          shape: sawtooth
+          tags:
+            host.name: frontend.internal
+            net.host.name: frontend.internal
+            namespace: hipster-shop
+        - name: node_memory_MemAvailable_bytes
+          type: Gauge
+          max: 2147483648
+          min: 20000
+          period: 2m
+          shape: sawtooth
+          tags:
+            host.name: frontend.internal
+            net.host.name: frontend.internal
+            namespace: hipster-shop
+        - name: container_cpu_usage_seconds_total
+          type: Counter
+          max: 50000
+          min: 100
+          period: 2m
+          shape: triange
+          tags:
+            host.name: frontend.internal
+            cpu: "1"
+            namespace: hipster-shop  
       routes:
         - route: /product
           downstreamCalls:
@@ -260,6 +311,25 @@ topology:
         - weight: 1
           resourceAttrs:
             host.name: currencyservice-hostname
+      metrics:
+        - name: node_memory_MemTotal_bytes
+          type: Gauge
+          max: 50000
+          min: 0
+          period: 2m
+          shape: sawtooth    
+          tags:
+            host.name: currencyservice.internal
+            namespace: hipster-shop
+        - name: node_memory_MemAvailable_bytes
+          type: Gauge
+          max: 50000
+          min: 20000
+          period: 2m
+          shape: sawtooth
+          tags:
+            host.name: currencyservice.internal
+            namespace: hipster-shop
       routes:
         - route: /GetConversion
           downstreamCalls:
