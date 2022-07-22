@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/lightstep/lightstep-partner-sdk/collector/generatorreceiver/internal/flags"
 	"github.com/lightstep/lightstep-partner-sdk/collector/generatorreceiver/internal/generator"
 	"github.com/lightstep/lightstep-partner-sdk/collector/generatorreceiver/internal/topology"
-	"github.com/lightstep/lightstep-partner-sdk/collector/generatorreceiver/internal/flags"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/component/componenterror"
 	"go.opentelemetry.io/collector/consumer"
@@ -16,15 +16,16 @@ import (
 )
 
 type generatorReceiver struct {
-	logger     *zap.Logger
-	traceConsumer   consumer.Traces
-	metricConsumer   consumer.Metrics
-	topoPath   string
-	topoInline    string
-	randomSeed int64
-	metricGen  *generator.MetricGenerator
-	tickers    []*time.Ticker
-	fm *flags.FlagManager
+	logger         *zap.Logger
+	traceConsumer  consumer.Traces
+	metricConsumer consumer.Metrics
+	topoPath       string
+	topoInline     string
+	randomSeed     int64
+	metricGen      *generator.MetricGenerator
+	tickers        []*time.Ticker
+	fm             *flags.FlagManager
+	server         *httpServer
 }
 
 func (g generatorReceiver) loadTopoFile(topoInline string, path string) (*topology.File, error) {
@@ -58,33 +59,36 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 	g.logger.Info("starting flag manager", zap.Int("flag_count", len(g.fm.Flags)))
 	g.fm.Start()
 
+	if g.server != nil {
+		err := g.server.Start(ctx, host, g.fm)
+		if err != nil {
+			g.logger.Fatal("could not start server", zap.Error(err))
+		}
+	}
+
 	if g.metricConsumer != nil {
 		for _, s := range topoFile.Topology.Services {
 			for _, m := range s.Metrics {
 				metricTicker := time.NewTicker(1 * time.Second)
 				g.tickers = append(g.tickers, metricTicker)
 				metricDone := make(chan bool)
-				svc := s.ServiceName
-				metricName := m.Name
-				metricType := m.Type
-				flagSet := m.FlagSet
-				flagUnset := m.FlagUnset
-				go func() {
-					g.logger.Info("generating metrics", zap.String("service", svc), zap.String("name", metricName))
+				go func(s topology.ServiceTier, m topology.Metric) {
+					g.logger.Info("generating metrics", zap.String("service", s.ServiceName), zap.String("name", m.Name))
 					metricGen := generator.NewMetricGenerator(g.randomSeed, g.fm)
 					for {
 						select {
 						case <-metricDone:
 							return
 						case _ = <-metricTicker.C:
-							metrics := metricGen.Generate(metricName, metricType, svc, flagSet, flagUnset)
-							err := g.metricConsumer.ConsumeMetrics(ctx, metrics)
-							if err != nil {
-								host.ReportFatalError(err)
+							if metrics, report := metricGen.Generate(m, s.ServiceName); report {
+								err := g.metricConsumer.ConsumeMetrics(ctx, metrics)
+								if err != nil {
+									host.ReportFatalError(err)
+								}
 							}
 						}
 					}
-				}()
+				}(s, m)
 			}
 		}
 
@@ -138,6 +142,16 @@ func newMetricReceiver(config *Config,
 	genReceiver.topoInline = config.InlineFile
 	genReceiver.randomSeed = randomSeed
 	genReceiver.metricConsumer = consumer
+
+	// TODO: share server between trace and metric pipelines
+	if config.ApiIngress.Endpoint != "" {
+		server, err := newHTTPServer(config, logger)
+		if err != nil {
+			logger.Fatal("could not start http server")
+		}
+		genReceiver.server = server
+	}
+
 	return &genReceiver, nil
 }
 

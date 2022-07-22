@@ -7,7 +7,10 @@ receivers:
   generator:
     path: "${TOPO_FILE}"
     inline: "${TOPO_INLINE}"
-
+    api:
+      endpoint: 0.0.0.0:9999
+      cors_allowed_origins:
+        - '*'
   # Dummy receiver that's never used, because a pipeline is required to have one.
   otlp/spanmetrics:
     protocols:

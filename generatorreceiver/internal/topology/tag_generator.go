@@ -4,17 +4,17 @@ import "math/rand"
 
 type TagGenerator struct {
 	ValLength int `json:"valLength,omitempty" yaml:"valLength,omitempty"`
-	NumTags int `json:"numTags,omitempty" yaml:"numTags,omitempty"`
-	NumVals int `json:"numVals,omitempty" yaml:"numVals,omitempty"`
-	Random *rand.Rand
+	NumTags   int `json:"numTags,omitempty" yaml:"numTags,omitempty"`
+	NumVals   int `json:"numVals,omitempty" yaml:"numVals,omitempty"`
+	Random    *rand.Rand
 }
 
-func (t *TagGenerator) GenerateTags() map[string]interface{} {
+func (t *TagGenerator) GenerateTags() map[string]string {
 	nameGenerator := &TagNameGenerator{
 		random: t.Random,
 	}
 
-	retVal := make(map[string]interface{})
+	retVal := make(map[string]string)
 	for i := 0; i < t.NumTags; i++ {
 		retVal[nameGenerator.Generate()] = randStringBytes(t.ValLength, t.Random)
 	}
