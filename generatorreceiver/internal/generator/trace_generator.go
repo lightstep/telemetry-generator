@@ -67,26 +67,33 @@ func (g *TraceGenerator) Generate(startTimeMicros int64) *pdata.Traces {
 }
 
 func (g *TraceGenerator) shouldCreateTagSet(ts topology.TagSet) bool {
+	// TODO: I'm changing this to not panic if the flag doesn't exist,
+	// and act as though it's unset, but we might want some kind of
+	// validation instead.
 	if len(ts.FlagSet) > 0 {
 		f := g.flagManager.GetFlag(ts.FlagSet)
-		return f.Enabled()
+		return f != nil && f.Enabled()
 	} else if len(ts.FlagUnset) > 0 {
 		f := g.flagManager.GetFlag(ts.FlagUnset)
-		return !f.Enabled()
+		return !(f != nil && f.Enabled())
 	}
 	return true
 }
 
 func (g *TraceGenerator) shouldCreateSpanForRoute(serviceTier *topology.ServiceTier, r string) bool {
+	// TODO: I'm changing this to not panic if the flag doesn't exist,
+	// and act as though it's unset, but we might want some kind of
+	// validation instead.
+
 	// TODO: multiple routes with the same name not supported
 	route := serviceTier.GetRoute(r)
 
 	if len(route.FlagSet) > 0 {
 		f := g.flagManager.GetFlag(route.FlagSet)
-		return f.Enabled()
+		return f != nil && f.Enabled()
 	} else if len(route.FlagUnset) > 0 {
 		f := g.flagManager.GetFlag(route.FlagUnset)
-		return !f.Enabled()
+		return !(f != nil && f.Enabled())
 	}
 	return true
 }

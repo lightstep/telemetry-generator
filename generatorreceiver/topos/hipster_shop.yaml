@@ -31,6 +31,7 @@ topology:
           max: 10000
           min: 1000
           period: 2m
+          shape: sawtooth
           flag_set: frontend_errors
           tags:
             something: bad
