@@ -49,14 +49,6 @@
             "route" : "/product",
             "downstreamCalls" : { "productcatalogservice" : "/GetProducts", "recommendationservice" : "/GetRecommendations", "adservice" : "/AdRequest" },
             "maxLatencyMillis": 200,
-            "latencyPercentiles": {
-              "p0": "100ms",
-              "p50": "200ms",
-              "p95": "1000ms",
-              "p99": "10000ms",
-              "p99.9": "11000ms",
-              "p100": "12000ms"
-            },
             "tagSets": [
               { "weight": 1, "tags": { "starter" : "charmander"}, "tagGenerators":  [{"numTags":  50, "numVals":  3000, "valLength": 16}]},
               { "weight": 1, "tags": { "starter" : "squirtle"}},

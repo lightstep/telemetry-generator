@@ -3,12 +3,12 @@ topology:
     - serviceName: frontend
       tagSets:
         - weight: 1
-          flag_set: frontend_errors
           tags:
             version: v127
-            error: true
         - weight: 1
-          flag_unset: frontend_errors
+          tags:
+            version: v125
+        - weight: 2
           tags:
             version: v125
       resourceAttrSets:
@@ -26,23 +26,24 @@ topology:
             k8s.cluster.name: k8s-cluster-1
             host.name: ip-172-31-41-140.us-west-2.compute.internal
       metrics:
-        - name: the_gauge
+        - name: gauge.1
           type: Gauge
-          max: 10000
-          min: 1000
-          period: 2m
-          shape: sawtooth
-          flag_set: frontend_errors
-          tags:
-            something: bad
-        - name: the_gauge
+          max: 1000000
+          min: 1024
+        - name: gauge.2
           type: Gauge
-          max: 20000
-          min: 10000
-          period: 2m
-          flag_unset: frontend_errors
-          tags:
-            something: good
+          max: 5000
+          min: 200
+        - name: gauge.3
+          type: Gauge
+          max: 650
+          min: 10
+        - name: sum.1
+          type: Sum
+        - name: sum.2
+          type: Sum
+        - name: sum.3
+          type: Sum
       routes:
         - route: /product
           downstreamCalls:
@@ -80,7 +81,7 @@ topology:
         - route: /currency
           downstreamCalls:
             currencyservice: /GetConversion
-          maxLatencyMillis: 1500
+          maxLatencyMillis: 50
     - serviceName: productcatalogservice
       tagSets:
         - tags:
@@ -235,7 +236,6 @@ topology:
             - weight: 15
               tags:
                 error: true
-                service.version: v122
                 http.status_code: 503
             - weight: 85
               tags: {}
@@ -275,11 +275,6 @@ topology:
         - route: /Ad
           downstreamCalls: {}
           maxLatencyMillis: 500
-flags:
-  - name: frontend_errors
-    # use https://crontab.guru/
-    start: "0,10,20,30,40,50 * * * *"
-    end: "5,15,25,35,45,55 * * * *"
 rootRoutes:
   - service: frontend
     route: /product
