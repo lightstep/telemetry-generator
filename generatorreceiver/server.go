@@ -25,8 +25,7 @@ type flagHttpResponse struct {
 	Enabled bool `json:"enabled"`
 }
 
-func (h *httpServer) getFlags() func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
+func (h *httpServer) getFlags(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			w.WriteHeader(http.StatusBadRequest)
 			fmt.Fprintf(w, "bad request")
@@ -45,11 +44,9 @@ func (h *httpServer) getFlags() func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprintf(w, "%s", string(resp))
-	}
 }
 
-func (h *httpServer) setFlag() func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
+func (h *httpServer) setFlag(w http.ResponseWriter, r *http.Request) {
 		f := r.URL.Query().Get("flag")
 		v := r.URL.Query().Get("enabled")
 		if f == "" {
@@ -82,13 +79,12 @@ func (h *httpServer) setFlag() func(w http.ResponseWriter, r *http.Request) {
 		}
 		w.WriteHeader(http.StatusAccepted)
 		fmt.Fprintf(w, "flag %s updated", f)
-	}
 }
 
 func (h *httpServer) Start(_ context.Context, host component.Host, fm *flags.FlagManager) error {
 	handler := http.NewServeMux()
-	handler.HandleFunc("/api/v1/flags", h.getFlags())
-	handler.HandleFunc("/api/v1/flag", h.setFlag())
+	handler.HandleFunc("/api/v1/flags", h.getFlags)
+	handler.HandleFunc("/api/v1/flag", h.setFlag)
 
 	var listener net.Listener
 	var err error
@@ -110,10 +106,7 @@ func (h *httpServer) Start(_ context.Context, host component.Host, fm *flags.Fla
 }
 
 func (h *httpServer) Shutdown(ctx context.Context) error {
-	if err := h.server.Shutdown(ctx); err != nil {
-		return err
-	}
-	return nil
+	return h.server.Shutdown(ctx)
 }
 
 func newHTTPServer(config *Config, logger *zap.Logger) (*httpServer, error) {
