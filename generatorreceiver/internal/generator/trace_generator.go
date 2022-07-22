@@ -2,11 +2,11 @@ package generator
 
 import (
 	"fmt"
-	"log"
 	"math/rand"
-	"os"
 	"sync"
 	"time"
+
+	"gonum.org/v1/gonum/stat/distuv"
 
 	"github.com/lightstep/lightstep-partner-sdk/collector/generatorreceiver/internal/flags"
 	"github.com/lightstep/lightstep-partner-sdk/collector/generatorreceiver/internal/topology"
@@ -84,13 +84,9 @@ func (g *TraceGenerator) shouldCreateSpanForRoute(serviceTier *topology.ServiceT
 }
 
 func (g *TraceGenerator) createSpanForServiceRouteCall(traces *pdata.Traces, serviceTier *topology.ServiceTier, routeName string, startTimeMicros int64, traceId pdata.TraceID, parentSpanId pdata.SpanID) *pdata.Span {
-	logger := log.New(os.Stdout, "trace_generator: ", log.LstdFlags)
+	// logger := log.New(os.Stdout, "trace_generator: ", log.LstdFlags)
 	serviceTier.Random = g.random
 	route := serviceTier.GetRoute(routeName)
-	if route.LatencyPercentiles != nil {
-		p50, p95, p99, p999, _ := route.LatencyPercentiles.ParseDurations()
-		logger.Printf("Latency Percentiles Parsed: %s, %s, %s, %s", p50, p95, p99, p999)
-	}
 
 	rspanSlice := traces.ResourceSpans()
 	rspan := rspanSlice.AppendEmpty()
@@ -134,7 +130,7 @@ func (g *TraceGenerator) createSpanForServiceRouteCall(traces *pdata.Traces, ser
 	maxEndTime := startTimeMicros
 	var percentileBasedLatency int64
 	if route.LatencyPercentiles != nil {
-		percentileBasedLatency = calculateLatencyBasedOnPercentiles(route.LatencyPercentiles)
+		percentileBasedLatency = int64(calculateLatencyBasedOnPercentiles(route.LatencyPercentiles)) * 1000000
 	}
 	for s, r := range route.DownstreamCalls {
 		var childStartTimeMicros int64
@@ -170,24 +166,35 @@ func Max(x, y int64) int64 {
 	return x
 }
 
-func calculateLatencyBasedOnPercentiles(routePercentiles *topology.LatencyPercentiles) int64 {
-	p50, p95, p99, p999, err := routePercentiles.ParseDurations()
+func calculateLatencyBasedOnPercentiles(routePercentiles *topology.LatencyPercentiles) float64 {
+	_, p50, p95, p99, p999, _, err := routePercentiles.ParseDurations()
 	if err != nil {
 		return 0
 	}
+
+	dist := distuv.Normal{
+		Mu:    float64(p50.Microseconds()), // mean is p50 because we're using a normal distribution, todo - support other distribution type?
+		Sigma: float64(p50.Microseconds()) / 2,
+		// standard deviation based on p50 could probably do a better normalized
+		// guess on this based on the percentiles given
+	}
+	// +(p95.Microseconds()/3)
+	// normalize variance
+	// variance := (rand.Float64() - float64(p0.Microseconds())) / float64(p100.Microseconds()-p0.Microseconds()) * float64(p50.Microseconds())
+
 	genNumber := rand.Float64()
+	variance := genNumber * float64(p50.Microseconds())
 	switch {
-	// TODO: Need some uniform jitter to make the actual spans not just all in lines which is super unrealistic
-	// TODO - math is wrong somewhere here, in the product even though the duration here is 10 seconds etc. it looks like it gets 10 order of magnitude smaller
-	case genNumber < 0.5:
-		return p50.Microseconds()
-	case genNumber < 0.95:
-		return p95.Microseconds()
-	case genNumber < 0.99:
-		return p99.Microseconds()
-	case genNumber < 0.999:
-		return p999.Microseconds()
+	case genNumber <= 0.05:
+		// 5% of requests are p95
+		return float64(p95.Microseconds()) + variance
+	case genNumber <= 0.01:
+		// 1% of requests are p99
+		return float64(p99.Microseconds()) + variance
+	case genNumber <= 0.001:
+		// 0.1% of requests are p999
+		return float64(p999.Microseconds()) + variance
 	default:
-		return 0 // fornow
+		return dist.Rand()
 	}
 }
