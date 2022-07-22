@@ -39,6 +39,9 @@ func (h *httpServer) getFlags(w http.ResponseWriter, r *http.Request) {
 
 	jsonFlags := make([]flagHttpResponse, 0)
 	for flagName, flagVal := range h.fm.Flags {
+		if flagVal.IncidentName != "" {
+			continue
+		}
 		jsonFlags = append(jsonFlags, flagHttpResponse{Name: flagName, Enabled: flagVal.Enabled()})
 	}
 	resp, err := json.MarshalIndent(jsonFlags, "", "  ")

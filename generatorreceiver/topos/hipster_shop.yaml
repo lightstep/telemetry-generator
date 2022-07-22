@@ -223,6 +223,10 @@ topology:
         - tags:
             version: v5
             region: us-east-1
+          flag_unset: runs_on_azure
+        - tags:
+            region: North_Central_US
+          flag_set: runs_on_azure
       resourceAttrSets:
         - weight: 1
           resourceAttrs:
