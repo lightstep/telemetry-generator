@@ -1,48 +1,9 @@
 package topology
 
-import "time"
-
-type LatencyPercentiles struct {
-	P0   string `json:"p0" yaml:"p0"`
-	P50  string `json:"p50" yaml:"p50"`
-	P95  string `json:"p95" yaml:"p95"`
-	P99  string `json:"p99" yaml:"p99"`
-	P999 string `json:"p99.9" yaml:"p99.9"`
-	P100 string `json:"p100" yaml:"p100"`
-}
-
-// TODO return a struct? returning tons of timeDuration probably frought with peril if you aren't paying attention to the ordering
-func (l *LatencyPercentiles) ParseDurations() (time.Duration, time.Duration, time.Duration, time.Duration, time.Duration, time.Duration, error) {
-	// TODO/future things:
-	// 		normalize function for config parsing
-	// 		maybe enforce either MaxLatencyMillis or LatencyPercentiles but not both?
-	//			either way which overrides which? for now LatencyPercentiles will override MaxLatencyMillis
-	p0, err := time.ParseDuration(l.P0)
-	if err != nil {
-		return 0, 0, 0, 0, 0, 0, err
-	}
-	p50, err := time.ParseDuration(l.P50)
-	if err != nil {
-		return 0, 0, 0, 0, 0, 0, err
-	}
-	p95, err := time.ParseDuration(l.P95)
-	if err != nil {
-		return 0, 0, 0, 0, 0, 0, err
-	}
-	p99, err := time.ParseDuration(l.P99)
-	if err != nil {
-		return 0, 0, 0, 0, 0, 0, err
-	}
-	p999, err := time.ParseDuration(l.P999)
-	if err != nil {
-		return 0, 0, 0, 0, 0, 0, err
-	}
-	p100, err := time.ParseDuration(l.P100)
-	if err != nil {
-		return 0, 0, 0, 0, 0, 0, err
-	}
-	return p0, p50, p95, p99, p999, p100, nil
-}
+import (
+	"math/rand"
+	"time"
+)
 
 type ServiceRoute struct {
 	Route                 string                 `json:"route" yaml:"route"`
@@ -53,4 +14,91 @@ type ServiceRoute struct {
 	ResourceAttributeSets []ResourceAttributeSet `json:"resourceAttrSets" yaml:"resourceAttrSets"`
 	FlagSet               string                 `json:"flag_set" yaml:"flag_set"`
 	FlagUnset             string                 `json:"flag_unset" yaml:"flag_unset"`
+}
+
+type LatencyPercentiles struct {
+	P0   string `json:"p0" yaml:"p0"`
+	P50  string `json:"p50" yaml:"p50"`
+	P95  string `json:"p95" yaml:"p95"`
+	P99  string `json:"p99" yaml:"p99"`
+	P999 string `json:"p99.9" yaml:"p99.9"`
+	P100 string `json:"p100" yaml:"p100"`
+}
+
+type parsedLatencyPercentiles struct {
+	p0   time.Duration
+	p50  time.Duration
+	p95  time.Duration
+	p99  time.Duration
+	p999 time.Duration
+	p100 time.Duration
+}
+
+func (l *LatencyPercentiles) Sample() float64 {
+	uniform := func(timeA, timeB time.Duration) float64 {
+		min := float64(timeA.Microseconds())
+		max := float64(timeB.Microseconds())
+		return (min + (max-min)*rand.Float64()) * 1000
+	}
+	percentiles, err := l.parseDurations()
+	if err != nil {
+		return 0
+	}
+	genNumber := rand.Float64()
+	switch {
+	case genNumber <= 0.001:
+		// 0.1% of requests
+		return uniform(percentiles.p99, percentiles.p999)
+	case genNumber <= 0.01:
+		// 1% of requests
+		return uniform(percentiles.p95, percentiles.p99)
+	case genNumber <= 0.05:
+		// 5% of requests
+		return uniform(percentiles.p50, percentiles.p95)
+	case genNumber <= 0.5:
+		// 50% of requests
+		return uniform(percentiles.p0, percentiles.p50)
+	default:
+		return uniform(percentiles.p0, percentiles.p50)
+		// not sure if --> is better, seems to skew it too high generally, return uniform(percentiles.p50, percentiles.p100)
+	}
+}
+
+func (l *LatencyPercentiles) parseDurations() (parsedLatencyPercentiles, error) {
+	// TODO/future things:
+	// 		normalize function for config parsing
+	// 		maybe enforce either MaxLatencyMillis or LatencyPercentiles but not both?
+	//			either way which overrides which? for now LatencyPercentiles will override MaxLatencyMillis
+	p0, err := time.ParseDuration(l.P0)
+	if err != nil {
+		return parsedLatencyPercentiles{}, err
+	}
+	p50, err := time.ParseDuration(l.P50)
+	if err != nil {
+		return parsedLatencyPercentiles{}, err
+	}
+	p95, err := time.ParseDuration(l.P95)
+	if err != nil {
+		return parsedLatencyPercentiles{}, err
+	}
+	p99, err := time.ParseDuration(l.P99)
+	if err != nil {
+		return parsedLatencyPercentiles{}, err
+	}
+	p999, err := time.ParseDuration(l.P999)
+	if err != nil {
+		return parsedLatencyPercentiles{}, err
+	}
+	p100, err := time.ParseDuration(l.P100)
+	if err != nil {
+		return parsedLatencyPercentiles{}, err
+	}
+	return parsedLatencyPercentiles{
+		p0:   p0,
+		p50:  p50,
+		p95:  p95,
+		p99:  p99,
+		p999: p999,
+		p100: p100,
+	}, nil
 }

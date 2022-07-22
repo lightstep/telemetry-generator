@@ -6,8 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"gonum.org/v1/gonum/stat/distuv"
-
 	"github.com/lightstep/lightstep-partner-sdk/collector/generatorreceiver/internal/flags"
 	"github.com/lightstep/lightstep-partner-sdk/collector/generatorreceiver/internal/topology"
 	"go.opentelemetry.io/collector/model/pdata"
@@ -102,7 +100,6 @@ func (g *TraceGenerator) shouldCreateSpanForRoute(serviceTier *topology.ServiceT
 }
 
 func (g *TraceGenerator) createSpanForServiceRouteCall(traces *pdata.Traces, serviceTier *topology.ServiceTier, routeName string, startTimeMicros int64, traceId pdata.TraceID, parentSpanId pdata.SpanID) *pdata.Span {
-	// logger := log.New(os.Stdout, "trace_generator: ", log.LstdFlags)
 	serviceTier.Random = g.random
 	route := serviceTier.GetRoute(routeName)
 
@@ -137,9 +134,8 @@ func (g *TraceGenerator) createSpanForServiceRouteCall(traces *pdata.Traces, ser
 		if !g.shouldCreateTagSet(ts) {
 			continue
 		}
-		for k, v := range ts.Tags {
-			span.Attributes().InsertString(k, v)
-		}
+		attr := span.Attributes()
+		ts.InsertTags(&attr)
 		for _, tg := range ts.TagGenerators {
 			tg.Random = g.random
 			for k, v := range tg.GenerateTags() {
@@ -147,16 +143,11 @@ func (g *TraceGenerator) createSpanForServiceRouteCall(traces *pdata.Traces, ser
 			}
 		}
 	}
-
 	maxEndTime := startTimeMicros
-	var percentileBasedLatency int64
-	if route.LatencyPercentiles != nil {
-		percentileBasedLatency = int64(calculateLatencyBasedOnPercentiles(route.LatencyPercentiles)) * 1000000
-	}
 	for s, r := range route.DownstreamCalls {
 		var childStartTimeMicros int64
 		if route.LatencyPercentiles != nil {
-			childStartTimeMicros = startTimeMicros + percentileBasedLatency
+			childStartTimeMicros = startTimeMicros + int64(route.LatencyPercentiles.Sample())
 		} else {
 			childStartTimeMicros = startTimeMicros + (g.random.Int63n(route.MaxLatencyMillis * 1000000))
 		}
@@ -167,13 +158,9 @@ func (g *TraceGenerator) createSpanForServiceRouteCall(traces *pdata.Traces, ser
 		maxEndTime = Max(maxEndTime, childStartTimeMicros)
 	}
 
-	var ownDuration int64
-	if route.LatencyPercentiles != nil {
-		ownDuration = percentileBasedLatency
-	} else {
-		ownDuration = g.random.Int63n(route.MaxLatencyMillis * 1000000)
-	}
-
+	// todo: ownDuration should also be influenced by percentiles or not?
+	// note - changing this number seems to effect very little
+	ownDuration := g.random.Int63n(route.MaxLatencyMillis * 1000000)
 	span.SetStartTimestamp(pdata.NewTimestampFromTime(time.Unix(0, startTimeMicros)))
 	span.SetEndTimestamp(pdata.NewTimestampFromTime(time.Unix(0, maxEndTime+ownDuration)))
 	g.sequenceNumber = g.sequenceNumber + 1
@@ -185,37 +172,4 @@ func Max(x, y int64) int64 {
 		return y
 	}
 	return x
-}
-
-func calculateLatencyBasedOnPercentiles(routePercentiles *topology.LatencyPercentiles) float64 {
-	_, p50, p95, p99, p999, _, err := routePercentiles.ParseDurations()
-	if err != nil {
-		return 0
-	}
-
-	dist := distuv.Normal{
-		Mu:    float64(p50.Microseconds()), // mean is p50 because we're using a normal distribution, todo - support other distribution type?
-		Sigma: float64(p50.Microseconds()) / 2,
-		// standard deviation based on p50 could probably do a better normalized
-		// guess on this based on the percentiles given
-	}
-	// +(p95.Microseconds()/3)
-	// normalize variance
-	// variance := (rand.Float64() - float64(p0.Microseconds())) / float64(p100.Microseconds()-p0.Microseconds()) * float64(p50.Microseconds())
-
-	genNumber := rand.Float64()
-	variance := genNumber * float64(p50.Microseconds())
-	switch {
-	case genNumber <= 0.05:
-		// 5% of requests are p95
-		return float64(p95.Microseconds()) + variance
-	case genNumber <= 0.01:
-		// 1% of requests are p99
-		return float64(p99.Microseconds()) + variance
-	case genNumber <= 0.001:
-		// 0.1% of requests are p999
-		return float64(p999.Microseconds()) + variance
-	default:
-		return dist.Rand()
-	}
 }
