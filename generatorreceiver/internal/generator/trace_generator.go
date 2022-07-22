@@ -57,7 +57,6 @@ func (g *TraceGenerator) genSpanId() pdata.SpanID {
 	return pdata.NewSpanID(traceId)
 }
 
-// starts from now
 func (g *TraceGenerator) Generate(startTimeMicros int64) *pdata.Traces {
 	rootService := g.topology.GetServiceTier(g.service)
 	traces := pdata.NewTraces()

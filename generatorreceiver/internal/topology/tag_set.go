@@ -30,7 +30,7 @@ func (ts *TagSet) InsertTags(attr *pdata.AttributeMap) {
 		case bool:
 			attr.InsertBool(key, val)
 		default:
-			// just insert empty string if it's an unsupported type instead of returning error (todo decide if we want error handling somewhere about this)
+			// just insert empty string if it's an unsupported type instead of returning error (todo decide if we want error handling somewhere above this)
 			attr.InsertString(key, "")
 		}
 	}
