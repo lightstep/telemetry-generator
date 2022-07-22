@@ -62,6 +62,18 @@ func (l *LatencyPercentiles) Sample() float64 {
 		return uniform(percentiles.p0, percentiles.p50)
 		// not sure if --> is better, seems to skew it too high generally, return uniform(percentiles.p50, percentiles.p100)
 	}
+	/*
+		TODO: the above is still not perfect - it is a bit off on the p50m the logic for default is prob wrong, should be reorderd like below -
+		Trying the below also makes it off on p50 by more (I think because its getting more skewed from the p95), so its maybe not exactly right either
+		case genNumber <= 0.5:
+			return uniform(percentiles.p0, percentiles.p50)
+		case genNumber <= 0.95:
+			return uniform(percentiles.p50, percentiles.p95)
+		case genNumber <= 0.99:
+			return uniform(percentiles.p95, percentiles.p99)
+		default:
+			return uniform(percentiles.p99, percentiles.p999)
+	*/
 }
 
 func (l *LatencyPercentiles) parseDurations() (parsedLatencyPercentiles, error) {
