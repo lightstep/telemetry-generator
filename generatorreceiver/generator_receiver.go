@@ -25,6 +25,7 @@ type generatorReceiver struct {
 	metricGen      *generator.MetricGenerator
 	tickers        []*time.Ticker
 	fm             *flags.FlagManager
+	im             *flags.IncidentManager
 	server         *httpServer
 }
 
@@ -55,12 +56,13 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 		host.ReportFatalError(err)
 	}
 
-	g.fm = flags.NewFlagManager(topoFile.Flags, g.logger)
+	g.im = flags.NewIncidentManager()
+	g.fm = flags.NewFlagManager(g.im, topoFile.Flags, g.logger)
 	g.logger.Info("starting flag manager", zap.Int("flag_count", len(g.fm.Flags)))
 	g.fm.Start()
 
 	if g.server != nil {
-		err := g.server.Start(ctx, host, g.fm)
+		err := g.server.Start(ctx, host, g.fm, g.im)
 		if err != nil {
 			g.logger.Fatal("could not start server", zap.Error(err))
 		}

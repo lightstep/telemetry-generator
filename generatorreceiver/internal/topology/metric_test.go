@@ -99,12 +99,12 @@ func TestMetric_ShouldGenerate(t *testing.T) {
 			for _, name := range tt.disabledFlags {
 				theFlags = append(theFlags, flags.Flag{Name: name})
 			}
-			fm := flags.NewFlagManager(theFlags, zap.NewNop())
+			fm := flags.NewFlagManager(flags.NewIncidentManager(), theFlags, zap.NewNop())
 			for _, name := range tt.enabledFlags {
-				fm.Enable(name)
+				fm.GetFlag(name).Enable()
 			}
 			for _, name := range tt.disabledFlags {
-				fm.Disable(name)
+				fm.GetFlag(name).Disable()
 			}
 			if got := tt.metric.ShouldGenerate(fm); got != tt.want {
 				t.Errorf("ShouldGenerate() = %v, want %v", got, tt.want)

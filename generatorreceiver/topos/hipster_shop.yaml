@@ -26,23 +26,31 @@ topology:
             k8s.cluster.name: k8s-cluster-1
             host.name: ip-172-31-41-140.us-west-2.compute.internal
       metrics:
-        - name: the_gauge
+        - name: another_gauge
           type: Gauge
           max: 10000
           min: 1000
           period: 2m
-          shape: sawtooth
-          flag_set: frontend_errors
+          flag_set: frontend_doom.default
           tags:
-            something: bad
-        - name: the_gauge
+            something: good
+        - name: another_gauge
           type: Gauge
           max: 20000
           min: 10000
           period: 2m
-          flag_unset: frontend_errors
+          flag_set: frontend_doom.phase_1
           tags:
-            something: good
+            something: bad
+        - name: another_gauge
+          type: Gauge
+          max: 50000
+          min: 0
+          period: 2m
+          shape: sawtooth
+          flag_set: frontend_doom.phase_2
+          tags:
+            something: worse
       routes:
         - route: /product
           downstreamCalls:
@@ -275,11 +283,25 @@ topology:
         - route: /Ad
           downstreamCalls: {}
           maxLatencyMillis: 500
+
 flags:
+  # This is a cron-style flag
   - name: frontend_errors
     # use https://crontab.guru/
     start: "0,10,20,30,40,50 * * * *"
     end: "5,15,25,35,45,55 * * * *"
+  # This is an incident-style flag; start and end are relative to incident start
+  - name: frontend_doom.default # .default flags are enabled when the incident is not active
+    incident: frontend_doom
+  - incident: frontend_doom
+    name: frontend_doom.phase_1
+    start: 0m
+    end: 10m
+  - incident: frontend_doom
+    name: frontend_doom.phase_2
+    start: 5m
+    # with no end, lasts until the incident finishes
+
 rootRoutes:
   - service: frontend
     route: /product

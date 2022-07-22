@@ -76,7 +76,7 @@ func (m *Metric) GetValue() float64 {
 			return TriangleValue(phase)
 		default:
 			// TODO: what would be a reasonable default? Maybe just sine?
-			return 0.5
+			return SineValue(phase)
 		}
 	}(phase)
 
