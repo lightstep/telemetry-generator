@@ -70,6 +70,11 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 
 	if g.metricConsumer != nil {
 		for _, s := range topoFile.Topology.Services {
+			k8sMetrics := s.Kubernetes.GenerateMetrics(s)
+			if k8sMetrics != nil {
+				s.Metrics = append(s.Metrics, k8sMetrics...)
+			}
+
 			for _, m := range s.Metrics {
 				metricTicker := time.NewTicker(1 * time.Second)
 				g.tickers = append(g.tickers, metricTicker)
