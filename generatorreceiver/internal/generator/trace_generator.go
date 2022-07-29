@@ -60,47 +60,19 @@ func (g *TraceGenerator) genSpanId() pdata.SpanID {
 func (g *TraceGenerator) Generate(startTimeMicros int64) *pdata.Traces {
 	rootService := g.topology.GetServiceTier(g.service)
 	traces := pdata.NewTraces()
-	if g.shouldCreateSpanForRoute(rootService, g.route) {
-		g.createSpanForServiceRouteCall(&traces, rootService, g.route, startTimeMicros, g.genTraceId(), pdata.NewSpanID([8]byte{0x0}))
-	}
+
+	g.createSpanForServiceRouteCall(&traces, rootService, g.route, startTimeMicros, g.genTraceId(), pdata.NewSpanID([8]byte{0x0}))
+
 	return &traces
-}
-
-func (g *TraceGenerator) shouldCreateTagSet(ts topology.TagSet) bool {
-	// TODO: I'm changing this to not panic if the flag doesn't exist,
-	// and act as though it's unset, but we might want some kind of
-	// validation instead.
-	if len(ts.FlagSet) > 0 {
-		f := g.flagManager.GetFlag(ts.FlagSet)
-		return f != nil && f.Enabled()
-	} else if len(ts.FlagUnset) > 0 {
-		f := g.flagManager.GetFlag(ts.FlagUnset)
-		return !(f != nil && f.Enabled())
-	}
-	return true
-}
-
-func (g *TraceGenerator) shouldCreateSpanForRoute(serviceTier *topology.ServiceTier, r string) bool {
-	// TODO: I'm changing this to not panic if the flag doesn't exist,
-	// and act as though it's unset, but we might want some kind of
-	// validation instead.
-
-	// TODO: multiple routes with the same name not supported
-	route := serviceTier.GetRoute(r)
-
-	if len(route.FlagSet) > 0 {
-		f := g.flagManager.GetFlag(route.FlagSet)
-		return f != nil && f.Enabled()
-	} else if len(route.FlagUnset) > 0 {
-		f := g.flagManager.GetFlag(route.FlagUnset)
-		return !(f != nil && f.Enabled())
-	}
-	return true
 }
 
 func (g *TraceGenerator) createSpanForServiceRouteCall(traces *pdata.Traces, serviceTier *topology.ServiceTier, routeName string, startTimeMicros int64, traceId pdata.TraceID, parentSpanId pdata.SpanID) *pdata.Span {
 	serviceTier.Random = g.random
 	route := serviceTier.GetRoute(routeName)
+
+	if !route.ShouldGenerate(g.flagManager) {
+		return nil
+	}
 
 	rspanSlice := traces.ResourceSpans()
 	rspan := rspanSlice.AppendEmpty()
@@ -130,7 +102,7 @@ func (g *TraceGenerator) createSpanForServiceRouteCall(traces *pdata.Traces, ser
 
 	tagSet := serviceTier.GetTagSet(routeName)
 	for _, ts := range tagSet {
-		if !g.shouldCreateTagSet(ts) {
+		if !ts.ShouldGenerate(g.flagManager) {
 			continue
 		}
 		attr := span.Attributes()
@@ -151,9 +123,8 @@ func (g *TraceGenerator) createSpanForServiceRouteCall(traces *pdata.Traces, ser
 			childStartTimeMicros = startTimeMicros + (g.random.Int63n(route.MaxLatencyMillis * 1000000))
 		}
 		childSvc := g.topology.GetServiceTier(s)
-		if g.shouldCreateSpanForRoute(childSvc, r) {
-			g.createSpanForServiceRouteCall(traces, childSvc, r, childStartTimeMicros, traceId, newSpanId)
-		}
+
+		g.createSpanForServiceRouteCall(traces, childSvc, r, childStartTimeMicros, traceId, newSpanId)
 		maxEndTime = Max(maxEndTime, childStartTimeMicros)
 	}
 

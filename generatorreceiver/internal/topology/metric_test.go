@@ -17,11 +17,13 @@ func TestMetric_ShouldGenerate(t *testing.T) {
 		{
 			name: "one set flag, enabled",
 			metric: Metric{
-				Name:    "moot",
-				Type:    "Gauge",
-				Min:     0,
-				Max:     100,
-				FlagSet: "yesFlag",
+				Name: "moot",
+				Type: "Gauge",
+				Min:  0,
+				Max:  100,
+				EmbeddedFlags: flags.EmbeddedFlags{
+					FlagSet: "yesFlag",
+				},
 			},
 			enabledFlags: []string{"yesFlag"},
 			want:         true,
@@ -29,11 +31,13 @@ func TestMetric_ShouldGenerate(t *testing.T) {
 		{
 			name: "one set flag, disabled",
 			metric: Metric{
-				Name:    "moot",
-				Type:    "Gauge",
-				Min:     0,
-				Max:     100,
-				FlagSet: "yesFlag",
+				Name: "moot",
+				Type: "Gauge",
+				Min:  0,
+				Max:  100,
+				EmbeddedFlags: flags.EmbeddedFlags{
+					FlagSet: "yesFlag",
+				},
 			},
 			disabledFlags: []string{"yesFlag"},
 			want:          false,
@@ -41,11 +45,13 @@ func TestMetric_ShouldGenerate(t *testing.T) {
 		{
 			name: "one unset flag, disabled",
 			metric: Metric{
-				Name:      "moot",
-				Type:      "Gauge",
-				Min:       0,
-				Max:       100,
-				FlagUnset: "yesFlag",
+				Name: "moot",
+				Type: "Gauge",
+				Min:  0,
+				Max:  100,
+				EmbeddedFlags: flags.EmbeddedFlags{
+					FlagUnset: "yesFlag",
+				},
 			},
 			disabledFlags: []string{"yesFlag"},
 			want:          true,
@@ -53,11 +59,13 @@ func TestMetric_ShouldGenerate(t *testing.T) {
 		{
 			name: "one unset flag, enabled",
 			metric: Metric{
-				Name:      "moot",
-				Type:      "Gauge",
-				Min:       0,
-				Max:       100,
-				FlagUnset: "yesFlag",
+				Name: "moot",
+				Type: "Gauge",
+				Min:  0,
+				Max:  100,
+				EmbeddedFlags: flags.EmbeddedFlags{
+					FlagUnset: "yesFlag",
+				},
 			},
 			enabledFlags: []string{"yesFlag"},
 			want:         false,
@@ -65,12 +73,14 @@ func TestMetric_ShouldGenerate(t *testing.T) {
 		{
 			name: "one set on, one unset off, should generate",
 			metric: Metric{
-				Name:      "moot",
-				Type:      "Gauge",
-				Min:       0,
-				Max:       100,
-				FlagSet:   "yesFlag",
-				FlagUnset: "noFlag",
+				Name: "moot",
+				Type: "Gauge",
+				Min:  0,
+				Max:  100,
+				EmbeddedFlags: flags.EmbeddedFlags{
+					FlagSet:   "yesFlag",
+					FlagUnset: "noFlag",
+				},
 			},
 			enabledFlags:  []string{"yesFlag"},
 			disabledFlags: []string{"noFlag"},
@@ -79,12 +89,14 @@ func TestMetric_ShouldGenerate(t *testing.T) {
 		{
 			name: "one set on, one unset on, should not generate",
 			metric: Metric{
-				Name:      "moot",
-				Type:      "Gauge",
-				Min:       0,
-				Max:       100,
-				FlagSet:   "yesFlag",
-				FlagUnset: "noFlag",
+				Name: "moot",
+				Type: "Gauge",
+				Min:  0,
+				Max:  100,
+				EmbeddedFlags: flags.EmbeddedFlags{
+					FlagSet:   "yesFlag",
+					FlagUnset: "noFlag",
+				},
 			},
 			enabledFlags: []string{"yesFlag", "noFlag"},
 			want:         false,
