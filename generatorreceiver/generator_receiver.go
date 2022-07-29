@@ -91,6 +91,12 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 				// For each resource generate k8s metrics if enabled
 				k8sMetrics := resource.Kubernetes.GenerateMetrics(s)
 				if k8sMetrics != nil {
+
+					for i := range k8sMetrics {
+						// keep the same flags as the resources.
+						k8sMetrics[i].EmbeddedFlags = resource.EmbeddedFlags
+					}
+
 					effectiveMetrics = append(effectiveMetrics, k8sMetrics...)
 				}
 			}
