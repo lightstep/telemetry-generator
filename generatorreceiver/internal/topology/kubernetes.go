@@ -1,12 +1,18 @@
 package topology
 
-import "math/rand"
+import (
+	"math/rand"
+)
 
 type Kubernetes struct {
-	Enabled bool     `json:"enabled" yaml:"enabled"`
-	Request Resource `json:"request" yaml:"request"`
-	Limit   Resource `json:"limit" yaml:"limit"`
-	Usage   Resource `json:"usage" yaml:"usage"`
+	ClusterName string   `json:"cluster_name" yaml:"cluster_name"`
+	Request     Resource `json:"request" yaml:"request"`
+	Limit       Resource `json:"limit" yaml:"limit"`
+
+	ReplicaSetName string
+	Namespace      string
+	PodName        string
+	Container      string
 }
 
 type Resource struct {
@@ -14,8 +20,25 @@ type Resource struct {
 	Memory float64 `json:"memory" yaml:"memory"`
 }
 
+func (k *Kubernetes) CreatePod(service ServiceTier) {
+	k.ReplicaSetName = service.ServiceName + "-" + generateK8sName(10)
+	k.PodName = k.ReplicaSetName + "-" + generateK8sName(5)
+	k.Namespace = service.ServiceName
+	k.Container = service.ServiceName
+}
+
+func (k *Kubernetes) GetK8sTags() map[string]string {
+	// ref: https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/resource/semantic_conventions/k8s.md
+	return map[string]string{
+		"k8s.cluster.name":   k.ClusterName,
+		"k8s.pod.name":       k.PodName,
+		"k8s.namespace.name": k.Namespace,
+		"k8s.container.name": k.Container,
+	}
+}
+
 func (k *Kubernetes) GenerateMetrics(service ServiceTier) []Metric {
-	if !k.Enabled {
+	if k.ClusterName == "" {
 		return nil
 	}
 

@@ -21,7 +21,7 @@ func TestInsertTag(t *testing.T) {
 
 	attr := pdata.NewAttributeMap()
 
-	ts.InsertTags(&attr)
+	ts.Tags.InsertTags(&attr)
 
 	expectedAttr := pdata.NewAttributeMap()
 	expectedAttr.InsertBool("key1", true)

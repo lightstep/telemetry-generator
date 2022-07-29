@@ -68,16 +68,37 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 		}
 	}
 
+	for _, s := range topoFile.Topology.Services {
+		for _, resource := range s.ResourceAttributeSets {
+			resource.Kubernetes.CreatePod(s)
+
+			for k, v := range resource.Kubernetes.GetK8sTags() {
+				resource.ResourceAttributes[k] = v
+			}
+		}
+	}
+
 	if g.metricConsumer != nil {
 		for _, s := range topoFile.Topology.Services {
-			k8sMetrics := s.Kubernetes.GenerateMetrics(s)
-			if k8sMetrics != nil {
-				s.Metrics = append(s.Metrics, k8sMetrics...)
+
+			var effectiveMetrics []topology.Metric
+
+			// All defined metrics
+			effectiveMetrics = append(effectiveMetrics, s.Metrics...)
+
+			// K8s generated metrics
+			for _, resource := range s.ResourceAttributeSets {
+				// For each resource generate k8s metrics if enabled
+				k8sMetrics := resource.Kubernetes.GenerateMetrics(s)
+				if k8sMetrics != nil {
+					effectiveMetrics = append(effectiveMetrics, k8sMetrics...)
+				}
 			}
 
-			for _, m := range s.Metrics {
+			for _, m := range effectiveMetrics {
 				metricTicker := time.NewTicker(1 * time.Second)
 				g.tickers = append(g.tickers, metricTicker)
+				// TODO: this channel should respect shutdown.
 				metricDone := make(chan bool)
 				go func(s topology.ServiceTier, m topology.Metric) {
 					g.logger.Info("generating metrics", zap.String("service", s.ServiceName), zap.String("name", m.Name))
