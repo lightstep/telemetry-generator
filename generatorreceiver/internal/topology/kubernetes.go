@@ -111,9 +111,9 @@ func (k *Kubernetes) GenerateMetrics(service ServiceTier) []Metric {
 	return metrics
 }
 
-var letters = []rune("bcdfghjklmnpqrstvwxz2456789")
-
 func generateK8sName(n int) string {
+	var letters = []rune("bcdfghjklmnpqrstvwxz2456789")
+
 	b := make([]rune, n)
 	for i := range b {
 		b[i] = letters[rand.Intn(len(letters))]
