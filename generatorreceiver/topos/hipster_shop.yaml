@@ -52,8 +52,8 @@ topology:
           tags:
             something: worse
         - name: node_cpu_seconds_total
-          type: Counter
-          max: 50000
+          type: Sum
+          max: 100
           min: 0
           period: 2m
           shape: sawtooth
@@ -105,11 +105,11 @@ topology:
             net.host.name: frontend.internal
             namespace: hipster-shop
         - name: container_cpu_usage_seconds_total
-          type: Counter
-          max: 50000
-          min: 100
+          type: Sum
+          max: 200
+          min: 0
           period: 2m
-          shape: triange
+          shape: triangle
           tags:
             host.name: frontend.internal
             cpu: "1"

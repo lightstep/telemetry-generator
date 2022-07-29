@@ -46,15 +46,20 @@ func (g *MetricGenerator) Generate(metric topology.Metric, serviceName string) (
 			dp.Attributes().UpsertString(k, v)
 		}
 	} else if metric.Type == "Sum" {
-		// TODO: support histograms instead :-D
+		// TODO: support int-type values
+		// TODO: support cumulative?
 		m.SetDataType(pdata.MetricDataTypeSum)
+		m.Sum().SetIsMonotonic(true)
+		m.Sum().SetAggregationTemporality(pdata.AggregationTemporalityDelta)
 		dp := m.Sum().DataPoints().AppendEmpty()
+		dp.SetStartTimestamp(pdata.NewTimestampFromTime(time.Now()))
 		dp.SetTimestamp(pdata.NewTimestampFromTime(time.Now()))
 		dp.SetDoubleVal(metric.GetValue())
 		for k, v := range metric.Tags {
 			dp.Attributes().UpsertString(k, v)
 		}
 	}
+	// TODO: support histograms!
 
 	g.metricCount = g.metricCount + 1
 	return metrics, true
