@@ -1,18 +1,18 @@
 package topology
 
 import (
+	"github.com/lightstep/lightstep-partner-sdk/collector/generatorreceiver/internal/flags"
 	"strconv"
 
 	"go.opentelemetry.io/collector/model/pdata"
 )
 
 type TagSet struct {
-	Weight        int                    `json:"weight" yaml:"weight"`
-	FlagSet       string                 `json:"flag_set" yaml:"flag_set"`
-	FlagUnset     string                 `json:"flag_unset" yaml:"flag_unset"`
-	Tags          map[string]interface{} `json:"tags,omitempty" yaml:"tags,omitempty"`
-	TagGenerators []TagGenerator         `json:"tagGenerators,omitempty" yaml:"tagGenerators,omitempty"`
-	Inherit       []string               `json:"inherit,omitempty" yaml:"inherit,omitempty"`
+	Weight              int                    `json:"weight" yaml:"weight"`
+	Tags                map[string]interface{} `json:"tags,omitempty" yaml:"tags,omitempty"`
+	TagGenerators       []TagGenerator         `json:"tagGenerators,omitempty" yaml:"tagGenerators,omitempty"`
+	Inherit             []string               `json:"inherit,omitempty" yaml:"inherit,omitempty"`
+	flags.EmbeddedFlags `json:",inline" yaml:",inline"`
 }
 
 func (ts *TagSet) InsertTags(attr *pdata.AttributeMap) {

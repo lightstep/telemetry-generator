@@ -1,6 +1,7 @@
 package topology
 
 import (
+	"github.com/lightstep/lightstep-partner-sdk/collector/generatorreceiver/internal/flags"
 	"math/rand"
 	"time"
 )
@@ -12,8 +13,7 @@ type ServiceRoute struct {
 	LatencyPercentiles    *LatencyPercentiles    `json:"latencyPercentiles" yaml:"latencyPercentiles"`
 	TagSets               []TagSet               `json:"tagSets" yaml:"tagSets"`
 	ResourceAttributeSets []ResourceAttributeSet `json:"resourceAttrSets" yaml:"resourceAttrSets"`
-	FlagSet               string                 `json:"flag_set" yaml:"flag_set"`
-	FlagUnset             string                 `json:"flag_unset" yaml:"flag_unset"`
+	flags.EmbeddedFlags   `json:",inline" yaml:",inline"`
 }
 
 type LatencyPercentiles struct {
