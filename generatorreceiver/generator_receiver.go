@@ -69,11 +69,11 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 	}
 
 	for _, s := range topoFile.Topology.Services {
-		for _, resource := range s.ResourceAttributeSets {
-			resource.Kubernetes.CreatePod(s)
+		for i := range s.ResourceAttributeSets {
+			s.ResourceAttributeSets[i].Kubernetes.CreatePod(s)
 
-			for k, v := range resource.Kubernetes.GetK8sTags() {
-				resource.ResourceAttributes[k] = v
+			for k, v := range s.ResourceAttributeSets[i].Kubernetes.GetK8sTags() {
+				s.ResourceAttributeSets[i].ResourceAttributes[k] = v
 			}
 		}
 	}
