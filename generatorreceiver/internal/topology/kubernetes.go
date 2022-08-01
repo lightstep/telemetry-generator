@@ -44,107 +44,104 @@ func (k *Kubernetes) GenerateMetrics(service ServiceTier) []Metric {
 		return nil
 	}
 
-	var metrics []Metric
+	minute := time.Minute
 
-	metrics = append(metrics, Metric{
-		Name: "kube_pod_status_phase",
-		Type: "Gauge",
-		Min:  1,
-		Max:  1,
-		Tags: map[string]string{
-			"phase": "Running",
-			"pod":   k.PodName,
+	metrics := []Metric{
+		// kube_pod metrics
+		{
+			Name: "kube_pod_status_phase",
+			Type: "Gauge",
+			Min:  1,
+			Max:  1,
+			Tags: map[string]string{
+				"phase": "Running",
+				"pod":   k.PodName,
+			},
 		},
-	})
-
-	metrics = append(metrics, Metric{
-		Name: "kube_pod_owner",
-		Type: "Gauge",
-		Min:  1,
-		Max:  1,
-		Tags: map[string]string{
-			"pod":        k.PodName,
-			"namespace":  service.ServiceName,
-			"owner_name": k.ReplicaSetName,
-			"onwer_kind": "ReplicaSet",
+		{
+			Name: "kube_pod_owner",
+			Type: "Gauge",
+			Min:  1,
+			Max:  1,
+			Tags: map[string]string{
+				"pod":        k.PodName,
+				"namespace":  service.ServiceName,
+				"owner_name": k.ReplicaSetName,
+				"onwer_kind": "ReplicaSet",
+			},
 		},
-	})
-
-	metrics = append(metrics, Metric{
-		Name: "kube_node_status_allocatable",
-		Type: "Gauge",
-		Min:  k.Limit.CPU * 1.2, // make the node a little bigger than the limit
-		Max:  k.Limit.CPU * 1.2, // make the node a little bigger than the limit
-		Tags: map[string]string{
-			"resource": "cpu",
-			"pod":      k.PodName, // used to created multiple time series that will be summed up.
+		{
+			Name: "kube_node_status_allocatable",
+			Type: "Gauge",
+			Min:  k.Limit.CPU * 1.2, // make the node a little bigger than the limit
+			Max:  k.Limit.CPU * 1.2, // make the node a little bigger than the limit
+			Tags: map[string]string{
+				"resource": "cpu",
+				"pod":      k.PodName, // used to created multiple time series that will be summed up.
+			},
 		},
-	})
-
-	metrics = append(metrics, Metric{
-		Name: "kube_pod_container_resource_requests",
-		Type: "Gauge",
-		Min:  k.Request.CPU,
-		Max:  k.Request.CPU,
-		Tags: map[string]string{
-			"resource":  "cpu",
-			"namespace": service.ServiceName,
-			"container": service.ServiceName,
-			"pod":       k.PodName,
+		{
+			Name: "kube_pod_container_resource_requests",
+			Type: "Gauge",
+			Min:  k.Request.CPU,
+			Max:  k.Request.CPU,
+			Tags: map[string]string{
+				"resource":  "cpu",
+				"namespace": service.ServiceName,
+				"container": service.ServiceName,
+				"pod":       k.PodName,
+			},
 		},
-	})
-
-	metrics = append(metrics, Metric{
-		Name: "kube_pod_container_resource_limits",
-		Type: "Gauge",
-		Min:  k.Limit.CPU,
-		Max:  k.Limit.CPU,
-		Tags: map[string]string{
-			"resource":  "cpu",
-			"namespace": service.ServiceName,
-			"container": service.ServiceName,
-			"pod":       k.PodName,
+		{
+			Name: "kube_pod_container_resource_limits",
+			Type: "Gauge",
+			Min:  k.Limit.CPU,
+			Max:  k.Limit.CPU,
+			Tags: map[string]string{
+				"resource":  "cpu",
+				"namespace": service.ServiceName,
+				"container": service.ServiceName,
+				"pod":       k.PodName,
+			},
 		},
-	})
-
-	metrics = append(metrics, Metric{
-		Name: "node_cpu_seconds_total",
-		Type: "Sum",
-		Min:  k.Limit.CPU * 1.2,
-		Max:  k.Limit.CPU * 1.2,
-		Tags: map[string]string{
-			"resource":      "cpu",
-			"net.host.name": k.PodName, // for this we assume each pod run on its own node.
-			"cpu":           "0",
+		// node metrics
+		{
+			Name: "node_cpu_seconds_total",
+			Type: "Sum",
+			Min:  k.Limit.CPU * 1.2,
+			Max:  k.Limit.CPU * 1.2,
+			Tags: map[string]string{
+				"resource":      "cpu",
+				"net.host.name": k.PodName, // for this we assume each pod run on its own node.
+				"cpu":           "0",
+			},
 		},
-	})
-
-	metrics = append(metrics, Metric{
-		Name: "node_cpu_seconds_total",
-		Type: "Sum",
-		Min:  k.Request.CPU * 0.7,
-		Max:  math.Min(k.Request.CPU*1.2, k.Limit.CPU),
-		Tags: map[string]string{
-			"resource":      "cpu",
-			"net.host.name": k.PodName, // for this we assume each pod run on its own node.
-			"cpu":           "0",
+		{
+			Name: "node_cpu_seconds_total",
+			Type: "Sum",
+			Min:  k.Request.CPU * 0.7,
+			Max:  math.Min(k.Request.CPU*1.2, k.Limit.CPU),
+			Tags: map[string]string{
+				"resource":      "cpu",
+				"net.host.name": k.PodName, // for this we assume each pod run on its own node.
+				"cpu":           "0",
+			},
 		},
-	})
-
-	t := time.Minute
-	metrics = append(metrics, Metric{
-		Name:   "container_cpu_usage_seconds_total",
-		Type:   "Sum",
-		Period: &t,
-		Min:    k.Request.CPU * 0.7,
-		Max:    math.Min(k.Request.CPU*1.2, k.Limit.CPU),
-		Tags: map[string]string{
-			"pod":       k.PodName,
-			"container": service.ServiceName,
-			"image":     service.ServiceName,
-			"namespace": k.Namespace,
+		// container metrics
+		{
+			Name:   "container_cpu_usage_seconds_total",
+			Type:   "Sum",
+			Period: &minute,
+			Min:    k.Request.CPU * 0.7,
+			Max:    math.Min(k.Request.CPU*1.2, k.Limit.CPU),
+			Tags: map[string]string{
+				"pod":       k.PodName,
+				"container": service.ServiceName,
+				"image":     service.ServiceName,
+				"namespace": k.Namespace,
+			},
 		},
-	})
+	}
 
 	return metrics
 }
