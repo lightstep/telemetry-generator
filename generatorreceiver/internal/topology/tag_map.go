@@ -1,6 +1,7 @@
 package topology
 
 import (
+	"fmt"
 	"go.opentelemetry.io/collector/model/pdata"
 	"strconv"
 )
@@ -22,8 +23,8 @@ func (tm *tagMap) InsertTags(attr *pdata.AttributeMap) {
 		case bool:
 			attr.InsertBool(key, val)
 		default:
-			// just insert empty string if it's an unsupported type instead of returning error (todo decide if we want error handling somewhere above this)
-			attr.InsertString(key, "")
+
+			attr.InsertString(key, fmt.Sprint(val))
 		}
 	}
 }
