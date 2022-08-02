@@ -1,6 +1,10 @@
 package topology
 
+import "github.com/lightstep/lightstep-partner-sdk/collector/generatorreceiver/internal/flags"
+
 type ResourceAttributeSet struct {
-	Weight int `json:"weight" yaml:"weight"`
-	ResourceAttributes map[string]interface{} `json:"resourceAttrs,omitempty" yaml:"resourceAttrs,omitempty"`
+	Weight              int        `json:"weight" yaml:"weight"`
+	Kubernetes          Kubernetes `json:"kubernetes" yaml:"kubernetes"`
+	ResourceAttributes  tagMap     `json:"resourceAttrs,omitempty" yaml:"resourceAttrs,omitempty"`
+	flags.EmbeddedFlags `json:",inline" yaml:",inline"`
 }

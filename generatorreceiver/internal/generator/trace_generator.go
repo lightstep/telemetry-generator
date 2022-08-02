@@ -81,11 +81,10 @@ func (g *TraceGenerator) createSpanForServiceRouteCall(traces *pdata.Traces, ser
 
 	resource.Attributes().InsertString(string(semconv.ServiceNameKey), serviceTier.ServiceName)
 
-	resourceAttributeSet := serviceTier.GetResourceAttributeSet()
+	resourceAttributeSet := serviceTier.GetResourceAttributeSet(g.flagManager)
 	if resourceAttributeSet != nil {
-		for k, v := range resourceAttributeSet.ResourceAttributes {
-			resource.Attributes().InsertString(k, fmt.Sprintf("%v", v))
-		}
+		attrs := resource.Attributes()
+		resourceAttributeSet.ResourceAttributes.InsertTags(&attrs)
 	}
 
 	ils := rspan.InstrumentationLibrarySpans().AppendEmpty()
@@ -106,7 +105,7 @@ func (g *TraceGenerator) createSpanForServiceRouteCall(traces *pdata.Traces, ser
 			continue
 		}
 		attr := span.Attributes()
-		ts.InsertTags(&attr)
+		ts.Tags.InsertTags(&attr)
 		for _, tg := range ts.TagGenerators {
 			tg.Random = g.random
 			for k, v := range tg.GenerateTags() {
