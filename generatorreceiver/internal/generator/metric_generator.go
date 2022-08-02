@@ -15,9 +15,7 @@ type MetricGenerator struct {
 	flagManager *flags.FlagManager
 }
 
-func NewMetricGenerator(seed int64, fm *flags.FlagManager) *MetricGenerator {
-	r := rand.New(rand.NewSource(seed))
-	r.Seed(seed)
+func NewMetricGenerator(r *rand.Rand, fm *flags.FlagManager) *MetricGenerator {
 	return &MetricGenerator{
 		metricCount: 0,
 		random:      r,
