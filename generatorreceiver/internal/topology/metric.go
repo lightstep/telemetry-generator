@@ -90,7 +90,7 @@ func (m *Metric) GetValue(random *rand.Rand) float64 {
 
 	v := m.Min + (m.Max-m.Min)*factor
 
-	// adds jitter that ranges from [-m.Jitter/2, m.Jitter/2]
+	// jitter deviation is calculated in percentage that ranges from [-m.Jitter/2, m.Jitter/2)%
 	j := 1 + random.Float64()*m.Jitter - m.Jitter/2
 
 	v = v * j
