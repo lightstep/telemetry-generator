@@ -2,36 +2,56 @@ package flags
 
 import (
 	"go.uber.org/zap"
+	"sync"
 )
 
 type FlagManager struct {
-	Flags map[string]*Flag
+	flags map[string]*Flag
+
+	mu sync.Mutex
 }
 
-func NewFlagManager(im *IncidentManager, configFlags []Flag, logger *zap.Logger) *FlagManager {
-	fm := FlagManager{make(map[string]*Flag)}
+var Manager *FlagManager
 
-	for _, f := range configFlags {
-		flag := f
-		flag.Setup(im, logger)
-		fm.Flags[flag.Name] = &flag
+func init() {
+	Manager = NewFlagManager()
+}
+
+func NewFlagManager() *FlagManager {
+	return &FlagManager{flags: make(map[string]*Flag)}
+}
+
+func (fm *FlagManager) Clear() {
+	fm.mu.Lock()
+	fm.flags = make(map[string]*Flag)
+	fm.mu.Unlock()
+}
+
+func (fm *FlagManager) GetFlags() map[string]*Flag {
+	fm.mu.Lock()
+	defer fm.mu.Unlock()
+	return fm.flags
+}
+
+func (fm *FlagManager) LoadFlags(configFlags []FlagConfig, logger *zap.Logger) {
+	fm.mu.Lock()
+	defer fm.mu.Unlock()
+
+	for _, cfg := range configFlags {
+		flag := NewFlag(cfg)
+		flag.Setup(logger)
+		fm.flags[flag.Name()] = &flag
 	}
-
-	return &fm
 }
 
-func (g *FlagManager) Start() {
-	for _, v := range g.Flags {
-		v.StartCron()
-	}
+func (fm *FlagManager) FlagCount() int {
+	fm.mu.Lock()
+	defer fm.mu.Unlock()
+	return len(fm.flags)
 }
 
-func (g *FlagManager) Stop() {
-	for _, v := range g.Flags {
-		v.StopCron()
-	}
-}
-
-func (g *FlagManager) GetFlag(name string) *Flag {
-	return g.Flags[name]
+func (fm *FlagManager) GetFlag(name string) *Flag {
+	fm.mu.Lock()
+	defer fm.mu.Unlock()
+	return fm.flags[name]
 }

@@ -1,11 +1,9 @@
 package flags
 
 import (
-	"fmt"
-	"github.com/robfig/cron/v3"
+	"github.com/lightstep/lightstep-partner-sdk/collector/generatorreceiver/internal/cron"
 	"go.uber.org/zap"
-	"log"
-	"os"
+	"sync"
 	"time"
 )
 
@@ -15,109 +13,123 @@ const (
 )
 
 // TODO: separate config types from code types generally
-// TODO: make Flag an interface
+
+type IncidentConfig struct {
+	ParentFlag string        `json:"parentFlag" yaml:"parentFlag"`
+	Start      time.Duration `json:"start" yaml:"start"`
+	End        time.Duration `json:"end" yaml:"end"`
+}
+
+type CronConfig struct {
+	Start string `json:"start" yaml:"start"`
+	End   string `json:"end" yaml:"end"`
+}
+
+type FlagConfig struct {
+	Name     string          `json:"name" yaml:"name"`
+	Incident *IncidentConfig `json:"incident" yaml:"incident"`
+	Cron     *CronConfig     `json:"cron" yaml:"cron"`
+}
 
 type Flag struct {
-	Name          string `json:"name" yaml:"name"`
-	IncidentName  string `json:"incident" yaml:"incident"`
-	Start         string `json:"start" yaml:"start"`
-	End           string `json:"end" yaml:"end"`
-	state         float64
-	cron          *cron.Cron
-	incident      *Incident
-	incidentStart time.Duration
-	incidentEnd   time.Duration
+	cfg     FlagConfig
+	started time.Time
+	mu      sync.Mutex
 }
 
-func (f *Flag) Enabled() bool {
-	return f.GetState() > DisabledState
+func NewFlag(cfg FlagConfig) Flag {
+	return Flag{cfg: cfg}
 }
 
-func (f *Flag) GetState() float64 {
-	if f.incident == nil {
-		return f.state
+func (f *Flag) Name() string {
+	return f.cfg.Name
+}
+
+func (f *Flag) Active() bool {
+	f.update()
+	return f.active()
+}
+
+func (f *Flag) active() bool {
+	return !f.started.IsZero()
+}
+
+// update checks if the given flag f has a parent flag ("Incident"); if so,
+// updates f's state based on its start and end times relative to the parent.
+func (f *Flag) update() {
+	if f.cfg.Incident == nil {
+		// managed by cron or manual-only
+		return
 	}
 
-	// TODO: all this logic probably doesn't belong here
-	if f.Name == fmt.Sprintf("%s.default", f.incident.name) {
-		if !f.incident.Active() {
-			return EnabledState
-		}
-		return DisabledState
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	parent := Manager.GetFlag(f.cfg.Incident.ParentFlag)
+	if parent == nil {
+		// TODO: with validation, this should never happen
+		return
 	}
-	duration := f.incident.CurrentDuration()
-	if duration > f.incidentStart {
-		if f.incidentEnd == 0 || duration < f.incidentEnd {
-			return EnabledState
-		}
+
+	incidentDuration := parent.CurrentDuration()
+	afterStart := incidentDuration > f.cfg.Incident.Start
+	beforeEnd := f.cfg.Incident.End == 0 || incidentDuration < f.cfg.Incident.End
+	// shouldBeActive will be true if and only if both of the following are true:
+	// - parent has been Active for at least f's incident start time
+	// - either f has no end *or* parent has been active for less than f's incident end time
+	shouldBeActive := afterStart && beforeEnd
+
+	if f.active() != shouldBeActive {
+		f.Toggle()
 	}
-	return DisabledState
+}
+
+func (f *Flag) CurrentDuration() time.Duration {
+	if !f.active() {
+		return 0
+	}
+	return time.Now().Sub(f.started)
 }
 
 func (f *Flag) Enable() {
-	f.SetState(EnabledState)
+	if !f.active() {
+		f.started = time.Now()
+	}
 }
 
 func (f *Flag) Disable() {
-	f.SetState(DisabledState)
+	f.started = time.Time{}
 }
 
-func (f *Flag) SetState(state float64) {
-	f.state = state
-}
-
-func (f *Flag) Setup(im *IncidentManager, logger *zap.Logger) {
-	if f.IncidentName != "" {
-		f.SetupIncident(im, logger)
+func (f *Flag) Toggle() {
+	if f.active() {
+		f.Disable()
 	} else {
+		f.Enable()
+	}
+}
+
+func (f *Flag) Setup(logger *zap.Logger) {
+	// TODO: add validation to disallow having cron and incident both configured?
+	if f.cfg.Cron != nil {
 		f.SetupCron(logger)
 	}
-
 }
+
 func (f *Flag) SetupCron(logger *zap.Logger) {
-	f.cron = cron.New(
-		cron.WithLogger(
-			cron.PrintfLogger(log.New(os.Stdout, "cron: ", log.LstdFlags))))
-	_, err := f.cron.AddFunc(f.Start, func() {
-		logger.Info("toggling flag on", zap.String("flag", f.Name))
+	_, err := cron.Add(f.cfg.Cron.Start, func() {
+		logger.Info("toggling flag on", zap.String("flag", f.cfg.Name))
 		f.Enable()
 	})
 	if err != nil {
 		logger.Error("error adding flag start schedule", zap.Error(err))
 	}
 
-	_, err = f.cron.AddFunc(f.End, func() {
-		logger.Info("toggling flag off", zap.String("flag", f.Name))
+	_, err = cron.Add(f.cfg.Cron.End, func() {
+		logger.Info("toggling flag off", zap.String("flag", f.cfg.Name))
 		f.Disable()
 	})
 	if err != nil {
 		logger.Error("error adding flag stop schedule", zap.Error(err))
-	}
-}
-
-func (f *Flag) SetupIncident(im *IncidentManager, logger *zap.Logger) {
-	f.incident = im.GetIncident(f.IncidentName)
-	var err error
-	f.incidentStart, err = time.ParseDuration(f.Start)
-	if err != nil {
-		logger.Error("Error setting start time")
-	}
-	if f.End != "" {
-		f.incidentEnd, err = time.ParseDuration(f.End)
-		if err != nil {
-			logger.Error("Error setting start time")
-		}
-	}
-}
-
-func (f *Flag) StartCron() {
-	if f.cron != nil {
-		f.cron.Start()
-	}
-}
-
-func (f *Flag) StopCron() {
-	if f.cron != nil {
-		f.cron.Stop()
 	}
 }

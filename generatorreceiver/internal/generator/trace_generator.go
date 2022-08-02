@@ -6,7 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lightstep/lightstep-partner-sdk/collector/generatorreceiver/internal/flags"
 	"github.com/lightstep/lightstep-partner-sdk/collector/generatorreceiver/internal/topology"
 	"go.opentelemetry.io/collector/model/pdata"
 	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
@@ -20,19 +19,17 @@ type TraceGenerator struct {
 	random         *rand.Rand
 	sync.Mutex
 	tagNameGenerator topology.Generator
-	flagManager      *flags.FlagManager
 }
 
-func NewTraceGenerator(t *topology.Topology, seed int64, service string, route string, fm *flags.FlagManager) *TraceGenerator {
+func NewTraceGenerator(t *topology.Topology, seed int64, service string, route string) *TraceGenerator {
 	r := rand.New(rand.NewSource(seed))
 	r.Seed(seed)
 
 	tg := &TraceGenerator{
-		topology:    t,
-		random:      r,
-		service:     service,
-		route:       route,
-		flagManager: fm,
+		topology: t,
+		random:   r,
+		service:  service,
+		route:    route,
 	}
 	return tg
 }
@@ -70,7 +67,7 @@ func (g *TraceGenerator) createSpanForServiceRouteCall(traces *pdata.Traces, ser
 	serviceTier.Random = g.random
 	route := serviceTier.GetRoute(routeName)
 
-	if !route.ShouldGenerate(g.flagManager) {
+	if !route.ShouldGenerate() {
 		return nil
 	}
 
@@ -81,7 +78,7 @@ func (g *TraceGenerator) createSpanForServiceRouteCall(traces *pdata.Traces, ser
 
 	resource.Attributes().InsertString(string(semconv.ServiceNameKey), serviceTier.ServiceName)
 
-	resourceAttributeSet := serviceTier.GetResourceAttributeSet(g.flagManager)
+	resourceAttributeSet := serviceTier.GetResourceAttributeSet()
 	if resourceAttributeSet != nil {
 		attrs := resource.Attributes()
 		resourceAttributeSet.ResourceAttributes.InsertTags(&attrs)
@@ -101,7 +98,7 @@ func (g *TraceGenerator) createSpanForServiceRouteCall(traces *pdata.Traces, ser
 
 	tagSet := serviceTier.GetTagSet(routeName)
 	for _, ts := range tagSet {
-		if !ts.ShouldGenerate(g.flagManager) {
+		if !ts.ShouldGenerate() {
 			continue
 		}
 		attr := span.Attributes()
