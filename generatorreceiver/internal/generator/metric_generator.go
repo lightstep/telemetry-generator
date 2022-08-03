@@ -13,9 +13,7 @@ type MetricGenerator struct {
 	random      *rand.Rand
 }
 
-func NewMetricGenerator(seed int64) *MetricGenerator {
-	r := rand.New(rand.NewSource(seed))
-	r.Seed(seed)
+func NewMetricGenerator(r *rand.Rand) *MetricGenerator {
 	return &MetricGenerator{
 		metricCount: 0,
 		random:      r,
@@ -38,7 +36,7 @@ func (g *MetricGenerator) Generate(metric topology.Metric, serviceName string) (
 		m.SetDataType(pdata.MetricDataTypeGauge)
 		dp := m.Gauge().DataPoints().AppendEmpty()
 		dp.SetTimestamp(pdata.NewTimestampFromTime(time.Now()))
-		dp.SetDoubleVal(metric.GetValue())
+		dp.SetDoubleVal(metric.GetValue(g.random))
 		for k, v := range metric.Tags {
 			dp.Attributes().UpsertString(k, v)
 		}
@@ -51,7 +49,7 @@ func (g *MetricGenerator) Generate(metric topology.Metric, serviceName string) (
 		dp := m.Sum().DataPoints().AppendEmpty()
 		dp.SetStartTimestamp(pdata.NewTimestampFromTime(time.Now()))
 		dp.SetTimestamp(pdata.NewTimestampFromTime(time.Now()))
-		dp.SetDoubleVal(metric.GetValue())
+		dp.SetDoubleVal(metric.GetValue(g.random))
 		for k, v := range metric.Tags {
 			dp.Attributes().UpsertString(k, v)
 		}

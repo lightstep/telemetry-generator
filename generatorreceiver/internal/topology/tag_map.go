@@ -6,9 +6,9 @@ import (
 	"strconv"
 )
 
-type tagMap map[string]interface{}
+type TagMap map[string]interface{}
 
-func (tm *tagMap) InsertTags(attr *pdata.AttributeMap) {
+func (tm *TagMap) InsertTags(attr *pdata.AttributeMap) {
 	for key, val := range *tm {
 		switch val := val.(type) {
 		case float64:

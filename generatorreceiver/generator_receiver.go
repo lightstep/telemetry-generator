@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/lightstep/lightstep-partner-sdk/collector/generatorreceiver/internal/cron"
+	"math/rand"
 	"time"
 
 	"github.com/lightstep/lightstep-partner-sdk/collector/generatorreceiver/internal/flags"
@@ -59,6 +60,8 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 
 	g.logger.Info("starting flag manager", zap.Int("flag_count", flags.Manager.FlagCount()))
 	cron.Start()
+	r := rand.New(rand.NewSource(g.randomSeed))
+	r.Seed(g.randomSeed)
 
 	if g.server != nil {
 		err := g.server.Start(ctx, host)
@@ -70,6 +73,10 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 	for _, s := range topoFile.Topology.Services {
 		for i := range s.ResourceAttributeSets {
 			s.ResourceAttributeSets[i].Kubernetes.CreatePod(s)
+
+			if s.ResourceAttributeSets[i].ResourceAttributes == nil {
+				s.ResourceAttributeSets[i].ResourceAttributes = make(topology.TagMap)
+			}
 
 			for k, v := range s.ResourceAttributeSets[i].Kubernetes.GetK8sTags() {
 				s.ResourceAttributeSets[i].ResourceAttributes[k] = v
@@ -107,7 +114,7 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 				metricDone := make(chan bool)
 				go func(s topology.ServiceTier, m topology.Metric) {
 					g.logger.Info("generating metrics", zap.String("service", s.ServiceName), zap.String("name", m.Name))
-					metricGen := generator.NewMetricGenerator(g.randomSeed)
+					metricGen := generator.NewMetricGenerator(r)
 					for {
 						select {
 						case <-metricDone:

@@ -5,6 +5,6 @@ import "github.com/lightstep/lightstep-partner-sdk/collector/generatorreceiver/i
 type ResourceAttributeSet struct {
 	Weight              int        `json:"weight" yaml:"weight"`
 	Kubernetes          Kubernetes `json:"kubernetes" yaml:"kubernetes"`
-	ResourceAttributes  tagMap     `json:"resourceAttrs,omitempty" yaml:"resourceAttrs,omitempty"`
+	ResourceAttributes  TagMap     `json:"resourceAttrs,omitempty" yaml:"resourceAttrs,omitempty"`
 	flags.EmbeddedFlags `json:",inline" yaml:",inline"`
 }

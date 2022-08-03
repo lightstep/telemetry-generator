@@ -6,10 +6,16 @@ import (
 	"time"
 )
 
+const (
+	defaultTarget = 0.5
+	defaultJitter = 0.4
+)
+
 type Kubernetes struct {
 	ClusterName string   `json:"cluster_name" yaml:"cluster_name"`
 	Request     Resource `json:"request" yaml:"request"`
 	Limit       Resource `json:"limit" yaml:"limit"`
+	Usage       Usage    `json:"usage" yaml:"usage"`
 
 	ReplicaSetName string
 	Namespace      string
@@ -20,6 +26,16 @@ type Kubernetes struct {
 type Resource struct {
 	CPU    float64 `json:"cpu" yaml:"cpu"`
 	Memory float64 `json:"memory" yaml:"memory"`
+}
+
+type Usage struct {
+	CPU    ResourceUsage `json:"cpu" yaml:"cpu"`
+	Memory ResourceUsage `json:"memory" yaml:"memory"`
+}
+
+type ResourceUsage struct {
+	TargetPercentage float64 `json:"target" yaml:"target"`
+	Jitter           float64 `json:"jitter" yaml:"jitter"`
 }
 
 func (k *Kubernetes) CreatePod(service ServiceTier) {
@@ -46,6 +62,18 @@ func (k *Kubernetes) GenerateMetrics(service ServiceTier) []Metric {
 
 	minute := time.Minute
 
+	if k.Usage.CPU.TargetPercentage == 0 {
+		k.Usage.CPU.TargetPercentage = defaultTarget
+	}
+
+	if k.Usage.CPU.Jitter == 0 {
+		k.Usage.CPU.Jitter = defaultJitter
+	}
+
+	cpuTarget := k.Request.CPU * k.Usage.CPU.TargetPercentage
+	cpuJitter := k.Usage.CPU.Jitter / 2
+	cpuTotal := k.Limit.CPU * 1.2 // make the node a little bigger than the limit
+
 	metrics := []Metric{
 		// kube_pod metrics
 		{
@@ -67,14 +95,14 @@ func (k *Kubernetes) GenerateMetrics(service ServiceTier) []Metric {
 				"pod":        k.PodName,
 				"namespace":  service.ServiceName,
 				"owner_name": k.ReplicaSetName,
-				"onwer_kind": "ReplicaSet",
+				"owner_kind": "ReplicaSet",
 			},
 		},
 		{
 			Name: "kube_node_status_allocatable",
 			Type: "Gauge",
-			Min:  k.Limit.CPU * 1.2, // make the node a little bigger than the limit
-			Max:  k.Limit.CPU * 1.2, // make the node a little bigger than the limit
+			Min:  cpuTotal,
+			Max:  cpuTotal, // make the node a little bigger than the limit
 			Tags: map[string]string{
 				"resource": "cpu",
 				"pod":      k.PodName, // used to created multiple time series that will be summed up.
@@ -117,10 +145,12 @@ func (k *Kubernetes) GenerateMetrics(service ServiceTier) []Metric {
 			},
 		},
 		{
-			Name: "node_cpu_seconds_total",
-			Type: "Sum",
-			Min:  k.Request.CPU * 0.7,
-			Max:  math.Min(k.Request.CPU*1.2, k.Limit.CPU),
+			Name:   "node_cpu_seconds_total",
+			Type:   "Sum",
+			Min:    math.Max(cpuTarget*(1-cpuJitter), 0),
+			Max:    math.Min(cpuTarget*(1+cpuJitter), k.Limit.CPU),
+			Shape:  Average,
+			Jitter: k.Usage.CPU.Jitter,
 			Tags: map[string]string{
 				"resource":      "cpu",
 				"net.host.name": k.PodName, // for this we assume each pod run on its own node.
@@ -132,8 +162,10 @@ func (k *Kubernetes) GenerateMetrics(service ServiceTier) []Metric {
 			Name:   "container_cpu_usage_seconds_total",
 			Type:   "Sum",
 			Period: &minute,
-			Min:    k.Request.CPU * 0.7,
-			Max:    math.Min(k.Request.CPU*1.2, k.Limit.CPU),
+			Min:    math.Max(cpuTarget*(1-cpuJitter), 0),
+			Max:    math.Min(cpuTarget*(1+cpuJitter), k.Limit.CPU),
+			Shape:  Average,
+			Jitter: k.Usage.CPU.Jitter,
 			Tags: map[string]string{
 				"pod":       k.PodName,
 				"container": service.ServiceName,

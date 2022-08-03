@@ -3,6 +3,7 @@ package topology
 import (
 	"github.com/lightstep/lightstep-partner-sdk/collector/generatorreceiver/internal/flags"
 	"math"
+	"math/rand"
 	"time"
 )
 
@@ -16,6 +17,7 @@ const (
 	Sawtooth Shape = "sawtooth"
 	Square   Shape = "square"
 	Triangle Shape = "triangle"
+	Average  Shape = "average"
 )
 
 type Metric struct {
@@ -27,6 +29,7 @@ type Metric struct {
 	Offset              *time.Duration    `json:"offset" yaml:"offset"`
 	Shape               Shape             `json:"shape" yaml:"shape"`
 	Tags                map[string]string `json:"tags" yaml:"tags"`
+	Jitter              float64           `json:"jitter" yaml:"jitter"`
 	flags.EmbeddedFlags `json:",inline" yaml:",inline"`
 }
 
@@ -49,7 +52,11 @@ func TriangleValue(phase float64) float64 {
 	return 1.0 - 2.0*math.Abs(0.5-phase)
 }
 
-func (m *Metric) GetValue() float64 {
+func AverageValue(_ float64) float64 {
+	return 0.5
+}
+
+func (m *Metric) GetValue(random *rand.Rand) float64 {
 	if m.Period == nil {
 		period := DefaultPeriod
 		m.Period = &period
@@ -73,11 +80,24 @@ func (m *Metric) GetValue() float64 {
 			return SquareValue(phase)
 		case Triangle:
 			return TriangleValue(phase)
+		case Average:
+			return AverageValue(phase)
 		default:
 			// TODO: what would be a reasonable default? Maybe just sine?
 			return SineValue(phase)
 		}
 	}(phase)
 
-	return m.Min + (m.Max-m.Min)*factor
+	v := m.Min + (m.Max-m.Min)*factor
+
+	// jitter deviation is calculated in percentage that ranges from [-m.Jitter/2, m.Jitter/2)%
+	j := 1 + random.Float64()*m.Jitter - m.Jitter/2
+
+	v = v * j
+
+	// ensures value is on the [m.Min, m.Max] boundary
+	v = math.Min(v, m.Max)
+	v = math.Max(v, m.Min)
+
+	return v
 }
