@@ -7,8 +7,8 @@ import (
 )
 
 const (
-	defaultTargetCPU = 0.5
-	defaultJitter    = 0.4
+	defaultTarget = 0.5
+	defaultJitter = 0.4
 )
 
 type Kubernetes struct {
@@ -63,12 +63,16 @@ func (k *Kubernetes) GenerateMetrics(service ServiceTier) []Metric {
 	minute := time.Minute
 
 	if k.Usage.CPU.TargetPercentage == 0 {
-		k.Usage.CPU.TargetPercentage = defaultTargetCPU
+		k.Usage.CPU.TargetPercentage = defaultTarget
 	}
 
 	if k.Usage.CPU.Jitter == 0 {
 		k.Usage.CPU.Jitter = defaultJitter
 	}
+
+	cpuTarget := k.Request.CPU * k.Usage.CPU.TargetPercentage
+	cpuJitter := k.Usage.CPU.Jitter / 2
+	cpuTotal := k.Limit.CPU * 1.2 // make the node a little bigger than the limit
 
 	metrics := []Metric{
 		// kube_pod metrics
@@ -97,8 +101,8 @@ func (k *Kubernetes) GenerateMetrics(service ServiceTier) []Metric {
 		{
 			Name: "kube_node_status_allocatable",
 			Type: "Gauge",
-			Min:  k.Limit.CPU * 1.2, // make the node a little bigger than the limit
-			Max:  k.Limit.CPU * 1.2, // make the node a little bigger than the limit
+			Min:  cpuTotal,
+			Max:  cpuTotal, // make the node a little bigger than the limit
 			Tags: map[string]string{
 				"resource": "cpu",
 				"pod":      k.PodName, // used to created multiple time series that will be summed up.
@@ -143,8 +147,8 @@ func (k *Kubernetes) GenerateMetrics(service ServiceTier) []Metric {
 		{
 			Name:   "node_cpu_seconds_total",
 			Type:   "Sum",
-			Min:    math.Max(k.Request.CPU*k.Usage.CPU.TargetPercentage*(1-k.Usage.CPU.Jitter/2), 0),
-			Max:    math.Min(k.Request.CPU*k.Usage.CPU.TargetPercentage*(1+k.Usage.CPU.Jitter/2), k.Limit.CPU),
+			Min:    math.Max(cpuTarget*(1-cpuJitter), 0),
+			Max:    math.Min(cpuTarget*(1+cpuJitter), k.Limit.CPU),
 			Shape:  Average,
 			Jitter: k.Usage.CPU.Jitter,
 			Tags: map[string]string{
@@ -158,8 +162,8 @@ func (k *Kubernetes) GenerateMetrics(service ServiceTier) []Metric {
 			Name:   "container_cpu_usage_seconds_total",
 			Type:   "Sum",
 			Period: &minute,
-			Min:    math.Max(k.Request.CPU*k.Usage.CPU.TargetPercentage*(1-k.Usage.CPU.Jitter), 0),
-			Max:    math.Min(k.Request.CPU*k.Usage.CPU.TargetPercentage*(1+k.Usage.CPU.Jitter), k.Limit.CPU),
+			Min:    math.Max(cpuTarget*(1-cpuJitter), 0),
+			Max:    math.Min(cpuTarget*(1+cpuJitter), k.Limit.CPU),
 			Shape:  Average,
 			Jitter: k.Usage.CPU.Jitter,
 			Tags: map[string]string{
