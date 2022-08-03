@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/lightstep/lightstep-partner-sdk/collector/generatorreceiver/internal/cron"
 	"math/rand"
 	"time"
 
@@ -25,8 +26,6 @@ type generatorReceiver struct {
 	randomSeed     int64
 	metricGen      *generator.MetricGenerator
 	tickers        []*time.Ticker
-	fm             *flags.FlagManager
-	im             *flags.IncidentManager
 	server         *httpServer
 }
 
@@ -57,15 +56,15 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 		host.ReportFatalError(err)
 	}
 
-	g.im = flags.NewIncidentManager()
-	g.fm = flags.NewFlagManager(g.im, topoFile.Flags, g.logger)
-	g.logger.Info("starting flag manager", zap.Int("flag_count", len(g.fm.Flags)))
-	g.fm.Start()
+	flags.Manager.LoadFlags(topoFile.Flags, g.logger)
+
+	g.logger.Info("starting flag manager", zap.Int("flag_count", flags.Manager.FlagCount()))
+	cron.Start()
 	r := rand.New(rand.NewSource(g.randomSeed))
 	r.Seed(g.randomSeed)
 
 	if g.server != nil {
-		err := g.server.Start(ctx, host, g.fm, g.im)
+		err := g.server.Start(ctx, host)
 		if err != nil {
 			g.logger.Fatal("could not start server", zap.Error(err))
 		}
@@ -115,7 +114,7 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 				metricDone := make(chan bool)
 				go func(s topology.ServiceTier, m topology.Metric) {
 					g.logger.Info("generating metrics", zap.String("service", s.ServiceName), zap.String("name", m.Name))
-					metricGen := generator.NewMetricGenerator(r, g.fm)
+					metricGen := generator.NewMetricGenerator(r)
 					for {
 						select {
 						case <-metricDone:
@@ -143,7 +142,7 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 			route := r.Route
 			go func() {
 				g.logger.Info("generating traces", zap.String("service", svc), zap.String("route", route))
-				traceGen := generator.NewTraceGenerator(topoFile.Topology, g.randomSeed, svc, route, g.fm)
+				traceGen := generator.NewTraceGenerator(topoFile.Topology, g.randomSeed, svc, route)
 				for {
 					select {
 					case <-done:
@@ -162,11 +161,11 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 
 var genReceiver = generatorReceiver{}
 
-func (g generatorReceiver) Shutdown(ctx context.Context) error {
+func (g generatorReceiver) Shutdown(_ context.Context) error {
 	for _, t := range g.tickers {
 		t.Stop()
 	}
-	g.fm.Stop()
+	cron.Stop()
 	return nil
 }
 

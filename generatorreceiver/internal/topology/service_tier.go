@@ -1,7 +1,6 @@
 package topology
 
 import (
-	"github.com/lightstep/lightstep-partner-sdk/collector/generatorreceiver/internal/flags"
 	"math/rand"
 )
 
@@ -21,13 +20,13 @@ func (st *ServiceTier) GetTagSet(routeName string) []TagSet {
 	return append(tags, routeTags...)
 }
 
-func (st *ServiceTier) GetResourceAttributeSet(fm *flags.FlagManager) *ResourceAttributeSet {
+func (st *ServiceTier) GetResourceAttributeSet() *ResourceAttributeSet {
 	if len(st.ResourceAttributeSets) == 0 {
 		return nil
 	}
 	var enabledResources []ResourceAttributeSet
 	for _, resource := range st.ResourceAttributeSets {
-		if resource.ShouldGenerate(fm) {
+		if resource.ShouldGenerate() {
 			enabledResources = append(enabledResources, resource)
 		}
 	}

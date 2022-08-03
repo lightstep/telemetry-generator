@@ -5,28 +5,25 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/lightstep/lightstep-partner-sdk/collector/generatorreceiver/internal/flags"
 	"go.opentelemetry.io/collector/model/pdata"
 )
 
 type MetricGenerator struct {
 	metricCount int
 	random      *rand.Rand
-	flagManager *flags.FlagManager
 }
 
-func NewMetricGenerator(r *rand.Rand, fm *flags.FlagManager) *MetricGenerator {
+func NewMetricGenerator(r *rand.Rand) *MetricGenerator {
 	return &MetricGenerator{
 		metricCount: 0,
 		random:      r,
-		flagManager: fm,
 	}
 }
 
 func (g *MetricGenerator) Generate(metric topology.Metric, serviceName string) (pdata.Metrics, bool) {
 	metrics := pdata.NewMetrics()
 
-	if !metric.ShouldGenerate(g.flagManager) {
+	if !metric.ShouldGenerate() {
 		return metrics, false
 	}
 
