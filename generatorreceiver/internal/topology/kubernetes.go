@@ -26,11 +26,13 @@ type Kubernetes struct {
 type Resource struct {
 	CPU    float64 `json:"cpu" yaml:"cpu"`
 	Memory float64 `json:"memory" yaml:"memory"`
+	Disk   float64 `json:"disk" yaml:"disk"`
 }
 
 type Usage struct {
 	CPU    ResourceUsage `json:"cpu" yaml:"cpu"`
 	Memory ResourceUsage `json:"memory" yaml:"memory"`
+	Disk   ResourceUsage `json:"disk" yaml:"disk"`
 }
 
 type ResourceUsage struct {
@@ -171,6 +173,70 @@ func (k *Kubernetes) GenerateMetrics(service ServiceTier) []Metric {
 				"container": service.ServiceName,
 				"image":     service.ServiceName,
 				"namespace": k.Namespace,
+			},
+		},
+		{
+			Name:   "container_fs_reads_total",
+			Type:   "Sum",
+			Period: &minute,
+			Min:    math.Max(cpuTarget*(1-cpuJitter), 0),
+			Max:    math.Min(cpuTarget*(1+cpuJitter), k.Limit.CPU),
+			Shape:  Average,
+			Jitter: k.Usage.CPU.Jitter,
+			Tags: map[string]string{
+				"job":          "kubelet",
+				"metrics_path": "/metrics/cadvisor",
+				"container":    service.ServiceName,
+				"device":       "/dev/sda",
+				"namespace":    k.Namespace,
+			},
+		},
+		{
+			Name:   "container_fs_writes_total",
+			Type:   "Sum",
+			Period: &minute,
+			Min:    math.Max(cpuTarget*(1-cpuJitter), 0),
+			Max:    math.Min(cpuTarget*(1+cpuJitter), k.Limit.CPU),
+			Shape:  Average,
+			Jitter: k.Usage.CPU.Jitter,
+			Tags: map[string]string{
+				"job":          "kubelet",
+				"metrics_path": "/metrics/cadvisor",
+				"container":    service.ServiceName,
+				"device":       "/dev/sda",
+				"namespace":    k.Namespace,
+			},
+		},
+		{
+			Name:   "container_fs_reads_bytes_total",
+			Type:   "Sum",
+			Period: &minute,
+			Min:    math.Max(cpuTarget*(1-cpuJitter), 0),
+			Max:    math.Min(cpuTarget*(1+cpuJitter), k.Limit.CPU),
+			Shape:  Average,
+			Jitter: k.Usage.CPU.Jitter,
+			Tags: map[string]string{
+				"job":          "kubelet",
+				"metrics_path": "/metrics/cadvisor",
+				"container":    service.ServiceName,
+				"device":       "/dev/sda",
+				"namespace":    k.Namespace,
+			},
+		},
+		{
+			Name:   "container_fs_writes_bytes_total",
+			Type:   "Sum",
+			Period: &minute,
+			Min:    math.Max(cpuTarget*(1-cpuJitter), 0),
+			Max:    math.Min(cpuTarget*(1+cpuJitter), k.Limit.CPU),
+			Shape:  Average,
+			Jitter: k.Usage.CPU.Jitter,
+			Tags: map[string]string{
+				"job":          "kubelet",
+				"metrics_path": "/metrics/cadvisor",
+				"container":    service.ServiceName,
+				"device":       "/dev/sda",
+				"namespace":    k.Namespace,
 			},
 		},
 	}
