@@ -57,7 +57,6 @@ func (g *TraceGenerator) genSpanId() pdata.SpanID {
 func (g *TraceGenerator) Generate(startTimeMicros int64) *pdata.Traces {
 	rootService := g.topology.GetServiceTier(g.service)
 	traces := pdata.NewTraces()
-
 	g.createSpanForServiceRouteCall(&traces, rootService, g.route, startTimeMicros, g.genTraceId(), pdata.NewSpanID([8]byte{0x0}))
 
 	return &traces
@@ -66,7 +65,6 @@ func (g *TraceGenerator) Generate(startTimeMicros int64) *pdata.Traces {
 func (g *TraceGenerator) createSpanForServiceRouteCall(traces *pdata.Traces, serviceTier *topology.ServiceTier, routeName string, startTimeMicros int64, traceId pdata.TraceID, parentSpanId pdata.SpanID) *pdata.Span {
 	serviceTier.Random = g.random
 	route := serviceTier.GetRoute(routeName)
-
 	if !route.ShouldGenerate() {
 		return nil
 	}

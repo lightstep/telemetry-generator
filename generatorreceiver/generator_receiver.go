@@ -43,7 +43,6 @@ func (g generatorReceiver) loadTopoFile(topoInline string, path string) (*topolo
 	}
 	g.logger.Info("reading topo from file path", zap.String("path", g.topoPath))
 	parsedFile, err := parseTopoFile(path)
-
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +55,20 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 		host.ReportFatalError(err)
 	}
 
-	flags.Manager.LoadFlags(topoFile.Flags, g.logger)
+	err = flags.Manager.LoadFlags(topoFile.Flags, g.logger)
+	if err != nil {
+		host.ReportFatalError(fmt.Errorf("flag configuration validation failed: %v", err))
+	}
+
+	err = topoFile.ValidateServices() // can't call this till after flags have been loaded
+	if err != nil {
+		host.ReportFatalError(fmt.Errorf("service configuration validation failed: %v", err))
+	}
+
+	err = topoFile.ValidateRootRoutes()
+	if err != nil {
+		host.ReportFatalError(fmt.Errorf("rootRoute configuration validation failed: %v", err))
+	}
 
 	g.logger.Info("starting flag manager", zap.Int("flag_count", flags.Manager.FlagCount()))
 	cron.Start()
