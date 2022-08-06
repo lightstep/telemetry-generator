@@ -45,6 +45,17 @@ func (f *Flag) Name() string {
 	return f.cfg.Name
 }
 
+func (f *Flag) ParentSpecified() bool {
+	return f.cfg.Incident != nil
+}
+
+func (f *Flag) Parent() *Flag {
+	if !f.ParentSpecified() {
+		return nil
+	}
+	return Manager.GetFlag(f.cfg.Incident.ParentFlag)
+}
+
 func (f *Flag) Active() bool {
 	f.update()
 	return f.active()

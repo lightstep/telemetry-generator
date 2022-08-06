@@ -1,8 +1,6 @@
 package topology
 
-
-
-type Topology struct  {
+type Topology struct {
 	Services []ServiceTier `json:"services" yaml:"services"`
 }
 

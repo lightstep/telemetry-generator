@@ -49,25 +49,32 @@ func (g generatorReceiver) loadTopoFile(topoInline string, path string) (*topolo
 	return parsedFile, nil
 }
 
+func (g generatorReceiver) validateConfiguration(topoFile *topology.File) error {
+	err := flags.Manager.ValidateFlags()
+	if err != nil {
+		return fmt.Errorf("flag configuration validation failed: %v", err)
+	}
+	err = topoFile.ValidateServices() // service validation relies on flags being loaded first
+	if err != nil {
+		return fmt.Errorf("service configuration validation failed: %v", err)
+	}
+	err = topoFile.ValidateRootRoutes()
+	if err != nil {
+		return fmt.Errorf("rootRoute configuration validation failed: %v", err)
+	}
+	return nil
+}
+
 func (g generatorReceiver) Start(ctx context.Context, host component.Host) error {
 	topoFile, err := g.loadTopoFile(g.topoInline, g.topoPath)
 	if err != nil {
 		host.ReportFatalError(err)
 	}
+	flags.Manager.LoadFlags(topoFile.Flags, g.logger)
 
-	err = flags.Manager.LoadFlags(topoFile.Flags, g.logger)
+	err = g.validateConfiguration(topoFile)
 	if err != nil {
-		host.ReportFatalError(fmt.Errorf("flag configuration validation failed: %v", err))
-	}
-
-	err = topoFile.ValidateServices() // can't call this till after flags have been loaded
-	if err != nil {
-		host.ReportFatalError(fmt.Errorf("service configuration validation failed: %v", err))
-	}
-
-	err = topoFile.ValidateRootRoutes()
-	if err != nil {
-		host.ReportFatalError(fmt.Errorf("rootRoute configuration validation failed: %v", err))
+		host.ReportFatalError(err)
 	}
 
 	g.logger.Info("starting flag manager", zap.Int("flag_count", flags.Manager.FlagCount()))
