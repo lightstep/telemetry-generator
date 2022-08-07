@@ -39,6 +39,7 @@ func (g generatorReceiver) loadTopoFile(topoInline string, path string) (*topolo
 		if err != nil {
 			return nil, fmt.Errorf("could not parse inline json file: %v", err)
 		}
+		topoFile.Topology.LoadServiceMap()
 		return &topoFile, nil
 	}
 	g.logger.Info("reading topo from file path", zap.String("path", g.topoPath))
@@ -46,21 +47,22 @@ func (g generatorReceiver) loadTopoFile(topoInline string, path string) (*topolo
 	if err != nil {
 		return nil, err
 	}
+	parsedFile.Topology.LoadServiceMap()
 	return parsedFile, nil
 }
 
 func (g generatorReceiver) validateConfiguration(topoFile *topology.File) error {
 	err := flags.Manager.ValidateFlags()
 	if err != nil {
-		return fmt.Errorf("flag configuration validation failed: %v", err)
+		return fmt.Errorf("validation of flag configuration failed: %v", err)
 	}
-	err = topoFile.ValidateServices() // service validation relies on flags being loaded first
+	err = topoFile.ValidateServices()
 	if err != nil {
-		return fmt.Errorf("service configuration validation failed: %v", err)
+		return fmt.Errorf("validation of service configuration failed: %v", err)
 	}
 	err = topoFile.ValidateRootRoutes()
 	if err != nil {
-		return fmt.Errorf("rootRoute configuration validation failed: %v", err)
+		return fmt.Errorf("validation of rootRoute configuration failed: %v", err)
 	}
 	return nil
 }
@@ -72,7 +74,7 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 	}
 	flags.Manager.LoadFlags(topoFile.Flags, g.logger)
 
-	err = g.validateConfiguration(topoFile)
+	err = g.validateConfiguration(topoFile) // validation relies on flags being loaded first
 	if err != nil {
 		host.ReportFatalError(err)
 	}
@@ -91,7 +93,7 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 
 	for _, s := range topoFile.Topology.Services {
 		for i := range s.ResourceAttributeSets {
-			s.ResourceAttributeSets[i].Kubernetes.CreatePod(s)
+			s.ResourceAttributeSets[i].Kubernetes.CreatePod(*s)
 
 			if s.ResourceAttributeSets[i].ResourceAttributes == nil {
 				s.ResourceAttributeSets[i].ResourceAttributes = make(topology.TagMap)
@@ -114,7 +116,7 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 			// K8s generated metrics
 			for _, resource := range s.ResourceAttributeSets {
 				// For each resource generate k8s metrics if enabled
-				k8sMetrics := resource.Kubernetes.GenerateMetrics(s)
+				k8sMetrics := resource.Kubernetes.GenerateMetrics(*s)
 				if k8sMetrics != nil {
 
 					for i := range k8sMetrics {
@@ -147,7 +149,7 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 							}
 						}
 					}
-				}(s, m)
+				}(*s, m)
 			}
 		}
 

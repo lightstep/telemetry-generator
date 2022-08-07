@@ -6,11 +6,12 @@ import (
 
 type ServiceTier struct {
 	ServiceName           string                 `json:"serviceName" yaml:"serviceName"`
-	Routes                []ServiceRoute         `json:"routes" yaml:"routes"`
+	Routes                []*ServiceRoute        `json:"routes" yaml:"routes"`
 	TagSets               []TagSet               `json:"tagSets" yaml:"tagSets"`
 	ResourceAttributeSets []ResourceAttributeSet `json:"resourceAttrSets" yaml:"resourceAttrSets"`
 	Metrics               []Metric               `json:"metrics" yaml:"metrics"`
 	Random                *rand.Rand
+	RouteMap              map[string]*ServiceRoute
 }
 
 func (st *ServiceTier) GetTagSet(routeName string) []TagSet {
@@ -41,10 +42,12 @@ func (st *ServiceTier) GetResourceAttributeSet() *ResourceAttributeSet {
 }
 
 func (st *ServiceTier) GetRoute(routeName string) *ServiceRoute {
-	for _, v := range st.Routes {
-		if v.Route == routeName {
-			return &v
-		}
+	return st.RouteMap[routeName]
+}
+
+func (st *ServiceTier) LoadRouteMap() {
+	st.RouteMap = make(map[string]*ServiceRoute)
+	for _, r := range st.Routes {
+		st.RouteMap[r.Route] = r
 	}
-	return nil
 }
