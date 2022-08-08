@@ -63,25 +63,26 @@ func (fm *FlagManager) ValidateFlags() error {
 
 func (fm *FlagManager) traverseFlagGraph(f *Flag) (*map[*Flag]bool, error) {
 	seenFlags := make(map[*Flag]bool)
-	for {
-		if seenFlags[f] { // if we encounter a flag that's been seen before, then there's a cycle
-			return nil, fmt.Errorf("cyclical flag graph detected: %s", printFlagCycle(&seenFlags, f))
-		}
+	var seenNames []string // needed for printing flags in-order if cycle is detected (since map won't maintain order)
+
+	for !seenFlags[f] {
 		seenFlags[f] = true
-		if !f.ParentSpecified() { // no parent specified -> this is a root flag, so we've traversed graph without finding cycle
+		seenNames = append(seenNames, f.Name())
+		if !f.parentSpecified() { // no parent specified -> this is a root flag, so we've traversed graph without finding cycle
 			return &seenFlags, nil
 		}
-		if f.Parent() == nil { // parent was specified but it's not an actual flag
+		if f.parent() == nil { // parent was specified but it's not an actual flag
 			return nil, fmt.Errorf("flag %s has parent %s which does not exist", f.Name(), f.cfg.Incident.ParentFlag)
 		}
-		f = f.Parent()
+		f = f.parent()
 	}
+	return nil, fmt.Errorf("cyclical flag graph detected: %s", printFlagCycle(&seenNames, f))
 }
 
-func printFlagCycle(seenFlags *map[*Flag]bool, repeatedFlag *Flag) string {
+func printFlagCycle(seenNames *[]string, repeatedFlag *Flag) string { // todo- need to fix this, depends on map having order
 	var s string
-	for f := range *seenFlags {
-		s += fmt.Sprintf("%s -> ", f.Name())
+	for _, f := range *seenNames {
+		s += fmt.Sprintf("%s -> ", f)
 	}
 	s += repeatedFlag.Name()
 	return s

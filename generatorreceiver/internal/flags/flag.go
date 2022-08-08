@@ -45,17 +45,6 @@ func (f *Flag) Name() string {
 	return f.cfg.Name
 }
 
-func (f *Flag) ParentSpecified() bool {
-	return f.cfg.Incident != nil
-}
-
-func (f *Flag) Parent() *Flag {
-	if !f.ParentSpecified() {
-		return nil
-	}
-	return Manager.GetFlag(f.cfg.Incident.ParentFlag)
-}
-
 func (f *Flag) Active() bool {
 	f.update()
 	return f.active()
@@ -143,4 +132,15 @@ func (f *Flag) SetupCron(logger *zap.Logger) {
 	if err != nil {
 		logger.Error("error adding flag stop schedule", zap.Error(err))
 	}
+}
+
+func (f *Flag) parentSpecified() bool {
+	return f.cfg.Incident != nil
+}
+
+func (f *Flag) parent() *Flag {
+	if !f.parentSpecified() {
+		return nil
+	}
+	return Manager.GetFlag(f.cfg.Incident.ParentFlag)
 }
