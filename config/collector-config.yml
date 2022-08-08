@@ -83,5 +83,6 @@ service:
       - batch
       - webhook
       exporters:
+      - logging
       - otlp
       - service
