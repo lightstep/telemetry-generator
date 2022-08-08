@@ -30,25 +30,30 @@ type generatorReceiver struct {
 }
 
 func (g generatorReceiver) loadTopoFile(topoInline string, path string) (*topology.File, error) {
-	var topoFile topology.File
+	var topoFile *topology.File
+	var err error
 
 	// fetch from env var.
 	if len(topoInline) > 0 {
 		g.logger.Info("reading topo inline")
-		err := json.Unmarshal([]byte(topoInline), &topoFile)
+		err = json.Unmarshal([]byte(topoInline), topoFile)
 		if err != nil {
 			return nil, fmt.Errorf("could not parse inline json file: %v", err)
 		}
-		topoFile.Topology.LoadServiceMap()
-		return &topoFile, nil
+	} else {
+		g.logger.Info("reading topo from file path", zap.String("path", g.topoPath))
+		topoFile, err = parseTopoFile(path)
+		if err != nil {
+			return nil, err
+		}
 	}
-	g.logger.Info("reading topo from file path", zap.String("path", g.topoPath))
-	parsedFile, err := parseTopoFile(path)
+	err = topoFile.Topology.LoadTopology()
 	if err != nil {
 		return nil, err
 	}
-	parsedFile.Topology.LoadServiceMap()
-	return parsedFile, nil
+	flags.Manager.LoadFlags(topoFile.Flags, g.logger)
+
+	return topoFile, nil
 }
 
 func (g generatorReceiver) validateConfiguration(topoFile *topology.File) error {
@@ -72,9 +77,8 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 	if err != nil {
 		host.ReportFatalError(err)
 	}
-	flags.Manager.LoadFlags(topoFile.Flags, g.logger)
 
-	err = g.validateConfiguration(topoFile) // validation relies on flags being loaded first
+	err = g.validateConfiguration(topoFile)
 	if err != nil {
 		host.ReportFatalError(err)
 	}

@@ -9,10 +9,14 @@ func (t *Topology) GetServiceTier(serviceName string) *ServiceTier {
 	return t.ServiceMap[serviceName]
 }
 
-func (t *Topology) LoadServiceMap() {
+func (t *Topology) LoadTopology() error {
 	t.ServiceMap = make(map[string]*ServiceTier)
 	for _, s := range t.Services {
 		t.ServiceMap[s.ServiceName] = s
-		s.LoadRouteMap()
+		err := s.loadRoutes()
+		if err != nil {
+			return err
+		}
 	}
+	return nil
 }

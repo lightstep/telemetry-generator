@@ -9,15 +9,15 @@ import (
 
 func TestLatencyPercentilesParsing(t *testing.T) {
 	percentiles := &LatencyPercentiles{
-		P0:   "100ms",
-		P50:  "200ms",
-		P95:  "1000ms",
-		P99:  "10000ms",
-		P999: "11000ms",
-		P100: "12000ms",
+		P0Cfg:   "100ms",
+		P50Cfg:  "200ms",
+		P95Cfg:  "1000ms",
+		P99Cfg:  "10000ms",
+		P999Cfg: "11000ms",
+		P100Cfg: "12000ms",
 	}
 
-	parsedDurations, err := percentiles.parseDurations()
+	err := percentiles.loadDurations()
 	require.NoError(t, err)
 
 	p0expected := time.Duration(100 * time.Millisecond)
@@ -27,10 +27,10 @@ func TestLatencyPercentilesParsing(t *testing.T) {
 	p999expected := time.Duration(11000 * time.Millisecond)
 	p100expected := time.Duration(12000 * time.Millisecond)
 
-	require.Equal(t, p0expected, parsedDurations.p0)
-	require.Equal(t, p50expected, parsedDurations.p50)
-	require.Equal(t, p95expected, parsedDurations.p95)
-	require.Equal(t, p99expected, parsedDurations.p99)
-	require.Equal(t, p999expected, parsedDurations.p999)
-	require.Equal(t, p100expected, parsedDurations.p100)
+	require.Equal(t, p0expected, percentiles.durations.p0)
+	require.Equal(t, p50expected, percentiles.durations.p50)
+	require.Equal(t, p95expected, percentiles.durations.p95)
+	require.Equal(t, p99expected, percentiles.durations.p99)
+	require.Equal(t, p999expected, percentiles.durations.p999)
+	require.Equal(t, p100expected, percentiles.durations.p100)
 }

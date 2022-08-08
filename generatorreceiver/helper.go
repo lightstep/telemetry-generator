@@ -1,13 +1,13 @@
 package generatorreceiver
 
 import (
-	"strings"
 	"encoding/json"
-	"gopkg.in/yaml.v3"
+	"fmt"
 	"github.com/lightstep/lightstep-partner-sdk/collector/generatorreceiver/internal/topology"
+	"gopkg.in/yaml.v3"
 	"io/ioutil"
 	"os"
-	"fmt"
+	"strings"
 )
 
 func hasAnySuffix(s string, suffixes []string) bool {
@@ -20,7 +20,7 @@ func hasAnySuffix(s string, suffixes []string) bool {
 	return false
 }
 
-func parseTopoFile(topoPath string) (*topology.File, error){
+func parseTopoFile(topoPath string) (*topology.File, error) {
 	var topo topology.File
 	topoFile, err := os.Open(topoPath)
 	if err != nil {

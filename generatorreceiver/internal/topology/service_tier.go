@@ -1,6 +1,7 @@
 package topology
 
 import (
+	"fmt"
 	"math/rand"
 )
 
@@ -45,9 +46,16 @@ func (st *ServiceTier) GetRoute(routeName string) *ServiceRoute {
 	return st.RouteMap[routeName]
 }
 
-func (st *ServiceTier) LoadRouteMap() {
+func (st *ServiceTier) loadRoutes() error {
 	st.RouteMap = make(map[string]*ServiceRoute)
 	for _, r := range st.Routes {
 		st.RouteMap[r.Route] = r
+		if r.LatencyPercentiles != nil {
+			err := r.LatencyPercentiles.loadDurations()
+			if err != nil {
+				return fmt.Errorf("error parsing latencyPercentiles for route %s in service %s: %v", r.Route, st.ServiceName, err)
+			}
+		}
 	}
+	return nil
 }
