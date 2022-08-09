@@ -46,14 +46,14 @@ func (fm *FlagManager) LoadFlags(configFlags []FlagConfig, logger *zap.Logger) {
 }
 
 func (fm *FlagManager) ValidateFlags() error {
-	validatedFlags := make(map[*Flag]bool)
+	validatedFlags := make(map[string]bool)
 	for _, f := range fm.GetFlags() {
-		if !validatedFlags[f] {
+		if !validatedFlags[f.Name()] {
 			flagGraph, err := fm.traverseFlagGraph(f)
 			if err != nil {
 				return err
 			}
-			for k, v := range *flagGraph { // we know none of these flags are part of a cycle, so validate
+			for k, v := range flagGraph { // we know these flags are valid, so don't re-check
 				validatedFlags[k] = v
 			}
 		}
@@ -61,31 +61,29 @@ func (fm *FlagManager) ValidateFlags() error {
 	return nil
 }
 
-func (fm *FlagManager) traverseFlagGraph(f *Flag) (*map[*Flag]bool, error) {
-	seenFlags := make(map[*Flag]bool)
-	var seenNames []string // needed for printing flags in-order if cycle is detected (since map won't maintain order)
+func (fm *FlagManager) traverseFlagGraph(f *Flag) (map[string]bool, error) {
+	seenFlags := make(map[string]bool)
+	var orderedFlags []string // needed for printing flags in-order if cycle is detected
 
-	for !seenFlags[f] {
-		seenFlags[f] = true
-		seenNames = append(seenNames, f.Name())
+	for !seenFlags[f.Name()] {
+		seenFlags[f.Name()] = true
+		orderedFlags = append(orderedFlags, f.Name())
 		if !f.parentSpecified() { // no parent specified -> this is a root flag, so we've traversed graph without finding cycle
-			return &seenFlags, nil
+			return seenFlags, nil
 		}
 		if f.parent() == nil { // parent was specified but it's not an actual flag
 			return nil, fmt.Errorf("flag %s has parent %s which does not exist", f.Name(), f.cfg.Incident.ParentFlag)
 		}
 		f = f.parent()
 	}
-	return nil, fmt.Errorf("cyclical flag graph detected: %s", printFlagCycle(&seenNames, f))
+	return nil, fmt.Errorf("cyclical flag graph detected: %s", printFlagCycle(orderedFlags, f.Name()))
 }
 
-func printFlagCycle(seenNames *[]string, repeatedFlag *Flag) string { // todo- need to fix this, depends on map having order
-	var s string
-	for _, f := range *seenNames {
+func printFlagCycle(seenNames []string, repeated string) (s string) {
+	for _, f := range seenNames {
 		s += fmt.Sprintf("%s -> ", f)
 	}
-	s += repeatedFlag.Name()
-	return s
+	return s + repeated
 }
 
 func (fm *FlagManager) FlagCount() int {
