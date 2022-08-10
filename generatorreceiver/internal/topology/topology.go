@@ -26,7 +26,7 @@ func (t *Topology) validateDownstreamCalls(service string, route string) error {
 	seenCalls := map[string]bool{service + route: true}
 	orderedCalls := []string{service + route}
 	err := t.traverseServiceGraph(service, route, seenCalls, orderedCalls)
-	// todo- optimize so that you dont check same service/route combo twice
+	// TODO: optimize so that you dont check same service/route combo twice
 	if err != nil {
 		return err
 	}

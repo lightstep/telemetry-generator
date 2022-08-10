@@ -53,7 +53,7 @@ func (st *ServiceTier) Validate(topology Topology) (err error) {
 		}
 	}
 	for _, r := range st.Routes {
-		err = r.validate(topology) //TODO- find better way to pass topology along
+		err = r.validate(topology) //TODO: find better way to pass topology along
 		if err != nil {
 			return fmt.Errorf("error with route %s in service %s: %v", r.Route, st.ServiceName, err)
 		}

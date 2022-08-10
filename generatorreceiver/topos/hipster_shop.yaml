@@ -1,6 +1,6 @@
 topology:
   services:
-    - serviceName: frontend
+    frontend:
       tagSets:
         - weight: 1
           flag_set: frontend_errors
@@ -113,9 +113,9 @@ topology:
           tags:
             host.name: frontend.internal
             cpu: "1"
-            namespace: hipster-shop  
+            namespace: hipster-shop
       routes:
-        - route: /product
+        /product:
           downstreamCalls:
             productcatalogservice: /GetProducts
             recommendationservice: /GetRecommendations
@@ -135,29 +135,29 @@ topology:
             - weight: 1
               tags:
                 starter: bulbasaur
-        - route: /cart
+        /cart:
           downstreamCalls:
             cartservice: /GetCart
             recommendationservice: /GetRecommendations
           maxLatencyMillis: 100
-        - route: /checkout
+        /checkout:
           downstreamCalls:
             checkoutservice: /PlaceOrder
           maxLatencyMillis: 800
-        - route: /shipping
+        /shipping:
           downstreamCalls:
             shippingservice: /GetQuote
           maxLatencyMillis: 50
-        - route: /currency
+        /currency:
           downstreamCalls:
             currencyservice: /GetConversion
           maxLatencyMillis: 1500
-        - route: /currency_slow
+        /currency_slow:
           downstreamCalls:
             currencyservice: /DoSomethingSlow
           flag_set: currencyservice_oom.phase_1
           maxLatencyMillis: 3500
-    - serviceName: productcatalogservice
+    productcatalogservice:
       tagSets:
         - tags:
             version: v52
@@ -179,13 +179,13 @@ topology:
             host.type: t3.medium
             host.name: productcatalogservice-6b654dbf57-zq8dt
       routes:
-        - route: /GetProducts
+        /GetProducts:
           downstreamCalls: {}
           maxLatencyMillis: 100
           tagSets:
             - inherit:
                 - starter
-        - route: /SearchProducts
+        /SearchProducts:
           downstreamCalls: {}
           tagSets:
             - weight: 15
@@ -195,7 +195,7 @@ topology:
             - weight: 85
               tags: {}
           maxLatencyMillis: 400
-    - serviceName: recommendationservice
+    recommendationservice:
       tagSets:
         - tags:
             version: v234
@@ -214,11 +214,11 @@ topology:
             k8s.cluster.name: k8s-cluster-3
             host.name: recommendationservice-d847fdcf5-j6s2f
       routes:
-        - route: /GetRecommendations
+        /GetRecommendations:
           downstreamCalls:
             productcatalogservice: /GetProducts
           maxLatencyMillis: 200
-    - serviceName: cartservice
+    cartservice:
       tagSets:
         - tags:
             version: v5
@@ -232,10 +232,10 @@ topology:
           resourceAttrs:
             host.name: cartservice-hostname
       routes:
-        - route: /GetCart
+        /GetCart:
           downstreamCalls: {}
           maxLatencyMillis: 200
-    - serviceName: checkoutservice
+    checkoutservice:
       tagSets:
         - tags:
             version: v37
@@ -245,7 +245,7 @@ topology:
           resourceAttrs:
             host.name: checkoutservice-hostname
       routes:
-        - route: /PlaceOrder
+        /PlaceOrder:
           downstreamCalls:
             paymentservice: /CreditCardInfo
             shippingservice: /Address
@@ -260,7 +260,7 @@ topology:
             - weight: 85
               tags: {}
           maxLatencyMillis: 500
-    - serviceName: paymentservice
+    paymentservice:
       tagSets:
         - tags:
             version: v177
@@ -270,14 +270,14 @@ topology:
           resourceAttrs:
             host.name: paymentservice-hostname
       routes:
-        - route: /ChargeRequest
+        /ChargeRequest:
           downstreamCalls:
             paymentservice: /CreditCardInfo
           maxLatencyMillis: 700
-        - route: /CreditCardInfo
+        /CreditCardInfo:
           downstreamCalls: {}
           maxLatencyMillis: 50
-    - serviceName: shippingservice
+    shippingservice:
       tagSets:
         - tags:
             version: v127
@@ -287,18 +287,18 @@ topology:
           resourceAttrs:
             host.name: shippingservice-hostname
       routes:
-        - route: /GetQuote
+        /GetQuote:
           downstreamCalls:
             shippingservice: /Address
           maxLatencyMillis: 250
-        - route: /ShipOrder
+        /ShipOrder:
           downstreamCalls:
             shippingservice: /Address
           maxLatencyMillis: 500
-        - route: /Address
+        /Address:
           downstreamCalls: {}
           maxLatencyMillis: 100
-    - serviceName: emailservice
+    emailservice:
       tagSets:
         - tags:
             version: v27
@@ -308,7 +308,7 @@ topology:
           resourceAttrs:
             host.name: emailservice-hostname
       routes:
-        - route: /SendOrderConfirmation
+        /SendOrderConfirmation:
           downstreamCalls:
             emailservice: /OrderResult
           tagSets:
@@ -320,10 +320,10 @@ topology:
             - weight: 85
               tags: {}
           maxLatencyMillis: 500
-        - route: /OrderResult
+        /OrderResult:
           downstreamCalls: {}
           maxLatencyMillis: 100
-    - serviceName: currencyservice
+    currencyservice:
       tagSets:
         - tags:
             version: v27
@@ -338,7 +338,7 @@ topology:
           max: 2147483648
           min: 2000000000
           period: 5m
-          shape: sawtooth    
+          shape: sawtooth
           tags:
             host.name: currencyservice.internal
             net.host.name: currencyservice.internal
@@ -366,18 +366,18 @@ topology:
             net.host.name: currencyservice.internal
             namespace: hipster-shop
       routes:
-        - route: /GetConversion
+        /GetConversion:
           downstreamCalls:
             currencyservice: /Money
           maxLatencyMillis: 100
-        - route: /Money
+        /Money:
           downstreamCalls: {}
           maxLatencyMillis: 100
-        - route: /DoSomethingSlow
+        /DoSomethingSlow:
           downstreamCalls: {}
           maxLatencyMillis: 4000
           flag_set: currencyservice_oom.phase_1
-    - serviceName: adservice
+    adservice:
       tagSets:
         - version: v37
           region: us-east-1
@@ -386,10 +386,10 @@ topology:
           resourceAttrs:
             host.name: adservice-hostname
       routes:
-        - route: /AdRequest
+        /AdRequest:
           downstreamCalls: {}
           maxLatencyMillis: 500
-        - route: /Ad
+        /Ad:
           downstreamCalls: {}
           maxLatencyMillis: 500
 
@@ -434,6 +434,10 @@ flags:
       parentFlag: frontend_doom
       start: 5m
       # with no end, lasts until the incident finishes
+  - name: currencyservice_fail
+    cron:
+      start: "57,12,27,42 * * * *"
+      end: "10,25,40,55 * * * *"
 
 rootRoutes:
   - service: frontend

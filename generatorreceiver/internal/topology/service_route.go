@@ -52,9 +52,10 @@ func (r *ServiceRoute) validate(t Topology) error {
 		if st.GetRoute(route) == nil {
 			return fmt.Errorf("downstream service %s does not have route %s defined", service, route)
 		}
-		if r.MaxLatencyMillis <= 0 {
-			return fmt.Errorf("must have a positive, non-zero maxLatencyMillis defined")
-		}
+	}
+
+	if r.MaxLatencyMillis <= 0 {
+		return fmt.Errorf("must have a positive, non-zero maxLatencyMillis defined")
 	}
 	return nil
 }
