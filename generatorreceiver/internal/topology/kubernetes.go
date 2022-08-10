@@ -7,10 +7,11 @@ import (
 )
 
 const (
-	defaultTarget = 0.5
-	defaultJitter = 0.4
-	defaultDisk   = 100
-	megabyte = 1024 * 1024
+	defaultTarget  = 0.5
+	defaultJitter  = 0.4
+	defaultDisk    = 100
+	defaultNetwork = 800
+	megabyte       = 1024 * 1024
 )
 
 type Kubernetes struct {
@@ -31,9 +32,10 @@ type Resource struct {
 }
 
 type Usage struct {
-	CPU    ResourceUsage `json:"cpu" yaml:"cpu"`
-	Memory ResourceUsage `json:"memory" yaml:"memory"`
-	Disk   ResourceUsage `json:"disk" yaml:"disk"`
+	CPU     ResourceUsage `json:"cpu" yaml:"cpu"`
+	Memory  ResourceUsage `json:"memory" yaml:"memory"`
+	Disk    ResourceUsage `json:"disk" yaml:"disk"`
+	Network ResourceUsage `json:"network" yaml:"network"`
 }
 
 type ResourceUsage struct {
@@ -84,9 +86,17 @@ func (k *Kubernetes) GenerateMetrics(service ServiceTier) []Metric {
 	if k.Usage.Disk.Jitter == 0 {
 		k.Usage.Disk.Jitter = defaultJitter
 	}
-  
-  if k.Usage.Memory.Jitter == 0 {
+
+	if k.Usage.Memory.Jitter == 0 {
 		k.Usage.Memory.Jitter = defaultJitter
+	}
+
+	if k.Usage.Network.Target == 0 {
+		k.Usage.Network.Target = defaultNetwork
+	}
+
+	if k.Usage.Network.Jitter == 0 {
+		k.Usage.Network.Jitter = defaultJitter
 	}
 
 	cpuTarget := k.Request.CPU * k.Usage.CPU.Target
@@ -99,6 +109,9 @@ func (k *Kubernetes) GenerateMetrics(service ServiceTier) []Metric {
 	memTarget := k.Request.Memory * megabyte * k.Usage.Memory.Target
 	memJitter := k.Usage.Memory.Jitter / 2
 	memTotal := k.Limit.Memory * megabyte * 1.2 // make the node a little bigger than the limit
+
+	networkTarget := k.Usage.Network.Target
+	networkJitter := k.Usage.Network.Jitter / 2
 
 	metrics := []Metric{
 		// kube_pod metrics
@@ -315,9 +328,9 @@ func (k *Kubernetes) GenerateMetrics(service ServiceTier) []Metric {
 				"container":    service.ServiceName,
 				"device":       "/dev/sda",
 				"namespace":    k.Namespace,
-       },
-     },
-     {
+			},
+		},
+		{
 			Name:   "container_memory_working_set_bytes",
 			Type:   "Gauge",
 			Period: &minute,
@@ -330,6 +343,50 @@ func (k *Kubernetes) GenerateMetrics(service ServiceTier) []Metric {
 				"container": service.ServiceName,
 				"image":     service.ServiceName,
 				"namespace": k.Namespace,
+			},
+		},
+		{
+			Name:   "container_network_receive_bytes_total",
+			Type:   "Sum",
+			Min:    networkTarget * (1 + networkJitter),
+			Max:    networkTarget * (2000 + networkJitter),
+			Shape:  Average,
+			Jitter: k.Usage.Network.Jitter,
+			Tags: map[string]string{
+				"image": service.ServiceName,
+			},
+		},
+		{
+			Name:   "container_network_transmit_bytes_total",
+			Type:   "Sum",
+			Min:    networkTarget * (1 + networkJitter),
+			Max:    networkTarget * (2000 + networkJitter),
+			Shape:  Average,
+			Jitter: k.Usage.Network.Jitter,
+			Tags: map[string]string{
+				"image": service.ServiceName,
+			},
+		},
+		{
+			Name:   "container_network_receive_packets_total",
+			Type:   "Sum",
+			Min:    math.Max(networkTarget*(1-networkJitter), 0),
+			Max:    networkTarget * (1 + networkJitter),
+			Shape:  Average,
+			Jitter: k.Usage.Network.Jitter,
+			Tags: map[string]string{
+				"image": service.ServiceName,
+			},
+		},
+		{
+			Name:   "container_network_transmit_packets_total",
+			Type:   "Sum",
+			Min:    math.Max(networkTarget*(1-networkJitter), 0),
+			Max:    networkTarget * (1 + networkJitter),
+			Shape:  Average,
+			Jitter: k.Usage.Network.Jitter,
+			Tags: map[string]string{
+				"image": service.ServiceName,
 			},
 		},
 	}
