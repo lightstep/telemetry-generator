@@ -223,7 +223,7 @@ func validateConfiguration(topoFile topology.File) error {
 	}
 
 	for _, service := range topoFile.Topology.Services {
-		err = service.Validate(*topoFile.Topology) //TODO: change this?
+		err = service.Validate(*topoFile.Topology)
 		if err != nil {
 			return fmt.Errorf("validation of service configuration failed: %v", err)
 		}

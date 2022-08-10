@@ -36,7 +36,6 @@ type LatencyPercentiles struct {
 }
 
 func (r *ServiceRoute) validate(t Topology) error {
-	// TODO: is there better way of passing topology along
 	if r.FlagSet != "" && flags.Manager.GetFlag(r.FlagSet) == nil {
 		return fmt.Errorf("flag %v does not exist", r.FlagSet)
 	}
