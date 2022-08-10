@@ -9,7 +9,7 @@ import (
 const (
 	defaultTarget = 0.5
 	defaultJitter = 0.4
-
+	defaultDisk   = 100
 	megabyte = 1024 * 1024
 )
 
@@ -33,11 +33,12 @@ type Resource struct {
 type Usage struct {
 	CPU    ResourceUsage `json:"cpu" yaml:"cpu"`
 	Memory ResourceUsage `json:"memory" yaml:"memory"`
+	Disk   ResourceUsage `json:"disk" yaml:"disk"`
 }
 
 type ResourceUsage struct {
-	TargetPercentage float64 `json:"target" yaml:"target"`
-	Jitter           float64 `json:"jitter" yaml:"jitter"`
+	Target float64 `json:"target" yaml:"target"`
+	Jitter float64 `json:"jitter" yaml:"jitter"`
 }
 
 func (k *Kubernetes) CreatePod(service ServiceTier) {
@@ -64,27 +65,38 @@ func (k *Kubernetes) GenerateMetrics(service ServiceTier) []Metric {
 
 	minute := time.Minute
 
-	if k.Usage.CPU.TargetPercentage == 0 {
-		k.Usage.CPU.TargetPercentage = defaultTarget
+	if k.Usage.CPU.Target == 0 {
+		k.Usage.CPU.Target = defaultTarget
 	}
 
-	if k.Usage.Memory.TargetPercentage == 0 {
-		k.Usage.Memory.TargetPercentage = defaultTarget
+	if k.Usage.Memory.Target == 0 {
+		k.Usage.Memory.Target = defaultTarget
 	}
 
 	if k.Usage.CPU.Jitter == 0 {
 		k.Usage.CPU.Jitter = defaultJitter
 	}
 
-	if k.Usage.Memory.Jitter == 0 {
+	if k.Usage.Disk.Target == 0 {
+		k.Usage.Disk.Target = defaultDisk
+	}
+
+	if k.Usage.Disk.Jitter == 0 {
+		k.Usage.Disk.Jitter = defaultJitter
+	}
+  
+  if k.Usage.Memory.Jitter == 0 {
 		k.Usage.Memory.Jitter = defaultJitter
 	}
 
-	cpuTarget := k.Request.CPU * k.Usage.CPU.TargetPercentage
+	cpuTarget := k.Request.CPU * k.Usage.CPU.Target
 	cpuJitter := k.Usage.CPU.Jitter / 2
 	cpuTotal := k.Limit.CPU * 1.2 // make the node a little bigger than the limit
 
-	memTarget := k.Request.Memory * megabyte * k.Usage.Memory.TargetPercentage
+	diskTarget := k.Usage.Disk.Target
+	diskJitter := k.Usage.Disk.Jitter / 2
+
+	memTarget := k.Request.Memory * megabyte * k.Usage.Memory.Target
 	memJitter := k.Usage.Memory.Jitter / 2
 	memTotal := k.Limit.Memory * megabyte * 1.2 // make the node a little bigger than the limit
 
@@ -195,6 +207,7 @@ func (k *Kubernetes) GenerateMetrics(service ServiceTier) []Metric {
 		{
 			Name:   "node_cpu_seconds_total",
 			Type:   "Sum",
+			Period: &minute,
 			Min:    math.Max(cpuTarget*(1-cpuJitter), 0),
 			Max:    math.Min(cpuTarget*(1+cpuJitter), k.Limit.CPU),
 			Shape:  Average,
@@ -233,7 +246,6 @@ func (k *Kubernetes) GenerateMetrics(service ServiceTier) []Metric {
 		{
 			Name:   "container_cpu_usage_seconds_total",
 			Type:   "Sum",
-			Period: &minute,
 			Min:    math.Max(cpuTarget*(1-cpuJitter), 0),
 			Max:    math.Min(cpuTarget*(1+cpuJitter), k.Limit.CPU),
 			Shape:  Average,
@@ -246,6 +258,66 @@ func (k *Kubernetes) GenerateMetrics(service ServiceTier) []Metric {
 			},
 		},
 		{
+			Name:   "container_fs_reads_total",
+			Type:   "Sum",
+			Min:    math.Max(diskTarget*(1-diskJitter), 0),
+			Max:    diskTarget * (1 + diskJitter),
+			Shape:  Average,
+			Jitter: k.Usage.Disk.Jitter,
+			Tags: map[string]string{
+				"job":          "kubelet",
+				"metrics_path": "/metrics/cadvisor",
+				"container":    service.ServiceName,
+				"device":       "/dev/sda",
+				"namespace":    k.Namespace,
+			},
+		},
+		{
+			Name:   "container_fs_writes_total",
+			Type:   "Sum",
+			Min:    math.Max(diskTarget*(1-diskJitter), 0),
+			Max:    diskTarget * (1 + diskJitter),
+			Shape:  Average,
+			Jitter: k.Usage.Disk.Jitter,
+			Tags: map[string]string{
+				"job":          "kubelet",
+				"metrics_path": "/metrics/cadvisor",
+				"container":    service.ServiceName,
+				"device":       "/dev/sda",
+				"namespace":    k.Namespace,
+			},
+		},
+		{
+			Name:   "container_fs_reads_bytes_total",
+			Type:   "Sum",
+			Min:    math.Max(diskTarget*(1-diskJitter), 0),
+			Max:    diskTarget * (1 + diskJitter),
+			Shape:  Average,
+			Jitter: k.Usage.Disk.Jitter,
+			Tags: map[string]string{
+				"job":          "kubelet",
+				"metrics_path": "/metrics/cadvisor",
+				"container":    service.ServiceName,
+				"device":       "/dev/sda",
+				"namespace":    k.Namespace,
+			},
+		},
+		{
+			Name:   "container_fs_writes_bytes_total",
+			Type:   "Sum",
+			Min:    math.Max(diskTarget*(1-diskJitter), 0),
+			Max:    diskTarget * (1 + diskJitter),
+			Shape:  Average,
+			Jitter: k.Usage.Disk.Jitter,
+			Tags: map[string]string{
+				"job":          "kubelet",
+				"metrics_path": "/metrics/cadvisor",
+				"container":    service.ServiceName,
+				"device":       "/dev/sda",
+				"namespace":    k.Namespace,
+       },
+     },
+     {
 			Name:   "container_memory_working_set_bytes",
 			Type:   "Gauge",
 			Period: &minute,
