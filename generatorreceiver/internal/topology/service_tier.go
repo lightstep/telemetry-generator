@@ -6,13 +6,12 @@ import (
 )
 
 type ServiceTier struct {
-	ServiceName           string                 `json:"serviceName" yaml:"serviceName"`
-	Routes                []*ServiceRoute        `json:"routes" yaml:"routes"`
-	TagSets               []TagSet               `json:"tagSets" yaml:"tagSets"`
-	ResourceAttributeSets []ResourceAttributeSet `json:"resourceAttrSets" yaml:"resourceAttrSets"`
-	Metrics               []Metric               `json:"metrics" yaml:"metrics"`
+	ServiceName           string
+	Routes                map[string]*ServiceRoute `json:"routes" yaml:"routes"`
+	TagSets               []TagSet                 `json:"tagSets" yaml:"tagSets"`
+	ResourceAttributeSets []ResourceAttributeSet   `json:"resourceAttrSets" yaml:"resourceAttrSets"`
+	Metrics               []Metric                 `json:"metrics" yaml:"metrics"`
 	Random                *rand.Rand
-	RouteMap              map[string]*ServiceRoute
 }
 
 func (st *ServiceTier) GetTagSet(routeName string) []TagSet {
@@ -43,18 +42,16 @@ func (st *ServiceTier) GetResourceAttributeSet() *ResourceAttributeSet {
 }
 
 func (st *ServiceTier) GetRoute(routeName string) *ServiceRoute {
-	return st.RouteMap[routeName]
+	return st.Routes[routeName]
 }
 
-func (st *ServiceTier) loadRoutes() error {
-	st.RouteMap = make(map[string]*ServiceRoute)
-	for _, r := range st.Routes {
-		st.RouteMap[r.Route] = r
-		if r.LatencyPercentiles != nil {
-			err := r.LatencyPercentiles.loadDurations()
-			if err != nil {
-				return fmt.Errorf("error parsing latencyPercentiles for route %s in service %s: %v", r.Route, st.ServiceName, err)
-			}
+func (st *ServiceTier) loadRoutes() (err error) {
+	for name, route := range st.Routes {
+		route.Route = name
+		route.LatencyPercentiles = &LatencyPercentiles{}
+		err = route.LatencyPercentiles.loadLatencyPercentiles(route.LatencyPercentilesConfig)
+		if err != nil {
+			return fmt.Errorf("error parsing latencyPercentiles for route %s in service %s: %v", name, st.ServiceName, err)
 		}
 	}
 	return nil

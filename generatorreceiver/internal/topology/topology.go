@@ -1,19 +1,17 @@
 package topology
 
 type Topology struct {
-	Services   []*ServiceTier `json:"services" yaml:"services"`
-	ServiceMap map[string]*ServiceTier
+	Services map[string]*ServiceTier `json:"services" yaml:"services"`
 }
 
 func (t *Topology) GetServiceTier(serviceName string) *ServiceTier {
-	return t.ServiceMap[serviceName]
+	return t.Services[serviceName]
 }
 
 func (t *Topology) LoadTopology() error {
-	t.ServiceMap = make(map[string]*ServiceTier)
-	for _, s := range t.Services {
-		t.ServiceMap[s.ServiceName] = s
-		err := s.loadRoutes()
+	for name, service := range t.Services {
+		service.ServiceName = name
+		err := service.loadRoutes()
 		if err != nil {
 			return err
 		}

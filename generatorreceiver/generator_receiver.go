@@ -29,10 +29,7 @@ type generatorReceiver struct {
 	server         *httpServer
 }
 
-func (g generatorReceiver) loadTopoFile(topoInline string, path string) (*topology.File, error) {
-	var topoFile *topology.File
-	var err error
-
+func (g generatorReceiver) loadTopoFile(topoInline string, path string) (topoFile *topology.File, err error) {
 	// fetch from env var.
 	if len(topoInline) > 0 {
 		g.logger.Info("reading topo inline")
@@ -56,8 +53,8 @@ func (g generatorReceiver) loadTopoFile(topoInline string, path string) (*topolo
 	return topoFile, nil
 }
 
-func (g generatorReceiver) validateConfiguration(topoFile *topology.File) error {
-	err := flags.Manager.ValidateFlags()
+func (g generatorReceiver) validateConfiguration(topoFile *topology.File) (err error) {
+	err = flags.Manager.ValidateFlags()
 	if err != nil {
 		return fmt.Errorf("validation of flag configuration failed: %v", err)
 	}
