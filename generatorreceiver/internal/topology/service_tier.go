@@ -45,6 +45,28 @@ func (st *ServiceTier) GetRoute(routeName string) *ServiceRoute {
 	return st.Routes[routeName]
 }
 
+func (st *ServiceTier) Validate(topology Topology) (err error) {
+	for _, m := range st.Metrics {
+		err = m.validate()
+		if err != nil {
+			return fmt.Errorf("error with metric %s in service %s: %v", m.Name, st.ServiceName, err)
+		}
+	}
+	for _, r := range st.Routes {
+		err = r.validate(topology) //TODO- find better way to pass topology along
+		if err != nil {
+			return fmt.Errorf("error with route %s in service %s: %v", r.Route, st.ServiceName, err)
+		}
+	}
+	for _, t := range st.TagSets {
+		err = t.validate()
+		if err != nil {
+			return fmt.Errorf("error with tagSets in service %s: %v", st.ServiceName, err)
+		}
+	}
+	return nil
+}
+
 func (st *ServiceTier) loadRoutes() (err error) {
 	for name, route := range st.Routes {
 		route.Route = name

@@ -44,7 +44,7 @@ func (g generatorReceiver) loadTopoFile(topoInline string, path string) (topoFil
 			return nil, err
 		}
 	}
-	err = topoFile.Topology.LoadTopology()
+	err = topoFile.Topology.Load()
 	if err != nil {
 		return nil, err
 	}
@@ -53,19 +53,29 @@ func (g generatorReceiver) loadTopoFile(topoInline string, path string) (topoFil
 	return topoFile, nil
 }
 
-func (g generatorReceiver) validateConfiguration(topoFile *topology.File) (err error) {
-	err = flags.Manager.ValidateFlags()
+func (g generatorReceiver) validateConfiguration(topoFile *topology.File) error {
+	err := flags.Manager.ValidateFlags()
 	if err != nil {
 		return fmt.Errorf("validation of flag configuration failed: %v", err)
 	}
-	err = topoFile.ValidateServices()
-	if err != nil {
-		return fmt.Errorf("validation of service configuration failed: %v", err)
+
+	for _, service := range topoFile.Topology.Services {
+		err = service.Validate(*topoFile.Topology) //todo- replace this
+		if err != nil {
+			return fmt.Errorf("validation of service configuration failed: %v", err)
+		}
 	}
+
+	err = topoFile.Topology.ValidateServiceGraph() // depends on all services/routes being validated (i.e. exist) first ^
+	if err != nil {
+		return fmt.Errorf("cyclical service graph detected: %v", err)
+	}
+
 	err = topoFile.ValidateRootRoutes()
 	if err != nil {
 		return fmt.Errorf("validation of rootRoute configuration failed: %v", err)
 	}
+
 	return nil
 }
 
@@ -75,7 +85,7 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 		host.ReportFatalError(err)
 	}
 
-	err = g.validateConfiguration(topoFile)
+	err = g.validateConfiguration(topoFile) //todo- should I pass the value instead of the pointer?
 	if err != nil {
 		host.ReportFatalError(err)
 	}

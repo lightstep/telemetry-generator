@@ -1,20 +1,22 @@
 package topology
 
 import (
+	"fmt"
 	"github.com/lightstep/lightstep-partner-sdk/collector/generatorreceiver/internal/flags"
 	"math/rand"
 	"time"
 )
 
 type ServiceRoute struct {
-	Route              string              `json:"route" yaml:"route"`
-	DownstreamCalls    map[string]string   `json:"downstreamCalls,omitempty" yaml:"downstreamCalls,omitempty"`
-	MaxLatencyMillis   int64               `json:"maxLatencyMillis" yaml:"maxLatencyMillis"`
-	LatencyPercentiles *LatencyPercentiles `json:"latencyPercentiles" yaml:"latencyPercentiles"`
-	// TODO: rename all references from `tag` to `attribute`, to follow the otel standard.
+	Route                 string                 `json:"route" yaml:"route"`
+	DownstreamCalls       map[string]string      `json:"downstreamCalls,omitempty" yaml:"downstreamCalls,omitempty"`
+	MaxLatencyMillis      int64                  `json:"maxLatencyMillis" yaml:"maxLatencyMillis"`
+	LatencyPercentiles    *LatencyPercentiles    `json:"latencyPercentiles" yaml:"latencyPercentiles"`
 	TagSets               []TagSet               `json:"tagSets" yaml:"tagSets"`
 	ResourceAttributeSets []ResourceAttributeSet `json:"resourceAttrSets" yaml:"resourceAttrSets"`
 	flags.EmbeddedFlags   `json:",inline" yaml:",inline"`
+	// TODO: rename all references from `tag` to `attribute`, to follow the otel standard.
+
 }
 type LatencyPercentiles struct {
 	P0Cfg     string `json:"p0" yaml:"p0"`
@@ -31,6 +33,30 @@ type LatencyPercentiles struct {
 		p999 time.Duration
 		p100 time.Duration
 	}
+}
+
+func (r *ServiceRoute) validate(t Topology) error {
+	// TODO: is there better way of passing topology along
+	if r.FlagSet != "" && flags.Manager.GetFlag(r.FlagSet) == nil {
+		return fmt.Errorf("flag %v does not exist", r.FlagSet)
+	}
+	if r.FlagUnset != "" && flags.Manager.GetFlag(r.FlagUnset) == nil {
+		return fmt.Errorf("flag %v does not exist", r.FlagUnset)
+	}
+
+	for service, route := range r.DownstreamCalls {
+		st := t.GetServiceTier(service)
+		if st == nil {
+			return fmt.Errorf("downstream service %s does not exist", service)
+		}
+		if st.GetRoute(route) == nil {
+			return fmt.Errorf("downstream service %s does not have route %s defined", service, route)
+		}
+		if r.MaxLatencyMillis <= 0 {
+			return fmt.Errorf("must have a positive, non-zero maxLatencyMillis defined")
+		}
+	}
+	return nil
 }
 
 func (l *LatencyPercentiles) Sample() float64 {
