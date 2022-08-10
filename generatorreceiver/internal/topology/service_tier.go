@@ -67,14 +67,12 @@ func (st *ServiceTier) Validate(topology Topology) error {
 	return nil
 }
 
-func (st *ServiceTier) loadRoutes() error {
+func (st *ServiceTier) load(service string) error {
+	st.ServiceName = service
 	for name, route := range st.Routes {
-		route.Route = name
-		if route.LatencyPercentiles != nil {
-			err := route.LatencyPercentiles.loadDurations()
-			if err != nil {
-				return fmt.Errorf("error parsing latencyPercentiles for route %s in service %s: %v", name, st.ServiceName, err)
-			}
+		err := route.load(name)
+		if err != nil {
+			return fmt.Errorf("error loading route %s for service %s: %v", name, service, err)
 		}
 	}
 	return nil

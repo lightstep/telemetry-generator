@@ -75,8 +75,7 @@ func printServiceCycle(seenCalls []string, repeated string) string {
 
 func (t *Topology) Load() error {
 	for name, service := range t.Services {
-		service.ServiceName = name
-		err := service.loadRoutes()
+		err := service.load(name)
 		if err != nil {
 			return err
 		}
