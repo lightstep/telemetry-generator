@@ -13,18 +13,35 @@ topology:
             version: v125
       resourceAttrSets:
         - weight: 1
+          kubernetes:
+            cluster_name: k8s-cluster-1
+            request:
+              cpu: 0.5
+              memory: 2048
+            limit:
+              cpu: 0.75
+              memory: 3072
+            usage:
+              cpu:
+                target: 0.5
+                jitter: 0.5
+              memory:
+                target: 0.6
+                jitter: 0.4
           resourceAttrs:
             cloud.provider: aws
             cloud.region: us-east-1
-            k8s.cluster.name: k8s-cluster-1
-            host.name: ip-172-31-41-139.us-west-2.compute.internal
-            host.id: i-0109aa378a31b4e29
+
         - weight: 1
+          kubernetes:
+            cluster_name: k8s-cluster-1
+            request:
+              cpu: 0.5
+            limit:
+              cpu: 0.75
           resourceAttrs:
             cloud.provider: aws
             cloud.region: us-west-2
-            k8s.cluster.name: k8s-cluster-1
-            host.name: ip-172-31-41-140.us-west-2.compute.internal
       metrics:
         - name: another_gauge
           type: Gauge
@@ -34,6 +51,11 @@ topology:
           flag_unset: frontend_doom
           tags:
             something: good
+        - name: please_counter
+          type: Counter
+          max: 10000
+          min: 1000
+          period: 2m
         - name: another_gauge
           type: Gauge
           max: 20000
@@ -51,69 +73,6 @@ topology:
           flag_set: frontend_doom.phase_2
           tags:
             something: worse
-        - name: node_cpu_seconds_total
-          type: Sum
-          max: 100
-          min: 0
-          period: 2m
-          shape: sawtooth
-          tags:
-            host.name: frontend.internal
-            net.host.name: frontend.internal
-            cpu: "1"
-            namespace: hipster-shop
-        - name: node_memory_Active_bytes
-          type: Gauge
-          max: 50000
-          min: 0
-          period: 5m
-          shape: sawtooth
-          tags:
-            host.name: frontend.internal
-            net.host.name: frontend.internal
-            namespace: hipster-shop
-        - name: node_memory_MemTotal_bytes
-          type: Gauge
-          max: 2147483648
-          min: 1000000000
-          period: 5m
-          shape: sawtooth
-          tags:
-            host.name: frontend.internal
-            net.host.name: frontend.internal
-            namespace: hipster-shop
-        - name: node_memory_MemAvailable_bytes
-          type: Gauge
-          max: 2147483648
-          min: 20000
-          period: 5m
-          shape: sawtooth
-          flag_unset: currencyservice_oom.phase_2
-          tags:
-            host.name: frontend.internal
-            net.host.name: frontend.internal
-            namespace: hipster-shop
-        - name: node_memory_MemAvailable_bytes
-          type: Gauge
-          max: 200000
-          min: 20000
-          period: 5m
-          shape: sawtooth
-          flag_set: currencyservice_oom.phase_2
-          tags:
-            host.name: frontend.internal
-            net.host.name: frontend.internal
-            namespace: hipster-shop
-        - name: container_cpu_usage_seconds_total
-          type: Sum
-          max: 200
-          min: 0
-          period: 2m
-          shape: triangle
-          tags:
-            host.name: frontend.internal
-            cpu: "1"
-            namespace: hipster-shop  
       routes:
         - route: /product
           downstreamCalls:
@@ -165,19 +124,23 @@ topology:
             - region
       resourceAttrSets:
         - weight: 1
+          kubernetes:
+            cluster_name: k8s-cluster-2
+            request:
+              cpu: 0.5
+              memory: 512
+            limit:
+              cpu: 1
+              memory: 1024
           resourceAttrs:
             cloud.provider: azure
             cloud.region: Central-US
-            k8s.cluster.name: k8s-cluster-2
             host.type: t3.medium
-            host.name: productcatalogservice-d847fdcf5-j6s2f
         - weight: 1
           resourceAttrs:
             cloud.provider: azure
             cloud.region: West-US
-            k8s.cluster.name: k8s-cluster-2
             host.type: t3.medium
-            host.name: productcatalogservice-6b654dbf57-zq8dt
       routes:
         - route: /GetProducts
           downstreamCalls: {}
@@ -202,17 +165,29 @@ topology:
             region: us-east-1
       resourceAttrSets:
         - weight: 1
+          kubernetes:
+            cluster_name: k8s-cluster-3
+            request:
+              cpu: 0.5
+              memory: 512
+            limit:
+              cpu: 1
+              memory: 1024
           resourceAttrs:
             cloud.provider: aws
             cloud.region: us-west-2
-            k8s.cluster.name: k8s-cluster-3
-            host.name: recommendationservice-6b654dbf57-zq8dt
         - weight: 1
+          kubernetes:
+            cluster_name: k8s-cluster-3
+            request:
+              cpu: 0.5
+              memory: 512
+            limit:
+              cpu: 1
+              memory: 1024
           resourceAttrs:
             cloud.provider: aws
             cloud.region: us-west-1
-            k8s.cluster.name: k8s-cluster-3
-            host.name: recommendationservice-d847fdcf5-j6s2f
       routes:
         - route: /GetRecommendations
           downstreamCalls:
@@ -229,6 +204,14 @@ topology:
           flag_set: runs_on_azure
       resourceAttrSets:
         - weight: 1
+          kubernetes:
+            cluster_name: k8s-cluster-4
+            request:
+              cpu: 1
+              memory: 512
+            limit:
+              cpu: 2
+              memory: 1024
           resourceAttrs:
             host.name: cartservice-hostname
       routes:
@@ -242,8 +225,14 @@ topology:
             region: us-east-1
       resourceAttrSets:
         - weight: 1
-          resourceAttrs:
-            host.name: checkoutservice-hostname
+          kubernetes:
+            cluster_name: k8s-cluster-1
+            request:
+              cpu: 0.5
+              memory: 512
+            limit:
+              cpu: 1
+              memory: 1024
       routes:
         - route: /PlaceOrder
           downstreamCalls:
@@ -267,6 +256,14 @@ topology:
             region: us-east-1
       resourceAttrSets:
         - weight: 1
+          kubernetes:
+            cluster_name: k8s-cluster-6
+            request:
+              cpu: 0.5
+              memory: 512
+            limit:
+              cpu: 1
+              memory: 1024
           resourceAttrs:
             host.name: paymentservice-hostname
       routes:
@@ -284,6 +281,14 @@ topology:
             region: us-east-1
       resourceAttrSets:
         - weight: 1
+          kubernetes:
+            cluster_name: k8s-cluster-7
+            request:
+              cpu: 0.5
+              memory: 512
+            limit:
+              cpu: 1
+              memory: 1024
           resourceAttrs:
             host.name: shippingservice-hostname
       routes:
@@ -305,6 +310,14 @@ topology:
             region: us-east-1
       resourceAttrSets:
         - weight: 1
+          kubernetes:
+            cluster_name: k8s-cluster-8
+            request:
+              cpu: 0.5
+              memory: 512
+            limit:
+              cpu: 1
+              memory: 1024
           resourceAttrs:
             host.name: emailservice-hostname
       routes:
@@ -330,41 +343,16 @@ topology:
             region: us-east-1
       resourceAttrSets:
         - weight: 1
+          kubernetes:
+            cluster_name: k8s-cluster-9
+            request:
+              cpu: 0.5
+              memory: 512
+            limit:
+              cpu: 1
+              memory: 1024
           resourceAttrs:
             host.name: currencyservice-hostname
-      metrics:
-        - name: node_memory_MemTotal_bytes
-          type: Gauge
-          max: 2147483648
-          min: 2000000000
-          period: 5m
-          shape: sawtooth    
-          tags:
-            host.name: currencyservice.internal
-            net.host.name: currencyservice.internal
-            namespace: hipster-shop
-        - name: node_memory_MemAvailable_bytes
-          type: Gauge
-          max: 1500000000
-          min: 1000000000
-          flag_set: currencyservice_oom.default
-          period: 5m
-          shape: sawtooth
-          tags:
-            host.name: currencyservice.internal
-            net.host.name: currencyservice.internal
-            namespace: hipster-shop
-        - name: node_memory_MemAvailable_bytes
-          type: Gauge
-          flag_set: currencyservice_oom.phase_1
-          max: 10000000
-          min: 2000000
-          period: 5m
-          shape: sawtooth
-          tags:
-            host.name: currencyservice.internal
-            net.host.name: currencyservice.internal
-            namespace: hipster-shop
       routes:
         - route: /GetConversion
           downstreamCalls:
@@ -383,6 +371,14 @@ topology:
           region: us-east-1
       resourceAttrSets:
         - weight: 1
+          kubernetes:
+            cluster_name: k8s-cluster-10
+            request:
+              cpu: 0.5
+              memory: 512
+            limit:
+              cpu: 1
+              memory: 1024
           resourceAttrs:
             host.name: adservice-hostname
       routes:

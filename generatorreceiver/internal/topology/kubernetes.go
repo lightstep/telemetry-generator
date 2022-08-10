@@ -10,6 +10,7 @@ const (
 	defaultTarget = 0.5
 	defaultJitter = 0.4
 	defaultDisk   = 100
+	megabyte = 1024 * 1024
 )
 
 type Kubernetes struct {
@@ -68,6 +69,10 @@ func (k *Kubernetes) GenerateMetrics(service ServiceTier) []Metric {
 		k.Usage.CPU.Target = defaultTarget
 	}
 
+	if k.Usage.Memory.Target == 0 {
+		k.Usage.Memory.Target = defaultTarget
+	}
+
 	if k.Usage.CPU.Jitter == 0 {
 		k.Usage.CPU.Jitter = defaultJitter
 	}
@@ -79,6 +84,10 @@ func (k *Kubernetes) GenerateMetrics(service ServiceTier) []Metric {
 	if k.Usage.Disk.Jitter == 0 {
 		k.Usage.Disk.Jitter = defaultJitter
 	}
+  
+  if k.Usage.Memory.Jitter == 0 {
+		k.Usage.Memory.Jitter = defaultJitter
+	}
 
 	cpuTarget := k.Request.CPU * k.Usage.CPU.Target
 	cpuJitter := k.Usage.CPU.Jitter / 2
@@ -86,6 +95,10 @@ func (k *Kubernetes) GenerateMetrics(service ServiceTier) []Metric {
 
 	diskTarget := k.Usage.Disk.Target
 	diskJitter := k.Usage.Disk.Jitter / 2
+
+	memTarget := k.Request.Memory * megabyte * k.Usage.Memory.Target
+	memJitter := k.Usage.Memory.Jitter / 2
+	memTotal := k.Limit.Memory * megabyte * 1.2 // make the node a little bigger than the limit
 
 	metrics := []Metric{
 		// kube_pod metrics
@@ -115,9 +128,19 @@ func (k *Kubernetes) GenerateMetrics(service ServiceTier) []Metric {
 			Name: "kube_node_status_allocatable",
 			Type: "Gauge",
 			Min:  cpuTotal,
-			Max:  cpuTotal, // make the node a little bigger than the limit
+			Max:  cpuTotal,
 			Tags: map[string]string{
 				"resource": "cpu",
+				"pod":      k.PodName, // used to created multiple time series that will be summed up.
+			},
+		},
+		{
+			Name: "kube_node_status_allocatable",
+			Type: "Gauge",
+			Min:  memTotal,
+			Max:  memTotal,
+			Tags: map[string]string{
+				"resource": "memory",
 				"pod":      k.PodName, // used to created multiple time series that will be summed up.
 			},
 		},
@@ -134,12 +157,36 @@ func (k *Kubernetes) GenerateMetrics(service ServiceTier) []Metric {
 			},
 		},
 		{
+			Name: "kube_pod_container_resource_requests",
+			Type: "Gauge",
+			Min:  k.Request.Memory * megabyte,
+			Max:  k.Request.Memory * megabyte,
+			Tags: map[string]string{
+				"resource":  "memory",
+				"namespace": service.ServiceName,
+				"container": service.ServiceName,
+				"pod":       k.PodName,
+			},
+		},
+		{
 			Name: "kube_pod_container_resource_limits",
 			Type: "Gauge",
 			Min:  k.Limit.CPU,
 			Max:  k.Limit.CPU,
 			Tags: map[string]string{
 				"resource":  "cpu",
+				"namespace": service.ServiceName,
+				"container": service.ServiceName,
+				"pod":       k.PodName,
+			},
+		},
+		{
+			Name: "kube_pod_container_resource_limits",
+			Type: "Gauge",
+			Min:  k.Limit.Memory * megabyte,
+			Max:  k.Limit.Memory * megabyte,
+			Tags: map[string]string{
+				"resource":  "memory",
 				"namespace": service.ServiceName,
 				"container": service.ServiceName,
 				"pod":       k.PodName,
@@ -171,6 +218,30 @@ func (k *Kubernetes) GenerateMetrics(service ServiceTier) []Metric {
 				"cpu":           "0",
 			},
 		},
+
+		{
+			Name:   "node_memory_MemAvailable_bytes",
+			Type:   "Gauge",
+			Min:    math.Max(memTotal-memTarget*(1+memJitter), 0),
+			Max:    math.Min(memTotal-memTarget*(1-memJitter), k.Limit.Memory*megabyte),
+			Shape:  Average,
+			Jitter: k.Usage.Memory.Jitter,
+			Tags: map[string]string{
+				"net.host.name": k.PodName, // for this we assume each pod run on its own node.
+			},
+		},
+
+		{
+			Name:   "node_memory_MemTotal_bytes",
+			Type:   "Gauge",
+			Min:    memTotal,
+			Max:    memTotal,
+			Jitter: k.Usage.Memory.Jitter,
+			Tags: map[string]string{
+				"net.host.name": k.PodName, // for this we assume each pod run on its own node.
+			},
+		},
+
 		// container metrics
 		{
 			Name:   "container_cpu_usage_seconds_total",
@@ -244,6 +315,21 @@ func (k *Kubernetes) GenerateMetrics(service ServiceTier) []Metric {
 				"container":    service.ServiceName,
 				"device":       "/dev/sda",
 				"namespace":    k.Namespace,
+       },
+     },
+     {
+			Name:   "container_memory_working_set_bytes",
+			Type:   "Gauge",
+			Period: &minute,
+			Min:    math.Max(memTarget*(1-memJitter), 0),
+			Max:    math.Min(memTarget*(1+memJitter), k.Limit.Memory*megabyte),
+			Shape:  Average,
+			Jitter: k.Usage.Memory.Jitter,
+			Tags: map[string]string{
+				"pod":       k.PodName,
+				"container": service.ServiceName,
+				"image":     service.ServiceName,
+				"namespace": k.Namespace,
 			},
 		},
 	}
