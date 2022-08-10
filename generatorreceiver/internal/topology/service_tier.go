@@ -48,10 +48,11 @@ func (st *ServiceTier) GetRoute(routeName string) *ServiceRoute {
 func (st *ServiceTier) loadRoutes() (err error) {
 	for name, route := range st.Routes {
 		route.Route = name
-		route.LatencyPercentiles = &LatencyPercentiles{}
-		err = route.LatencyPercentiles.loadLatencyPercentiles(route.LatencyPercentilesConfig)
-		if err != nil {
-			return fmt.Errorf("error parsing latencyPercentiles for route %s in service %s: %v", name, st.ServiceName, err)
+		if route.LatencyPercentiles != nil {
+			err = route.LatencyPercentiles.loadDurations()
+			if err != nil {
+				return fmt.Errorf("error parsing latencyPercentiles for route %s in service %s: %v", name, st.ServiceName, err)
+			}
 		}
 	}
 	return nil
