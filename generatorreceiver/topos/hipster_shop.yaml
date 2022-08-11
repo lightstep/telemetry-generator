@@ -13,18 +13,35 @@ topology:
             version: v125
       resourceAttrSets:
         - weight: 1
+          kubernetes:
+            cluster_name: k8s-cluster-1
+            request:
+              cpu: 0.5
+              memory: 2048
+            limit:
+              cpu: 0.75
+              memory: 3072
+            usage:
+              cpu:
+                target: 0.5
+                jitter: 0.5
+              memory:
+                target: 0.6
+                jitter: 0.4
           resourceAttrs:
             cloud.provider: aws
             cloud.region: us-east-1
-            k8s.cluster.name: k8s-cluster-1
-            host.name: ip-172-31-41-139.us-west-2.compute.internal
-            host.id: i-0109aa378a31b4e29
+
         - weight: 1
+          kubernetes:
+            cluster_name: k8s-cluster-1
+            request:
+              cpu: 0.5
+            limit:
+              cpu: 0.75
           resourceAttrs:
             cloud.provider: aws
             cloud.region: us-west-2
-            k8s.cluster.name: k8s-cluster-1
-            host.name: ip-172-31-41-140.us-west-2.compute.internal
       metrics:
         - name: another_gauge
           type: Gauge
@@ -34,6 +51,11 @@ topology:
           flag_unset: frontend_doom
           tags:
             something: good
+        - name: please_counter
+          type: Counter
+          max: 10000
+          min: 1000
+          period: 2m
         - name: another_gauge
           type: Gauge
           max: 20000
@@ -165,19 +187,23 @@ topology:
             - region
       resourceAttrSets:
         - weight: 1
+          kubernetes:
+            cluster_name: k8s-cluster-2
+            request:
+              cpu: 0.5
+              memory: 512
+            limit:
+              cpu: 1
+              memory: 1024
           resourceAttrs:
             cloud.provider: azure
             cloud.region: Central-US
-            k8s.cluster.name: k8s-cluster-2
             host.type: t3.medium
-            host.name: productcatalogservice-d847fdcf5-j6s2f
         - weight: 1
           resourceAttrs:
             cloud.provider: azure
             cloud.region: West-US
-            k8s.cluster.name: k8s-cluster-2
             host.type: t3.medium
-            host.name: productcatalogservice-6b654dbf57-zq8dt
       routes:
         /GetProducts:
           downstreamCalls: {}
@@ -202,17 +228,29 @@ topology:
             region: us-east-1
       resourceAttrSets:
         - weight: 1
+          kubernetes:
+            cluster_name: k8s-cluster-3
+            request:
+              cpu: 0.5
+              memory: 512
+            limit:
+              cpu: 1
+              memory: 1024
           resourceAttrs:
             cloud.provider: aws
             cloud.region: us-west-2
-            k8s.cluster.name: k8s-cluster-3
-            host.name: recommendationservice-6b654dbf57-zq8dt
         - weight: 1
+          kubernetes:
+            cluster_name: k8s-cluster-3
+            request:
+              cpu: 0.5
+              memory: 512
+            limit:
+              cpu: 1
+              memory: 1024
           resourceAttrs:
             cloud.provider: aws
             cloud.region: us-west-1
-            k8s.cluster.name: k8s-cluster-3
-            host.name: recommendationservice-d847fdcf5-j6s2f
       routes:
         /GetRecommendations:
           downstreamCalls:
@@ -229,6 +267,14 @@ topology:
           flag_set: runs_on_azure
       resourceAttrSets:
         - weight: 1
+          kubernetes:
+            cluster_name: k8s-cluster-4
+            request:
+              cpu: 1
+              memory: 512
+            limit:
+              cpu: 2
+              memory: 1024
           resourceAttrs:
             host.name: cartservice-hostname
       routes:
@@ -242,8 +288,14 @@ topology:
             region: us-east-1
       resourceAttrSets:
         - weight: 1
-          resourceAttrs:
-            host.name: checkoutservice-hostname
+          kubernetes:
+            cluster_name: k8s-cluster-1
+            request:
+              cpu: 0.5
+              memory: 512
+            limit:
+              cpu: 1
+              memory: 1024
       routes:
         /PlaceOrder:
           downstreamCalls:
@@ -267,6 +319,14 @@ topology:
             region: us-east-1
       resourceAttrSets:
         - weight: 1
+          kubernetes:
+            cluster_name: k8s-cluster-6
+            request:
+              cpu: 0.5
+              memory: 512
+            limit:
+              cpu: 1
+              memory: 1024
           resourceAttrs:
             host.name: paymentservice-hostname
       routes:
@@ -284,6 +344,14 @@ topology:
             region: us-east-1
       resourceAttrSets:
         - weight: 1
+          kubernetes:
+            cluster_name: k8s-cluster-7
+            request:
+              cpu: 0.5
+              memory: 512
+            limit:
+              cpu: 1
+              memory: 1024
           resourceAttrs:
             host.name: shippingservice-hostname
       routes:
@@ -305,6 +373,14 @@ topology:
             region: us-east-1
       resourceAttrSets:
         - weight: 1
+          kubernetes:
+            cluster_name: k8s-cluster-8
+            request:
+              cpu: 0.5
+              memory: 512
+            limit:
+              cpu: 1
+              memory: 1024
           resourceAttrs:
             host.name: emailservice-hostname
       routes:
@@ -330,6 +406,14 @@ topology:
             region: us-east-1
       resourceAttrSets:
         - weight: 1
+          kubernetes:
+            cluster_name: k8s-cluster-9
+            request:
+              cpu: 0.5
+              memory: 512
+            limit:
+              cpu: 1
+              memory: 1024
           resourceAttrs:
             host.name: currencyservice-hostname
       metrics:
@@ -383,6 +467,14 @@ topology:
           region: us-east-1
       resourceAttrSets:
         - weight: 1
+          kubernetes:
+            cluster_name: k8s-cluster-10
+            request:
+              cpu: 0.5
+              memory: 512
+            limit:
+              cpu: 1
+              memory: 1024
           resourceAttrs:
             host.name: adservice-hostname
       routes:
