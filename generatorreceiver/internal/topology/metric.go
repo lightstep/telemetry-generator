@@ -1,7 +1,6 @@
 package topology
 
 import (
-	"fmt"
 	"github.com/lightstep/lightstep-partner-sdk/collector/generatorreceiver/internal/flags"
 	"math"
 	"math/rand"
@@ -101,14 +100,4 @@ func (m *Metric) GetValue(random *rand.Rand) float64 {
 	v = math.Max(v, m.Min)
 
 	return v
-}
-
-func (m *Metric) validate() error {
-	if m.FlagSet != "" && flags.Manager.GetFlag(m.FlagSet) == nil {
-		return fmt.Errorf("flag %v does not exist", m.FlagSet)
-	}
-	if m.FlagUnset != "" && flags.Manager.GetFlag(m.FlagUnset) == nil {
-		return fmt.Errorf("flag %v does not exist", m.FlagUnset)
-	}
-	return nil
 }
