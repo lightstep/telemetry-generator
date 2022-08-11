@@ -17,7 +17,7 @@ type ServiceRoute struct {
 }
 
 func (r *ServiceRoute) validate(t Topology) error {
-	err := r.EmbeddedFlags.Validate()
+	err := r.Validate()
 	if err != nil {
 		return err
 	}

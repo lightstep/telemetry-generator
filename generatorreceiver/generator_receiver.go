@@ -228,15 +228,14 @@ func validateConfiguration(topoFile topology.File) error {
 			return fmt.Errorf("validation of service configuration failed: %v", err)
 		}
 	}
-
-	err = topoFile.Topology.ValidateServiceGraph(topoFile.RootRoutes) // depends on all services/routes being validated (i.e. exist) first ^
-	if err != nil {
-		return fmt.Errorf("cyclical service graph detected: %v", err)
-	}
-
 	err = topoFile.ValidateRootRoutes()
 	if err != nil {
 		return fmt.Errorf("validation of rootRoute configuration failed: %v", err)
+	}
+
+	err = topoFile.Topology.ValidateServiceGraph(topoFile.RootRoutes) // depends on all services/routes being validated (i.e. exist) first
+	if err != nil {
+		return fmt.Errorf("cyclical service graph detected: %v", err)
 	}
 
 	return nil

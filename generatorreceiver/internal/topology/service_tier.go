@@ -47,7 +47,7 @@ func (st *ServiceTier) GetRoute(routeName string) *ServiceRoute {
 
 func (st *ServiceTier) Validate(topology Topology) error {
 	for _, m := range st.Metrics {
-		err := m.EmbeddedFlags.Validate()
+		err := m.Validate()
 		if err != nil {
 			return fmt.Errorf("error with metric %s in service %s: %v", m.Name, st.ServiceName, err)
 		}
@@ -59,13 +59,13 @@ func (st *ServiceTier) Validate(topology Topology) error {
 		}
 	}
 	for _, t := range st.TagSets {
-		err := t.EmbeddedFlags.Validate()
+		err := t.Validate()
 		if err != nil {
 			return fmt.Errorf("error with tagSets in service %s: %v", st.ServiceName, err)
 		}
 	}
 	for _, ra := range st.ResourceAttributeSets {
-		err := ra.EmbeddedFlags.Validate()
+		err := ra.Validate()
 		if err != nil {
 			return fmt.Errorf("error with resourceAttributeSets in service %s: %v", st.ServiceName, err)
 		}
