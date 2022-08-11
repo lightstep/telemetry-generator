@@ -34,31 +34,18 @@ func (t *Topology) validateDownstreamCalls(service string, route string) error {
 func (t *Topology) traverseServiceGraph(service string, route string, seenCalls map[string]bool, orderedCalls []string) error {
 	downstreamCalls := t.GetServiceTier(service).GetRoute(route).DownstreamCalls
 	// already validated existence of all services/routes, so ^ is safe
+	seenCalls[service+route] = true
 	for ds, dr := range downstreamCalls {
 		if seenCalls[ds+dr] {
 			return fmt.Errorf(printServiceCycle(orderedCalls, ds+dr))
 		}
 
-		// make a copy of seenCalls and add current call to it (will be passed to recursive func)
-		currentSeenCalls := make(map[string]bool)
-		for k, v := range seenCalls {
-			currentSeenCalls[k] = v
-		}
-		currentSeenCalls[ds+dr] = true
-
-		// make a copy of orderedCalls and add current call to it (will be passed to recursive func)
-		// this slice is needed for printing calls in-order if cycle is detected
-		var currentOrderedCalls []string
-		for _, name := range orderedCalls {
-			currentOrderedCalls = append(currentOrderedCalls, name)
-		}
-		currentOrderedCalls = append(currentOrderedCalls, ds+dr)
-
-		err := t.traverseServiceGraph(ds, dr, currentSeenCalls, currentOrderedCalls)
+		err := t.traverseServiceGraph(ds, dr, seenCalls, append(orderedCalls, ds+dr))
 		if err != nil {
 			return err
 		}
 	}
+	delete(seenCalls, service+route)
 	return nil
 }
 
