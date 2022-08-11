@@ -8,11 +8,13 @@ import (
 type File struct {
 	Topology   *Topology          `json:"topology" yaml:"topology"`
 	Flags      []flags.FlagConfig `json:"flags" yaml:"flags"`
-	RootRoutes []struct {
-		Service       string `json:"service" yaml:"service"`
-		Route         string `json:"route" yaml:"route"`
-		TracesPerHour int    `json:"tracesPerHour" yaml:"tracesPerHour"`
-	} `json:"rootRoutes" yaml:"rootRoutes"`
+	RootRoutes []RootRoute        `json:"rootRoutes" yaml:"rootRoutes"`
+}
+
+type RootRoute struct {
+	Service       string `json:"service" yaml:"service"`
+	Route         string `json:"route" yaml:"route"`
+	TracesPerHour int    `json:"tracesPerHour" yaml:"tracesPerHour"`
 }
 
 func (file *File) ValidateRootRoutes() error {

@@ -10,13 +10,11 @@ func (t *Topology) GetServiceTier(serviceName string) *ServiceTier {
 	return t.Services[serviceName]
 }
 
-func (t *Topology) ValidateServiceGraph() error {
-	for _, st := range t.Services {
-		for _, r := range st.Routes {
-			err := t.validateDownstreamCalls(st.ServiceName, r.Route)
-			if err != nil {
-				return err
-			}
+func (t *Topology) ValidateServiceGraph(rootRoutes []RootRoute) error {
+	for _, rr := range rootRoutes {
+		err := t.validateDownstreamCalls(rr.Service, rr.Route)
+		if err != nil {
+			return err
 		}
 	}
 	return nil

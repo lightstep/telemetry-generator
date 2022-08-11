@@ -118,15 +118,15 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 				g.tickers = append(g.tickers, metricTicker)
 				// TODO: this channel should respect shutdown.
 				metricDone := make(chan bool)
-				go func(s topology.ServiceTier, m topology.Metric) {
-					g.logger.Info("generating metrics", zap.String("service", s.ServiceName), zap.String("name", m.Name))
+				go func(s string, m topology.Metric) {
+					g.logger.Info("generating metrics", zap.String("service", s), zap.String("name", m.Name))
 					metricGen := generator.NewMetricGenerator(r)
 					for {
 						select {
 						case <-metricDone:
 							return
 						case _ = <-metricTicker.C:
-							if metrics, report := metricGen.Generate(m, s.ServiceName); report {
+							if metrics, report := metricGen.Generate(m, s); report {
 								err := g.metricConsumer.ConsumeMetrics(ctx, metrics)
 								if err != nil {
 									host.ReportFatalError(err)
@@ -134,7 +134,7 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 							}
 						}
 					}
-				}(*s, m)
+				}(s.ServiceName, m)
 			}
 		}
 
@@ -229,7 +229,7 @@ func validateConfiguration(topoFile topology.File) error {
 		}
 	}
 
-	err = topoFile.Topology.ValidateServiceGraph() // depends on all services/routes being validated (i.e. exist) first ^
+	err = topoFile.Topology.ValidateServiceGraph(topoFile.RootRoutes) // depends on all services/routes being validated (i.e. exist) first ^
 	if err != nil {
 		return fmt.Errorf("cyclical service graph detected: %v", err)
 	}

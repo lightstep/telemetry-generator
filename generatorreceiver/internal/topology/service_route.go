@@ -14,15 +14,12 @@ type ServiceRoute struct {
 	ResourceAttributeSets []ResourceAttributeSet `json:"resourceAttrSets" yaml:"resourceAttrSets"`
 	flags.EmbeddedFlags   `json:",inline" yaml:",inline"`
 	// TODO: rename all references from `tag` to `attribute`, to follow the otel standard.
-
 }
 
 func (r *ServiceRoute) validate(t Topology) error {
-	if r.FlagSet != "" && flags.Manager.GetFlag(r.FlagSet) == nil {
-		return fmt.Errorf("flag %v does not exist", r.FlagSet)
-	}
-	if r.FlagUnset != "" && flags.Manager.GetFlag(r.FlagUnset) == nil {
-		return fmt.Errorf("flag %v does not exist", r.FlagUnset)
+	err := r.EmbeddedFlags.Validate()
+	if err != nil {
+		return err
 	}
 
 	for service, route := range r.DownstreamCalls {
