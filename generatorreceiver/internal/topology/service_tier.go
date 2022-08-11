@@ -1,15 +1,16 @@
 package topology
 
 import (
+	"fmt"
 	"math/rand"
 )
 
 type ServiceTier struct {
-	ServiceName           string                 `json:"serviceName" yaml:"serviceName"`
-	Routes                []ServiceRoute         `json:"routes" yaml:"routes"`
-	TagSets               []TagSet               `json:"tagSets" yaml:"tagSets"`
-	ResourceAttributeSets []ResourceAttributeSet `json:"resourceAttrSets" yaml:"resourceAttrSets"`
-	Metrics               []Metric               `json:"metrics" yaml:"metrics"`
+	ServiceName           string
+	Routes                map[string]*ServiceRoute `json:"routes" yaml:"routes"`
+	TagSets               []TagSet                 `json:"tagSets" yaml:"tagSets"`
+	ResourceAttributeSets []ResourceAttributeSet   `json:"resourceAttrSets" yaml:"resourceAttrSets"`
+	Metrics               []Metric                 `json:"metrics" yaml:"metrics"`
 	Random                *rand.Rand
 }
 
@@ -41,9 +42,43 @@ func (st *ServiceTier) GetResourceAttributeSet() *ResourceAttributeSet {
 }
 
 func (st *ServiceTier) GetRoute(routeName string) *ServiceRoute {
-	for _, v := range st.Routes {
-		if v.Route == routeName {
-			return &v
+	return st.Routes[routeName]
+}
+
+func (st *ServiceTier) Validate(topology Topology) error {
+	for _, m := range st.Metrics {
+		err := m.Validate()
+		if err != nil {
+			return fmt.Errorf("error with metric %s in service %s: %v", m.Name, st.ServiceName, err)
+		}
+	}
+	for _, r := range st.Routes {
+		err := r.validate(topology)
+		if err != nil {
+			return fmt.Errorf("error with route %s in service %s: %v", r.Route, st.ServiceName, err)
+		}
+	}
+	for _, t := range st.TagSets {
+		err := t.Validate()
+		if err != nil {
+			return fmt.Errorf("error with tagSets in service %s: %v", st.ServiceName, err)
+		}
+	}
+	for _, ra := range st.ResourceAttributeSets {
+		err := ra.Validate()
+		if err != nil {
+			return fmt.Errorf("error with resourceAttributeSets in service %s: %v", st.ServiceName, err)
+		}
+	}
+	return nil
+}
+
+func (st *ServiceTier) load(service string) error {
+	st.ServiceName = service
+	for name, route := range st.Routes {
+		err := route.load(name)
+		if err != nil {
+			return fmt.Errorf("error loading route %s for service %s: %v", name, service, err)
 		}
 	}
 	return nil

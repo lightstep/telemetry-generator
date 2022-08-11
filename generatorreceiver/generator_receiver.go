@@ -29,25 +29,28 @@ type generatorReceiver struct {
 	server         *httpServer
 }
 
-func (g generatorReceiver) loadTopoFile(topoInline string, path string) (*topology.File, error) {
-	var topoFile topology.File
-
+func (g generatorReceiver) loadTopoFile(topoInline string, path string) (topoFile *topology.File, err error) {
 	// fetch from env var.
 	if len(topoInline) > 0 {
 		g.logger.Info("reading topo inline")
-		err := json.Unmarshal([]byte(topoInline), &topoFile)
+		err = json.Unmarshal([]byte(topoInline), topoFile)
 		if err != nil {
 			return nil, fmt.Errorf("could not parse inline json file: %v", err)
 		}
-		return &topoFile, nil
+	} else {
+		g.logger.Info("reading topo from file path", zap.String("path", g.topoPath))
+		topoFile, err = parseTopoFile(path)
+		if err != nil {
+			return nil, err
+		}
 	}
-	g.logger.Info("reading topo from file path", zap.String("path", g.topoPath))
-	parsedFile, err := parseTopoFile(path)
-
+	err = topoFile.Topology.Load()
 	if err != nil {
 		return nil, err
 	}
-	return parsedFile, nil
+	flags.Manager.LoadFlags(topoFile.Flags, g.logger)
+
+	return topoFile, nil
 }
 
 func (g generatorReceiver) Start(ctx context.Context, host component.Host) error {
@@ -56,7 +59,10 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 		host.ReportFatalError(err)
 	}
 
-	flags.Manager.LoadFlags(topoFile.Flags, g.logger)
+	err = validateConfiguration(*topoFile)
+	if err != nil {
+		host.ReportFatalError(err)
+	}
 
 	g.logger.Info("starting flag manager", zap.Int("flag_count", flags.Manager.FlagCount()))
 	cron.Start()
@@ -72,7 +78,7 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 
 	for _, s := range topoFile.Topology.Services {
 		for i := range s.ResourceAttributeSets {
-			s.ResourceAttributeSets[i].Kubernetes.CreatePod(s)
+			s.ResourceAttributeSets[i].Kubernetes.CreatePod(*s)
 
 			if s.ResourceAttributeSets[i].ResourceAttributes == nil {
 				s.ResourceAttributeSets[i].ResourceAttributes = make(topology.TagMap)
@@ -95,7 +101,7 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 			// K8s generated metrics
 			for _, resource := range s.ResourceAttributeSets {
 				// For each resource generate k8s metrics if enabled
-				k8sMetrics := resource.Kubernetes.GenerateMetrics(s)
+				k8sMetrics := resource.Kubernetes.GenerateMetrics(*s)
 				if k8sMetrics != nil {
 
 					for i := range k8sMetrics {
@@ -112,15 +118,15 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 				g.tickers = append(g.tickers, metricTicker)
 				// TODO: this channel should respect shutdown.
 				metricDone := make(chan bool)
-				go func(s topology.ServiceTier, m topology.Metric) {
-					g.logger.Info("generating metrics", zap.String("service", s.ServiceName), zap.String("name", m.Name))
+				go func(s string, m topology.Metric) {
+					g.logger.Info("generating metrics", zap.String("service", s), zap.String("name", m.Name))
 					metricGen := generator.NewMetricGenerator(r)
 					for {
 						select {
 						case <-metricDone:
 							return
 						case _ = <-metricTicker.C:
-							if metrics, report := metricGen.Generate(m, s.ServiceName); report {
+							if metrics, report := metricGen.Generate(m, s); report {
 								err := g.metricConsumer.ConsumeMetrics(ctx, metrics)
 								if err != nil {
 									host.ReportFatalError(err)
@@ -128,7 +134,7 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 							}
 						}
 					}
-				}(s, m)
+				}(s.ServiceName, m)
 			}
 		}
 
@@ -208,4 +214,29 @@ func newTraceReceiver(config *Config,
 	genReceiver.randomSeed = randomSeed
 	genReceiver.traceConsumer = consumer
 	return &genReceiver, nil
+}
+
+func validateConfiguration(topoFile topology.File) error {
+	err := flags.Manager.ValidateFlags()
+	if err != nil {
+		return fmt.Errorf("validation of flag configuration failed: %v", err)
+	}
+
+	for _, service := range topoFile.Topology.Services {
+		err = service.Validate(*topoFile.Topology)
+		if err != nil {
+			return fmt.Errorf("validation of service configuration failed: %v", err)
+		}
+	}
+	err = topoFile.ValidateRootRoutes()
+	if err != nil {
+		return fmt.Errorf("validation of rootRoute configuration failed: %v", err)
+	}
+
+	err = topoFile.Topology.ValidateServiceGraph(topoFile.RootRoutes) // depends on all services/routes being validated (i.e. exist) first
+	if err != nil {
+		return fmt.Errorf("cyclical service graph detected: %v", err)
+	}
+
+	return nil
 }

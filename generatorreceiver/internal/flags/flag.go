@@ -57,7 +57,7 @@ func (f *Flag) active() bool {
 // update checks if the given flag f has a parent flag ("Incident"); if so,
 // updates f's state based on its start and end times relative to the parent.
 func (f *Flag) update() {
-	if f.cfg.Incident == nil {
+	if !f.parentSpecified() {
 		// managed by cron or manual-only
 		return
 	}
@@ -65,12 +65,7 @@ func (f *Flag) update() {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
-	parent := Manager.GetFlag(f.cfg.Incident.ParentFlag)
-	if parent == nil {
-		// TODO: with validation, this should never happen
-		return
-	}
-
+	parent := f.parent() // won't be nil because we already validated all parents exist
 	incidentDuration := parent.CurrentDuration()
 	afterStart := incidentDuration > f.cfg.Incident.Start
 	beforeEnd := f.cfg.Incident.End == 0 || incidentDuration < f.cfg.Incident.End
@@ -132,4 +127,15 @@ func (f *Flag) SetupCron(logger *zap.Logger) {
 	if err != nil {
 		logger.Error("error adding flag stop schedule", zap.Error(err))
 	}
+}
+
+func (f *Flag) parentSpecified() bool {
+	return f.cfg.Incident != nil
+}
+
+func (f *Flag) parent() *Flag {
+	if !f.parentSpecified() {
+		return nil
+	}
+	return Manager.GetFlag(f.cfg.Incident.ParentFlag)
 }
