@@ -63,6 +63,23 @@ func (g *TraceGenerator) Generate(startTimeMicros int64) *pdata.Traces {
 	return &traces
 }
 
+func pickBasedOnWeight(tagSets []topology.TagSet) topology.TagSet {
+	totalWeight := 0.0
+	for _, ts := range tagSets {
+		totalWeight += ts.Weight
+	}
+
+	choice := rand.Float64() * totalWeight
+	current := 0.0
+	for _, ts := range tagSets {
+		current += ts.Weight
+		if choice < current {
+			return ts
+		}
+	}
+	return topology.TagSet{}
+}
+
 func (g *TraceGenerator) createSpanForServiceRouteCall(traces *pdata.Traces, serviceTier *topology.ServiceTier, routeName string, startTimeMicros int64, traceId pdata.TraceID, parentSpanId pdata.SpanID) *pdata.Span {
 	serviceTier.Random = g.random
 	route := serviceTier.GetRoute(routeName)
@@ -97,19 +114,28 @@ func (g *TraceGenerator) createSpanForServiceRouteCall(traces *pdata.Traces, ser
 	span.Attributes().InsertString("load_generator.seq_num", fmt.Sprintf("%v", g.sequenceNumber))
 
 	tagSet := serviceTier.GetTagSet(routeName)
+	filteredTagSets := []topology.TagSet{} //empty slice
+
 	for _, ts := range tagSet {
 		if !ts.ShouldGenerate() {
 			continue
 		}
-		attr := span.Attributes()
-		ts.Tags.InsertTags(&attr)
-		for _, tg := range ts.TagGenerators {
-			tg.Random = g.random
-			for k, v := range tg.GenerateTags() {
-				span.Attributes().InsertString(k, v)
-			}
+		filteredTagSets = append(filteredTagSets, ts)
+	}
+
+	//once ShouldGenerate is true aka flag is set or unset, then worry about weights
+	chosen := pickBasedOnWeight(filteredTagSets)
+
+	//adds attributes to the tagSets that have specified weights
+	attr := span.Attributes()
+	chosen.Tags.InsertTags(&attr)
+	for _, tg := range chosen.TagGenerators {
+		tg.Random = g.random
+		for k, v := range tg.GenerateTags() {
+			span.Attributes().InsertString(k, v)
 		}
 	}
+
 	maxEndTime := startTimeMicros
 	for s, r := range route.DownstreamCalls {
 		var childStartTimeMicros int64

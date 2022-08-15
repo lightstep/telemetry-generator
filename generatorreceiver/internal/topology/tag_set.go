@@ -5,7 +5,7 @@ import (
 )
 
 type TagSet struct {
-	Weight              int            `json:"weight" yaml:"weight"`
+	Weight              float64        `json:"weight" yaml:"weight"`
 	Tags                TagMap         `json:"tags,omitempty" yaml:"tags,omitempty"`
 	TagGenerators       []TagGenerator `json:"tagGenerators,omitempty" yaml:"tagGenerators,omitempty"`
 	Inherit             []string       `json:"inherit,omitempty" yaml:"inherit,omitempty"`
