@@ -32,7 +32,7 @@ func (r *ServiceRoute) validate(t Topology) error {
 		}
 	}
 
-	if r.MaxLatencyMillis <= 0 {
+	if r.LatencyPercentiles == nil && r.MaxLatencyMillis <= 0 {
 		return fmt.Errorf("must have a positive, non-zero maxLatencyMillis defined")
 	}
 	return nil

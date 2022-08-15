@@ -22,42 +22,28 @@ type LatencyPercentiles struct {
 	}
 }
 
-func (l *LatencyPercentiles) Sample() float64 {
-	uniform := func(timeA, timeB time.Duration) float64 {
-		min := float64(timeA.Microseconds())
-		max := float64(timeB.Microseconds())
-		return (min + (max-min)*rand.Float64()) * 1000
+func (l *LatencyPercentiles) Sample() int64 {
+	uniform := func(timeA, timeB time.Duration) int64 {
+		min := float64(timeA.Nanoseconds())
+		max := float64(timeB.Nanoseconds())
+		return int64(min + (max-min)*rand.Float64())
 	}
 	genNumber := rand.Float64()
 	switch {
-	case genNumber <= 0.001:
-		// 0.1% of requests
-		return uniform(l.durations.p99, l.durations.p999)
-	case genNumber <= 0.01:
-		// 1% of requests
-		return uniform(l.durations.p95, l.durations.p99)
-	case genNumber <= 0.05:
-		// 5% of requests
-		return uniform(l.durations.p50, l.durations.p95)
 	case genNumber <= 0.5:
+		return uniform(l.durations.p0, l.durations.p50)
+	case genNumber <= 0.95:
+		// 1% of requests
+		return uniform(l.durations.p50, l.durations.p95)
+	case genNumber <= 0.99:
+		// 5% of requests
+		return uniform(l.durations.p95, l.durations.p99)
+	case genNumber <= 0.999:
 		// 50% of requests
-		return uniform(l.durations.p0, l.durations.p50)
+		return uniform(l.durations.p99, l.durations.p999)
 	default:
-		return uniform(l.durations.p0, l.durations.p50)
-		// not sure if --> is better, seems to skew it too high generally, return uniform(percentiles.p50, percentiles.p100)
+		return uniform(l.durations.p999, l.durations.p100)
 	}
-	/*
-		TODO: the above is still not perfect - it is a bit off on the p50m the logic for default is prob wrong, should be reorderd like below -
-		Trying the below also makes it off on p50 by more (I think because its getting more skewed from the p95), so its maybe not exactly right either
-		case genNumber <= 0.5:
-			return uniform(percentiles.p0, percentiles.p50)
-		case genNumber <= 0.95:
-			return uniform(percentiles.p50, percentiles.p95)
-		case genNumber <= 0.99:
-			return uniform(percentiles.p95, percentiles.p99)
-		default:
-			return uniform(percentiles.p99, percentiles.p999)
-	*/
 }
 
 func (l *LatencyPercentiles) loadDurations() error {
