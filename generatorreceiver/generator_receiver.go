@@ -146,6 +146,7 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 			done := make(chan bool)
 			svc := r.Service
 			route := r.Route
+			r := r
 			go func() {
 				g.logger.Info("generating traces", zap.String("service", svc), zap.String("route", route))
 				traceGen := generator.NewTraceGenerator(topoFile.Topology, g.randomSeed, svc, route)
@@ -154,8 +155,10 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 					case <-done:
 						return
 					case _ = <-traceTicker.C:
-						traces := traceGen.Generate(time.Now().UnixNano())
-						_ = g.traceConsumer.ConsumeTraces(context.Background(), *traces)
+						if r.ShouldGenerate() {
+							traces := traceGen.Generate(time.Now().UnixNano())
+							_ = g.traceConsumer.ConsumeTraces(context.Background(), *traces)
+						}
 					}
 				}
 			}()

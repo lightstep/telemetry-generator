@@ -12,9 +12,10 @@ type File struct {
 }
 
 type RootRoute struct {
-	Service       string `json:"service" yaml:"service"`
-	Route         string `json:"route" yaml:"route"`
-	TracesPerHour int    `json:"tracesPerHour" yaml:"tracesPerHour"`
+	Service             string `json:"service" yaml:"service"`
+	Route               string `json:"route" yaml:"route"`
+	TracesPerHour       int    `json:"tracesPerHour" yaml:"tracesPerHour"`
+	flags.EmbeddedFlags `json:",inline" yaml:",inline"`
 }
 
 func (file *File) ValidateRootRoutes() error {
