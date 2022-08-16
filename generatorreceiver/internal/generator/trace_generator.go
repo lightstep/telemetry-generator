@@ -54,11 +54,10 @@ func (g *TraceGenerator) genSpanId() pdata.SpanID {
 	return pdata.NewSpanID(traceId)
 }
 
-func (g *TraceGenerator) Generate(startTimeMicros int64) *pdata.Traces {
-	rootService := g.topology.GetServiceTier(g.service)
+func (g *TraceGenerator) Generate(startTimeNanos int64) *pdata.Traces {
 	traces := pdata.NewTraces()
 
-	g.createSpanForServiceRouteCall(&traces, rootService, g.route, startTimeMicros, g.genTraceId(), pdata.NewSpanID([8]byte{0x0}))
+	g.createSpanForServiceRouteCall(&traces, g.service, g.route, startTimeNanos, g.genTraceId(), pdata.NewSpanID([8]byte{0x0}))
 
 	return &traces
 }
@@ -80,7 +79,8 @@ func pickBasedOnWeight(tagSets []topology.TagSet) topology.TagSet {
 	return topology.TagSet{}
 }
 
-func (g *TraceGenerator) createSpanForServiceRouteCall(traces *pdata.Traces, serviceTier *topology.ServiceTier, routeName string, startTimeMicros int64, traceId pdata.TraceID, parentSpanId pdata.SpanID) *pdata.Span {
+func (g *TraceGenerator) createSpanForServiceRouteCall(traces *pdata.Traces, serviceName string, routeName string, startTimeNanos int64, traceId pdata.TraceID, parentSpanId pdata.SpanID) *pdata.Span {
+	serviceTier := g.topology.GetServiceTier(serviceName)
 	serviceTier.Random = g.random
 	route := serviceTier.GetRoute(routeName)
 
@@ -136,26 +136,20 @@ func (g *TraceGenerator) createSpanForServiceRouteCall(traces *pdata.Traces, ser
 		}
 	}
 
-	maxEndTime := startTimeMicros
+	// TODO: this is still a bit weird - we're calling each downstream route
+	// after a sample of the current route's latency, which doesn't really
+	// make sense - but maybe it's realistic enough?
+	endTime := startTimeNanos + route.SampleLatency()
 	for s, r := range route.DownstreamCalls {
-		var childStartTimeMicros int64
-		if route.LatencyPercentiles != nil {
-			childStartTimeMicros = startTimeMicros + int64(route.LatencyPercentiles.Sample())
-		} else {
-			childStartTimeMicros = startTimeMicros + (g.random.Int63n(route.MaxLatencyMillis * 1000000))
-		}
-		childSvc := g.topology.GetServiceTier(s)
+		var childStartTimeNanos = startTimeNanos + route.SampleLatency()
 
-		g.createSpanForServiceRouteCall(traces, childSvc, r, childStartTimeMicros, traceId, newSpanId)
-		maxEndTime = Max(maxEndTime, childStartTimeMicros)
+		childSpan := g.createSpanForServiceRouteCall(traces, s, r, childStartTimeNanos, traceId, newSpanId)
+		endTime = Max(endTime, int64(childSpan.EndTimestamp()))
 	}
 
-	// todo: ownDuration should also be influenced by percentiles or not?
-	// note - changing this number seems to effect very little
-	ownDuration := g.random.Int63n(route.MaxLatencyMillis * 1000000)
-	span.SetStartTimestamp(pdata.NewTimestampFromTime(time.Unix(0, startTimeMicros)))
-	span.SetEndTimestamp(pdata.NewTimestampFromTime(time.Unix(0, maxEndTime+ownDuration)))
-	g.sequenceNumber = g.sequenceNumber + 1
+	span.SetStartTimestamp(pdata.NewTimestampFromTime(time.Unix(0, startTimeNanos)))
+	span.SetEndTimestamp(pdata.NewTimestampFromTime(time.Unix(0, endTime)))
+	g.sequenceNumber += 1
 	return &span
 }
 

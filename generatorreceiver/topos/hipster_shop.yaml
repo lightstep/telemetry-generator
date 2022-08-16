@@ -142,7 +142,13 @@ topology:
             productcatalogservice: /GetProducts
             recommendationservice: /GetRecommendations
             adservice: /AdRequest
-          maxLatencyMillis: 200
+          latencyPercentiles:
+            p0: 25ms
+            p50: 75ms
+            p95: 100ms
+            p99: 120ms
+            p99.9: 150ms
+            p100: 200ms
           tagSets:
             - weight: 1
               tags:
@@ -161,7 +167,13 @@ topology:
           downstreamCalls:
             cartservice: /GetCart
             recommendationservice: /GetRecommendations
-          maxLatencyMillis: 100
+          latencyPercentiles:
+            p0: 25ms
+            p50: 75ms
+            p95: 100ms
+            p99: 120ms
+            p99.9: 150ms
+            p100: 200ms
         /checkout:
           downstreamCalls:
             checkoutservice: /PlaceOrder
