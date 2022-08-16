@@ -136,7 +136,7 @@ func (g *TraceGenerator) createSpanForServiceRouteCall(traces *pdata.Traces, ser
 		}
 	}
 
-	maxEndTime := startTimeNanos
+	maxChildEndTime := startTimeNanos
 	for s, r := range route.DownstreamCalls {
 		var childStartTimeNanos = startTimeNanos
 		if route.LatencyPercentiles != nil {
@@ -146,8 +146,8 @@ func (g *TraceGenerator) createSpanForServiceRouteCall(traces *pdata.Traces, ser
 		}
 		childSvc := g.topology.GetServiceTier(s)
 
-		g.createSpanForServiceRouteCall(traces, childSvc, r, childStartTimeNanos, traceId, newSpanId)
-		maxEndTime = Max(maxEndTime, childStartTimeNanos)
+		childSpan := g.createSpanForServiceRouteCall(traces, childSvc, r, childStartTimeNanos, traceId, newSpanId)
+		maxChildEndTime = Max(maxChildEndTime, int64(childSpan.EndTimestamp()))
 	}
 
 	// todo: ownDuration should also be influenced by percentiles or not?
@@ -156,9 +156,14 @@ func (g *TraceGenerator) createSpanForServiceRouteCall(traces *pdata.Traces, ser
 	if route.LatencyPercentiles != nil {
 		maxLatency = route.LatencyPercentiles.Sample()
 	}
-	ownDuration := g.random.Int63n(maxLatency)
 	span.SetStartTimestamp(pdata.NewTimestampFromTime(time.Unix(0, startTimeNanos)))
-	span.SetEndTimestamp(pdata.NewTimestampFromTime(time.Unix(0, maxEndTime+ownDuration)))
+	if len(route.DownstreamCalls) == 0 {
+		ownDuration := g.random.Int63n(maxLatency)
+		span.SetEndTimestamp(pdata.NewTimestampFromTime(time.Unix(0, startTimeNanos+ownDuration)))
+
+	} else {
+		span.SetEndTimestamp(pdata.NewTimestampFromTime(time.Unix(0, maxChildEndTime)))
+	}
 	g.sequenceNumber = g.sequenceNumber + 1
 	return &span
 }
