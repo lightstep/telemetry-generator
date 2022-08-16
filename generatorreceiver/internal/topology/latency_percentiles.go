@@ -33,13 +33,10 @@ func (l *LatencyPercentiles) Sample() int64 {
 	case genNumber <= 0.5:
 		return uniform(l.durations.p0, l.durations.p50)
 	case genNumber <= 0.95:
-		// 1% of requests
 		return uniform(l.durations.p50, l.durations.p95)
 	case genNumber <= 0.99:
-		// 5% of requests
 		return uniform(l.durations.p95, l.durations.p99)
 	case genNumber <= 0.999:
-		// 50% of requests
 		return uniform(l.durations.p99, l.durations.p999)
 	default:
 		return uniform(l.durations.p999, l.durations.p100)

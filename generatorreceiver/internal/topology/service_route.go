@@ -3,6 +3,7 @@ package topology
 import (
 	"fmt"
 	"github.com/lightstep/lightstep-partner-sdk/collector/generatorreceiver/internal/flags"
+	"math/rand"
 )
 
 type ServiceRoute struct {
@@ -33,7 +34,7 @@ func (r *ServiceRoute) validate(t Topology) error {
 	}
 
 	if r.LatencyPercentiles == nil && r.MaxLatencyMillis <= 0 {
-		return fmt.Errorf("must have a positive, non-zero maxLatencyMillis defined")
+		return fmt.Errorf("must have either latencyPercentiles or positive, non-zero maxLatencyMillis defined")
 	}
 	return nil
 }
@@ -47,4 +48,12 @@ func (r *ServiceRoute) load(route string) error {
 		}
 	}
 	return nil
+}
+
+func (r *ServiceRoute) SampleLatency() int64 {
+	if r.LatencyPercentiles == nil {
+		return rand.Int63n(r.MaxLatencyMillis * 1000000)
+	} else {
+		return r.LatencyPercentiles.Sample()
+	}
 }
