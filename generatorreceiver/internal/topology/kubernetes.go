@@ -93,7 +93,6 @@ func (k *Kubernetes) ReplaceTags(tags map[string]string) map[string]string {
 	defer k.mutex.Unlock()
 
 	replaced := make(map[string]string, len(tags))
-
 	for key, value := range tags {
 		switch value {
 		case Pod:
