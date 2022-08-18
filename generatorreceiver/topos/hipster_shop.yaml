@@ -37,8 +37,12 @@ topology:
             cluster_name: k8s-cluster-1
             request:
               cpu: 0.5
+              memory: 2048
             limit:
               cpu: 0.75
+              memory: 3072
+            restart:
+              every: 5m
           resourceAttrs:
             cloud.provider: aws
             cloud.region: us-west-2

@@ -39,7 +39,7 @@ func (ls *leakingShape) GetValue(phase float64) (float64, float64) {
 		ls.lastPod = ls.kubernetes.PodName
 		ls.increase = 0
 	} else {
-		ls.increase = ls.increase + float64(DefaultMetricTickerPeriod)/float64(ls.kubernetes.Restart.Every)
+		ls.increase = ls.increase + float64(DefaultMetricTickerPeriod)/float64(ls.kubernetes.Restart.Every)/2
 	}
 
 	v, _ := ls.average.GetValue(phase)
