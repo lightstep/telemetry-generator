@@ -98,7 +98,7 @@ func (g *TraceGenerator) createSpanForServiceRouteCall(traces *pdata.Traces, ser
 	resourceAttributeSet := serviceTier.GetResourceAttributeSet()
 	if resourceAttributeSet != nil {
 		attrs := resource.Attributes()
-		resourceAttributeSet.ResourceAttributes.InsertTags(&attrs)
+		resourceAttributeSet.GetAttributes().InsertTags(&attrs)
 	}
 
 	ils := rspan.InstrumentationLibrarySpans().AppendEmpty()

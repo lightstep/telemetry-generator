@@ -68,6 +68,7 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 	cron.Start()
 	r := rand.New(rand.NewSource(g.randomSeed))
 	r.Seed(g.randomSeed)
+	rand.Seed(g.randomSeed)
 
 	if g.server != nil {
 		err := g.server.Start(ctx, host)
@@ -78,63 +79,33 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 
 	for _, s := range topoFile.Topology.Services {
 		for i := range s.ResourceAttributeSets {
-			s.ResourceAttributeSets[i].Kubernetes.CreatePod(*s)
-
-			if s.ResourceAttributeSets[i].ResourceAttributes == nil {
-				s.ResourceAttributeSets[i].ResourceAttributes = make(topology.TagMap)
-			}
-
-			for k, v := range s.ResourceAttributeSets[i].Kubernetes.GetK8sTags() {
-				s.ResourceAttributeSets[i].ResourceAttributes[k] = v
-			}
+			s.ResourceAttributeSets[i].Kubernetes.CreatePod(s.ServiceName)
 		}
 	}
 
 	if g.metricConsumer != nil {
 		for _, s := range topoFile.Topology.Services {
 
-			var effectiveMetrics []topology.Metric
+			// Service defined metrics
+			for _, m := range s.Metrics {
+				metricTicker := g.startMetricGenerator(ctx, host, s.ServiceName, m)
+				g.tickers = append(g.tickers, metricTicker)
+			}
 
-			// All defined metrics
-			effectiveMetrics = append(effectiveMetrics, s.Metrics...)
-
-			// K8s generated metrics
-			for _, resource := range s.ResourceAttributeSets {
+			// Service kubernetes auto-generated metrics
+			for i := range s.ResourceAttributeSets {
+				resource := &s.ResourceAttributeSets[i]
 				// For each resource generate k8s metrics if enabled
-				k8sMetrics := resource.Kubernetes.GenerateMetrics(*s)
+				k8sMetrics := resource.Kubernetes.GenerateMetrics()
 				if k8sMetrics != nil {
-
 					for i := range k8sMetrics {
 						// keep the same flags as the resources.
 						k8sMetrics[i].EmbeddedFlags = resource.EmbeddedFlags
-					}
 
-					effectiveMetrics = append(effectiveMetrics, k8sMetrics...)
+						metricTicker := g.startMetricGenerator(ctx, host, s.ServiceName, k8sMetrics[i])
+						g.tickers = append(g.tickers, metricTicker)
+					}
 				}
-			}
-
-			for _, m := range effectiveMetrics {
-				metricTicker := time.NewTicker(1 * time.Second)
-				g.tickers = append(g.tickers, metricTicker)
-				// TODO: this channel should respect shutdown.
-				metricDone := make(chan bool)
-				go func(s string, m topology.Metric) {
-					g.logger.Info("generating metrics", zap.String("service", s), zap.String("name", m.Name))
-					metricGen := generator.NewMetricGenerator(r)
-					for {
-						select {
-						case <-metricDone:
-							return
-						case _ = <-metricTicker.C:
-							if metrics, report := metricGen.Generate(m, s); report {
-								err := g.metricConsumer.ConsumeMetrics(ctx, metrics)
-								if err != nil {
-									host.ReportFatalError(err)
-								}
-							}
-						}
-					}
-				}(s.ServiceName, m)
 			}
 		}
 
@@ -166,6 +137,39 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 	}
 
 	return nil
+}
+
+func (g generatorReceiver) startMetricGenerator(ctx context.Context, host component.Host, serviceName string, m topology.Metric) *time.Ticker {
+	// TODO: do we actually need to generate every second?
+	metricTicker := time.NewTicker(topology.DefaultMetricTickerPeriod)
+	g.tickers = append(g.tickers, metricTicker)
+	go func() {
+		g.logger.Info("generating metrics", zap.String("service", serviceName), zap.String("name", m.Name))
+		metricGen := generator.NewMetricGenerator()
+		var age time.Duration
+		for {
+			select {
+			case _ = <-metricTicker.C:
+				age += topology.DefaultMetricTickerPeriod
+
+				if m.Kubernetes != nil && m.Kubernetes.Restart.Every != 0 {
+					if age >= m.Kubernetes.Restart.Every {
+						age = 0
+						m.Kubernetes.RestartPod()
+					}
+				}
+
+				if metrics, report := metricGen.Generate(&m, serviceName); report {
+					err := g.metricConsumer.ConsumeMetrics(ctx, metrics)
+					if err != nil {
+						host.ReportFatalError(err)
+					}
+				}
+			}
+		}
+	}()
+
+	return metricTicker
 }
 
 var genReceiver = generatorReceiver{}

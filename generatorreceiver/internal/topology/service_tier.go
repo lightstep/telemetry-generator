@@ -25,10 +25,10 @@ func (st *ServiceTier) GetResourceAttributeSet() *ResourceAttributeSet {
 	if len(st.ResourceAttributeSets) == 0 {
 		return nil
 	}
-	var enabledResources []ResourceAttributeSet
-	for _, resource := range st.ResourceAttributeSets {
-		if resource.ShouldGenerate() {
-			enabledResources = append(enabledResources, resource)
+	var enabledResources []*ResourceAttributeSet
+	for i := range st.ResourceAttributeSets {
+		if st.ResourceAttributeSets[i].ShouldGenerate() {
+			enabledResources = append(enabledResources, &st.ResourceAttributeSets[i])
 		}
 	}
 
@@ -38,7 +38,7 @@ func (st *ServiceTier) GetResourceAttributeSet() *ResourceAttributeSet {
 
 	// TODO: also support resource attributes on routes
 	// TODO: support weight
-	return &enabledResources[st.Random.Intn(len(enabledResources))]
+	return enabledResources[st.Random.Intn(len(enabledResources))]
 }
 
 func (st *ServiceTier) GetRoute(routeName string) *ServiceRoute {

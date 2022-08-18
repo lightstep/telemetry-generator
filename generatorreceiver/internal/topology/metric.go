@@ -9,6 +9,43 @@ import (
 
 const DefaultPeriod = 60 * time.Minute
 const DefaultOffset = 0 * time.Minute
+const DefaultMetricTickerPeriod = 1 * time.Second
+
+type ShapeInterface interface {
+	GetValue(phase float64) (float64, float64)
+}
+
+type funcShape struct {
+	shape func(phase float64) (float64, float64)
+}
+
+func (fs *funcShape) GetValue(phase float64) (float64, float64) {
+	return fs.shape(phase)
+}
+
+type leakingShape struct {
+	increase   float64
+	average    ShapeInterface
+	kubernetes *Kubernetes
+	lastPod    string
+}
+
+func (ls *leakingShape) GetValue(phase float64) (float64, float64) {
+	if ls.kubernetes == nil {
+		return ls.average.GetValue(phase)
+	}
+
+	if ls.lastPod != ls.kubernetes.PodName {
+		ls.lastPod = ls.kubernetes.PodName
+		ls.increase = 0
+	} else {
+		ls.increase = ls.increase + float64(DefaultMetricTickerPeriod)/float64(ls.kubernetes.Restart.Every)
+	}
+
+	v, _ := ls.average.GetValue(phase)
+
+	return v, ls.increase
+}
 
 type Shape string
 
@@ -18,6 +55,7 @@ const (
 	Square   Shape = "square"
 	Triangle Shape = "triangle"
 	Average  Shape = "average"
+	Leaking  Shape = "leaking"
 )
 
 type Metric struct {
@@ -28,35 +66,70 @@ type Metric struct {
 	Period              *time.Duration    `json:"period" yaml:"period"`
 	Offset              *time.Duration    `json:"offset" yaml:"offset"`
 	Shape               Shape             `json:"shape" yaml:"shape"`
+	ShapeInterface      ShapeInterface    `json:"-" yaml:"-"`
 	Tags                map[string]string `json:"tags" yaml:"tags"`
 	Jitter              float64           `json:"jitter" yaml:"jitter"`
 	flags.EmbeddedFlags `json:",inline" yaml:",inline"`
+	Kubernetes          *Kubernetes
 }
 
-func SineValue(phase float64) float64 {
-	return (math.Sin(2*math.Pi*phase) + 1) / 2
-}
-
-func SawtoothValue(phase float64) float64 {
-	return phase
-}
-
-func SquareValue(phase float64) float64 {
-	if phase < 0.5 {
-		return 0.0
+func (m *Metric) GetTags() map[string]string {
+	if m.Kubernetes != nil {
+		return m.Kubernetes.ReplaceTags(m.Tags)
 	}
-	return 1.0
+
+	return m.Tags
 }
 
-func TriangleValue(phase float64) float64 {
-	return 1.0 - 2.0*math.Abs(0.5-phase)
+func (m *Metric) InitMetric() {
+	if m.ShapeInterface != nil {
+		return
+	}
+
+	switch m.Shape {
+	case Sine:
+		m.ShapeInterface = &funcShape{SineValue}
+	case Sawtooth:
+		m.ShapeInterface = &funcShape{SawtoothValue}
+	case Square:
+		m.ShapeInterface = &funcShape{SquareValue}
+	case Triangle:
+		m.ShapeInterface = &funcShape{TriangleValue}
+	case Average:
+		m.ShapeInterface = &funcShape{AverageValue}
+	case Leaking:
+		m.ShapeInterface = &leakingShape{average: &funcShape{AverageValue}, kubernetes: m.Kubernetes}
+	default:
+		// TODO: what would be a reasonable default? Maybe just sine?
+		m.ShapeInterface = &funcShape{SineValue}
+
+	}
 }
 
-func AverageValue(_ float64) float64 {
-	return 0.5
+func SineValue(phase float64) (float64, float64) {
+	return (math.Sin(2*math.Pi*phase) + 1) / 2, 0
 }
 
-func (m *Metric) GetValue(random *rand.Rand) float64 {
+func SawtoothValue(phase float64) (float64, float64) {
+	return phase, 0
+}
+
+func SquareValue(phase float64) (float64, float64) {
+	if phase < 0.5 {
+		return 0.0, 0
+	}
+	return 1.0, 0
+}
+
+func TriangleValue(phase float64) (float64, float64) {
+	return 1.0 - 2.0*math.Abs(0.5-phase), 0
+}
+
+func AverageValue(_ float64) (float64, float64) {
+	return 0.5, 0
+}
+
+func (m *Metric) GetValue() float64 {
 	if m.Period == nil {
 		period := DefaultPeriod
 		m.Period = &period
@@ -70,30 +143,18 @@ func (m *Metric) GetValue(random *rand.Rand) float64 {
 	since := now.Sub(now.Truncate(*m.Period))
 	phase := float64(since) / float64(*m.Period)
 
-	factor := func(phase float64) float64 {
-		switch m.Shape {
-		case Sine:
-			return SineValue(phase)
-		case Sawtooth:
-			return SawtoothValue(phase)
-		case Square:
-			return SquareValue(phase)
-		case Triangle:
-			return TriangleValue(phase)
-		case Average:
-			return AverageValue(phase)
-		default:
-			// TODO: what would be a reasonable default? Maybe just sine?
-			return SineValue(phase)
-		}
-	}(phase)
+	if m.ShapeInterface == nil {
+		m.InitMetric()
+	}
+
+	factor, inc := m.ShapeInterface.GetValue(phase)
 
 	v := m.Min + (m.Max-m.Min)*factor
 
 	// jitter deviation is calculated in percentage that ranges from [-m.Jitter/2, m.Jitter/2)%
-	j := 1 + random.Float64()*m.Jitter - m.Jitter/2
+	j := 1 + rand.Float64()*m.Jitter - m.Jitter/2
 
-	v = v * j
+	v = v*j + (m.Max-m.Min)*inc
 
 	// ensures value is on the [m.Min, m.Max] boundary
 	v = math.Min(v, m.Max)
