@@ -496,60 +496,6 @@ topology:
         /Ad:
           downstreamCalls: {}
           maxLatencyMillis: 500
-    iOS:
-      resourceAttrSets:
-        - weight: 1 
-          resourceAttrs:
-            instrument.name: lighstep
-            http.method: POST
-            customer: hipcore
-            client.platform: iOS 
-      metrics:
-        - name: requests
-          type: Sum
-          max: 400
-          min: 0
-          period: 5m
-          shape: triangle
-      routes:
-        /api/make-payment:
-          downstreamCalls:
-            iOS: /api/submit-payment
-          maxLatencyMillis: 100
-        /api/submit-payment:
-          downstreamCalls:
-           iOS: /api/payment-status
-          maxLatencyMillis: 100
-        /api/payment-status:
-          downstreamCalls: {}
-          maxLatencyMillis: 100
-    android:
-      resourceAttrs:
-        - weight: 1 
-          resourceAttrs:
-            instrument.name: lighstep
-            http.method: POST
-            customer: hipcore
-            client.platform: android
-      metrics:
-        - name: requests
-          type: Sum
-          max: 400
-          min: 0
-          period: 5m
-          shape: triangle
-      routes:
-        /api/make-payment:
-          downstreamCalls:
-            android: /api/submit-payment
-          maxLatencyMillis: 100
-        /api/submit-payment:
-          downstreamCalls:
-           android: /api/payment-status
-          maxLatencyMillis: 100
-        /api/payment-status:
-          downstreamCalls: {}
-          maxLatencyMillis: 100             
 
 flags:
   # This is a cron-style flag
@@ -612,10 +558,4 @@ rootRoutes:
     tracesPerHour: 200
   - service: frontend
     route: /checkout
-    tracesPerHour: 480
-  - service: iOS
-    route: /api/make-payment
-    tracesPerHour: 480
-  - service: android  
-    route: /api/make-payment
     tracesPerHour: 480
