@@ -1,6 +1,7 @@
 package topology
 
 import (
+	"github.com/lightstep/lightstep-partner-sdk/collector/generatorreceiver/internal/flags"
 	"math/rand"
 	"time"
 )
@@ -20,6 +21,7 @@ type LatencyPercentiles struct {
 		p999 time.Duration
 		p100 time.Duration
 	}
+	flags.EmbeddedFlags `json:",inline" yaml:",inline"`
 }
 
 func (l *LatencyPercentiles) Sample() int64 {
@@ -46,8 +48,8 @@ func (l *LatencyPercentiles) Sample() int64 {
 func (l *LatencyPercentiles) loadDurations() error {
 	// TODO/future things:
 	// 		normalize function for config parsing
-	// 		maybe enforce either MaxLatencyMillis or LatencyPercentiles but not both?
-	//			either way which overrides which? for now LatencyPercentiles will override MaxLatencyMillis
+	// 		maybe enforce either MaxLatencyMillis or LatencyConfigs but not both?
+	//			either way which overrides which? for now LatencyConfigs will override MaxLatencyMillis
 	var err error
 	l.durations.p0, err = time.ParseDuration(l.P0Cfg)
 	if err != nil {
@@ -74,4 +76,22 @@ func (l *LatencyPercentiles) loadDurations() error {
 		return err
 	}
 	return nil
+}
+
+type LatencyConfigs []*LatencyPercentiles
+
+func (lcfg *LatencyConfigs) Sample() int64 {
+	var defaultCfg *LatencyPercentiles
+	var enabled []*LatencyPercentiles
+	for _, cfg := range *lcfg {
+		if cfg.IsDefault() {
+			defaultCfg = cfg
+		} else if cfg.ShouldGenerate() {
+			enabled = append(enabled, cfg)
+		}
+	}
+	if len(enabled) > 0 {
+		return enabled[rand.Intn(len(enabled))].Sample()
+	}
+	return defaultCfg.Sample()
 }

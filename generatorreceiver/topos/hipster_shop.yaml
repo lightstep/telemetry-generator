@@ -48,13 +48,20 @@ topology:
             productcatalogservice: /GetProducts
             recommendationservice: /GetRecommendations
             adservice: /AdRequest
-          latencyPercentiles:
-            p0: 25ms
-            p50: 75ms
-            p95: 100ms
-            p99: 120ms
-            p99.9: 150ms
-            p100: 200ms
+          latencyConfigs:
+            - flag_set: frontend_errors
+              p0: 25ms
+              p50: 185ms
+              p95: 250ms
+              p99: 300ms
+              p99.9: 400ms
+              p100: 600ms
+            - p0: 25ms
+              p50: 75ms
+              p95: 100ms
+              p99: 120ms
+              p99.9: 150ms
+              p100: 200ms
           tagSets:
             - weight: 1
               tags:
@@ -73,13 +80,13 @@ topology:
           downstreamCalls:
             cartservice: /GetCart
             recommendationservice: /GetRecommendations
-          latencyPercentiles:
-            p0: 25ms
-            p50: 75ms
-            p95: 100ms
-            p99: 120ms
-            p99.9: 150ms
-            p100: 200ms
+          latencyConfigs:
+            - p0: 25ms
+              p50: 75ms
+              p95: 100ms
+              p99: 120ms
+              p99.9: 150ms
+              p100: 200ms
         /checkout:
           downstreamCalls:
             checkoutservice: /PlaceOrder

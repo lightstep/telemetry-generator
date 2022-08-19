@@ -44,11 +44,12 @@ func (g generatorReceiver) loadTopoFile(topoInline string, path string) (topoFil
 			return nil, err
 		}
 	}
+	flags.Manager.LoadFlags(topoFile.Flags, g.logger)
+
 	err = topoFile.Topology.Load()
 	if err != nil {
 		return nil, err
 	}
-	flags.Manager.LoadFlags(topoFile.Flags, g.logger)
 
 	return topoFile, nil
 }

@@ -111,7 +111,7 @@ func TestEmbeddedFlags_Validate(t *testing.T) {
 			}
 			Manager.LoadFlags(theFlags, zap.NewNop())
 
-			err := tt.embeddedFlags.Validate()
+			err := tt.embeddedFlags.ValidateFlags()
 			if err != nil && !tt.error {
 				assert.Fail(t, fmt.Sprintf("did not expect validation error but got: %v", err))
 			}

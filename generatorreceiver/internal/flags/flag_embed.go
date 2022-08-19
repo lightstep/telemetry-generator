@@ -22,7 +22,11 @@ func (f *EmbeddedFlags) ShouldGenerate() bool {
 	return true
 }
 
-func (f *EmbeddedFlags) Validate() error {
+func (f *EmbeddedFlags) IsDefault() bool {
+	return f.FlagSet == "" && f.FlagUnset == ""
+}
+
+func (f *EmbeddedFlags) ValidateFlags() error {
 	if f.FlagSet != "" && Manager.GetFlag(f.FlagSet) == nil {
 		return fmt.Errorf("flag %v does not exist", f.FlagSet)
 	}
