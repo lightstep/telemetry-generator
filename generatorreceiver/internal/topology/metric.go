@@ -12,14 +12,14 @@ const DefaultOffset = 0 * time.Minute
 const DefaultMetricTickerPeriod = 1 * time.Second
 
 type ShapeInterface interface {
-	GetValue(phase float64) (float64, float64)
+	GetValue(phase float64) float64
 }
 
 type funcShape struct {
-	shape func(phase float64) (float64, float64)
+	shape func(phase float64) float64
 }
 
-func (fs *funcShape) GetValue(phase float64) (float64, float64) {
+func (fs *funcShape) GetValue(phase float64) float64 {
 	return fs.shape(phase)
 }
 
@@ -27,24 +27,19 @@ type leakingShape struct {
 	increase   float64
 	average    ShapeInterface
 	kubernetes *Kubernetes
-	lastPod    string
 }
 
-func (ls *leakingShape) GetValue(phase float64) (float64, float64) {
+func (ls *leakingShape) GetValue(phase float64) float64 {
 	if ls.kubernetes == nil {
 		return ls.average.GetValue(phase)
 	}
 
-	if ls.lastPod != ls.kubernetes.PodName {
-		ls.lastPod = ls.kubernetes.PodName
-		ls.increase = 0
-	} else {
-		ls.increase = ls.increase + float64(DefaultMetricTickerPeriod)/float64(ls.kubernetes.Restart.Every)/2
-	}
+	timeAlive := time.Since(ls.kubernetes.StartTime)
 
-	v, _ := ls.average.GetValue(phase)
+	// Start at 35% and increase it to 100% right before the restart time.
+	factor := .35 + float64(timeAlive)/float64(ls.kubernetes.Restart.Every)*.7
 
-	return v, ls.increase
+	return factor
 }
 
 type Shape string
@@ -106,27 +101,27 @@ func (m *Metric) InitMetric() {
 	}
 }
 
-func SineValue(phase float64) (float64, float64) {
-	return (math.Sin(2*math.Pi*phase) + 1) / 2, 0
+func SineValue(phase float64) float64 {
+	return (math.Sin(2*math.Pi*phase) + 1) / 2
 }
 
-func SawtoothValue(phase float64) (float64, float64) {
-	return phase, 0
+func SawtoothValue(phase float64) float64 {
+	return phase
 }
 
-func SquareValue(phase float64) (float64, float64) {
+func SquareValue(phase float64) float64 {
 	if phase < 0.5 {
-		return 0.0, 0
+		return 0.0
 	}
-	return 1.0, 0
+	return 1.0
 }
 
-func TriangleValue(phase float64) (float64, float64) {
-	return 1.0 - 2.0*math.Abs(0.5-phase), 0
+func TriangleValue(phase float64) float64 {
+	return 1.0 - 2.0*math.Abs(0.5-phase)
 }
 
-func AverageValue(_ float64) (float64, float64) {
-	return 0.5, 0
+func AverageValue(_ float64) float64 {
+	return 0.5
 }
 
 func (m *Metric) GetValue() float64 {
@@ -147,14 +142,14 @@ func (m *Metric) GetValue() float64 {
 		m.InitMetric()
 	}
 
-	factor, inc := m.ShapeInterface.GetValue(phase)
+	factor := m.ShapeInterface.GetValue(phase)
 
 	v := m.Min + (m.Max-m.Min)*factor
 
 	// jitter deviation is calculated in percentage that ranges from [-m.Jitter/2, m.Jitter/2)%
 	j := 1 + rand.Float64()*m.Jitter - m.Jitter/2
 
-	v = v*j + (m.Max-m.Min)*inc
+	v = v * j
 
 	// ensures value is on the [m.Min, m.Max] boundary
 	v = math.Min(v, m.Max)

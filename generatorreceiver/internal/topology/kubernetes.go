@@ -32,11 +32,12 @@ type Kubernetes struct {
 	Restart     Restart  `json:"restart" yaml:"restart"`
 
 	mutex          sync.Mutex
-	Service        string `json:"-" yaml:"-"`
-	ReplicaSetName string `json:"-" yaml:"-"`
-	Namespace      string `json:"-" yaml:"-"`
-	PodName        string `json:"-" yaml:"-"`
-	Container      string `json:"-" yaml:"-"`
+	StartTime      time.Time `json:"-" yaml:"-"`
+	Service        string    `json:"-" yaml:"-"`
+	ReplicaSetName string    `json:"-" yaml:"-"`
+	Namespace      string    `json:"-" yaml:"-"`
+	PodName        string    `json:"-" yaml:"-"`
+	Container      string    `json:"-" yaml:"-"`
 }
 
 type Resource struct {
@@ -63,6 +64,7 @@ type ResourceUsage struct {
 func (k *Kubernetes) CreatePod(serviceName string) {
 	k.mutex.Lock()
 	defer k.mutex.Unlock()
+	k.StartTime = time.Now()
 	k.ReplicaSetName = serviceName + "-" + generateK8sName(10)
 	k.PodName = k.ReplicaSetName + "-" + generateK8sName(5)
 	k.Namespace = serviceName
@@ -73,6 +75,7 @@ func (k *Kubernetes) CreatePod(serviceName string) {
 func (k *Kubernetes) RestartPod() {
 	k.mutex.Lock()
 	defer k.mutex.Unlock()
+	k.StartTime = time.Now()
 	k.PodName = k.ReplicaSetName + "-" + generateK8sName(5)
 }
 

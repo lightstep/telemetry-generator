@@ -139,33 +139,26 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 	return nil
 }
 
-func (g generatorReceiver) startMetricGenerator(ctx context.Context, host component.Host, serviceName string, m topology.Metric) *time.Ticker {
+func (g *generatorReceiver) startMetricGenerator(ctx context.Context, host component.Host, serviceName string, m topology.Metric) *time.Ticker {
 	// TODO: do we actually need to generate every second?
 	metricTicker := time.NewTicker(topology.DefaultMetricTickerPeriod)
-	g.tickers = append(g.tickers, metricTicker)
 	go func() {
 		g.logger.Info("generating metrics", zap.String("service", serviceName), zap.String("name", m.Name))
 		metricGen := generator.NewMetricGenerator()
-		var age time.Duration
-		for {
-			select {
-			case _ = <-metricTicker.C:
-				age += topology.DefaultMetricTickerPeriod
-
-				if m.Kubernetes != nil && m.Kubernetes.Restart.Every != 0 {
-					if age >= m.Kubernetes.Restart.Every {
-						age = 0
-						m.Kubernetes.RestartPod()
-					}
-				}
-
-				if metrics, report := metricGen.Generate(&m, serviceName); report {
-					err := g.metricConsumer.ConsumeMetrics(ctx, metrics)
-					if err != nil {
-						host.ReportFatalError(err)
-					}
+		for range metricTicker.C {
+			if m.Kubernetes != nil && m.Kubernetes.Restart.Every != 0 {
+				if time.Since(m.Kubernetes.StartTime) >= m.Kubernetes.Restart.Every {
+					m.Kubernetes.RestartPod()
 				}
 			}
+
+			if metrics, report := metricGen.Generate(&m, serviceName); report {
+				err := g.metricConsumer.ConsumeMetrics(ctx, metrics)
+				if err != nil {
+					host.ReportFatalError(err)
+				}
+			}
+
 		}
 	}()
 
