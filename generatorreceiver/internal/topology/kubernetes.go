@@ -3,6 +3,7 @@ package topology
 import (
 	"math"
 	"math/rand"
+	"sync"
 	"time"
 )
 
@@ -12,6 +13,15 @@ const (
 	defaultDisk    = 100
 	defaultNetwork = 800
 	megabyte       = 1024 * 1024
+
+	// Templated variables, these will get replaced with real values at metric generation with ReplaceTags.
+
+	Pod        = "$pod"
+	Service    = "$service"
+	Namespace  = "$namespace"
+	Container  = "$container"
+	Cluster    = "$cluster"
+	ReplicaSet = "$replicaset"
 )
 
 type Kubernetes struct {
@@ -19,16 +29,24 @@ type Kubernetes struct {
 	Request     Resource `json:"request" yaml:"request"`
 	Limit       Resource `json:"limit" yaml:"limit"`
 	Usage       Usage    `json:"usage" yaml:"usage"`
+	Restart     Restart  `json:"restart" yaml:"restart"`
 
-	ReplicaSetName string
-	Namespace      string
-	PodName        string
-	Container      string
+	mutex          sync.Mutex
+	StartTime      time.Time `json:"-" yaml:"-"`
+	Service        string    `json:"-" yaml:"-"`
+	ReplicaSetName string    `json:"-" yaml:"-"`
+	Namespace      string    `json:"-" yaml:"-"`
+	PodName        string    `json:"-" yaml:"-"`
+	Container      string    `json:"-" yaml:"-"`
 }
 
 type Resource struct {
 	CPU    float64 `json:"cpu" yaml:"cpu"`
 	Memory float64 `json:"memory" yaml:"memory"`
+}
+
+type Restart struct {
+	Every time.Duration `json:"every" yaml:"every"`
 }
 
 type Usage struct {
@@ -43,14 +61,27 @@ type ResourceUsage struct {
 	Jitter float64 `json:"jitter" yaml:"jitter"`
 }
 
-func (k *Kubernetes) CreatePod(service ServiceTier) {
-	k.ReplicaSetName = service.ServiceName + "-" + generateK8sName(10)
+func (k *Kubernetes) CreatePod(serviceName string) {
+	k.mutex.Lock()
+	defer k.mutex.Unlock()
+	k.StartTime = time.Now()
+	k.ReplicaSetName = serviceName + "-" + generateK8sName(10)
 	k.PodName = k.ReplicaSetName + "-" + generateK8sName(5)
-	k.Namespace = service.ServiceName
-	k.Container = service.ServiceName
+	k.Namespace = serviceName
+	k.Container = serviceName
+	k.Service = serviceName
+}
+
+func (k *Kubernetes) RestartPod() {
+	k.mutex.Lock()
+	defer k.mutex.Unlock()
+	k.StartTime = time.Now()
+	k.PodName = k.ReplicaSetName + "-" + generateK8sName(5)
 }
 
 func (k *Kubernetes) GetK8sTags() map[string]string {
+	k.mutex.Lock()
+	defer k.mutex.Unlock()
 	// ref: https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/resource/semantic_conventions/k8s.md
 	return map[string]string{
 		"k8s.cluster.name":   k.ClusterName,
@@ -60,7 +91,34 @@ func (k *Kubernetes) GetK8sTags() map[string]string {
 	}
 }
 
-func (k *Kubernetes) GenerateMetrics(service ServiceTier) []Metric {
+func (k *Kubernetes) ReplaceTags(tags map[string]string) map[string]string {
+	k.mutex.Lock()
+	defer k.mutex.Unlock()
+
+	replaced := make(map[string]string, len(tags))
+	for key, value := range tags {
+		switch value {
+		case Pod:
+			replaced[key] = k.PodName
+		case Service:
+			replaced[key] = k.Service
+		case Namespace:
+			replaced[key] = k.Namespace
+		case Container:
+			replaced[key] = k.Container
+		case Cluster:
+			replaced[key] = k.ClusterName
+		case ReplicaSet:
+			replaced[key] = k.ReplicaSetName
+		default:
+			replaced[key] = value
+		}
+	}
+
+	return replaced
+}
+
+func (k *Kubernetes) GenerateMetrics() []Metric {
 	if k.ClusterName == "" {
 		return nil
 	}
@@ -113,6 +171,13 @@ func (k *Kubernetes) GenerateMetrics(service ServiceTier) []Metric {
 	networkTarget := k.Usage.Network.Target
 	networkJitter := k.Usage.Network.Jitter / 2
 
+	restart := 1.
+	memoryShape := Average
+	if k.Restart.Every != 0 {
+		restart = 0
+		memoryShape = Leaking
+	}
+
 	metrics := []Metric{
 		// kube_pod metrics
 		{
@@ -122,7 +187,7 @@ func (k *Kubernetes) GenerateMetrics(service ServiceTier) []Metric {
 			Max:  1,
 			Tags: map[string]string{
 				"phase": "Running",
-				"pod":   k.PodName,
+				"pod":   Pod,
 			},
 		},
 		{
@@ -131,9 +196,9 @@ func (k *Kubernetes) GenerateMetrics(service ServiceTier) []Metric {
 			Min:  1,
 			Max:  1,
 			Tags: map[string]string{
-				"pod":        k.PodName,
-				"namespace":  service.ServiceName,
-				"owner_name": k.ReplicaSetName,
+				"pod":        Pod,
+				"namespace":  Namespace,
+				"owner_name": ReplicaSet,
 				"owner_kind": "ReplicaSet",
 			},
 		},
@@ -144,7 +209,7 @@ func (k *Kubernetes) GenerateMetrics(service ServiceTier) []Metric {
 			Max:  cpuTotal,
 			Tags: map[string]string{
 				"resource": "cpu",
-				"pod":      k.PodName, // used to created multiple time series that will be summed up.
+				"pod":      Pod, // used to created multiple time series that will be summed up.
 			},
 		},
 		{
@@ -154,7 +219,7 @@ func (k *Kubernetes) GenerateMetrics(service ServiceTier) []Metric {
 			Max:  memTotal,
 			Tags: map[string]string{
 				"resource": "memory",
-				"pod":      k.PodName, // used to created multiple time series that will be summed up.
+				"pod":      Pod, // used to created multiple time series that will be summed up.
 			},
 		},
 		{
@@ -164,9 +229,9 @@ func (k *Kubernetes) GenerateMetrics(service ServiceTier) []Metric {
 			Max:  k.Request.CPU,
 			Tags: map[string]string{
 				"resource":  "cpu",
-				"namespace": service.ServiceName,
-				"container": service.ServiceName,
-				"pod":       k.PodName,
+				"namespace": Namespace,
+				"container": Container,
+				"pod":       Pod,
 			},
 		},
 		{
@@ -176,9 +241,9 @@ func (k *Kubernetes) GenerateMetrics(service ServiceTier) []Metric {
 			Max:  k.Request.Memory * megabyte,
 			Tags: map[string]string{
 				"resource":  "memory",
-				"namespace": service.ServiceName,
-				"container": service.ServiceName,
-				"pod":       k.PodName,
+				"namespace": Namespace,
+				"container": Container,
+				"pod":       Pod,
 			},
 		},
 		{
@@ -188,9 +253,9 @@ func (k *Kubernetes) GenerateMetrics(service ServiceTier) []Metric {
 			Max:  k.Limit.CPU,
 			Tags: map[string]string{
 				"resource":  "cpu",
-				"namespace": service.ServiceName,
-				"container": service.ServiceName,
-				"pod":       k.PodName,
+				"namespace": Namespace,
+				"container": Container,
+				"pod":       Pod,
 			},
 		},
 		{
@@ -200,9 +265,9 @@ func (k *Kubernetes) GenerateMetrics(service ServiceTier) []Metric {
 			Max:  k.Limit.Memory * megabyte,
 			Tags: map[string]string{
 				"resource":  "memory",
-				"namespace": service.ServiceName,
-				"container": service.ServiceName,
-				"pod":       k.PodName,
+				"namespace": Namespace,
+				"container": Container,
+				"pod":       Pod,
 			},
 		},
 		// node metrics
@@ -213,7 +278,7 @@ func (k *Kubernetes) GenerateMetrics(service ServiceTier) []Metric {
 			Max:  k.Limit.CPU * 1.2,
 			Tags: map[string]string{
 				"resource":      "cpu",
-				"net.host.name": k.PodName, // for this we assume each pod run on its own node.
+				"net.host.name": Pod, // for this we assume each pod run on its own node.
 				"cpu":           "0",
 			},
 		},
@@ -227,7 +292,7 @@ func (k *Kubernetes) GenerateMetrics(service ServiceTier) []Metric {
 			Jitter: k.Usage.CPU.Jitter,
 			Tags: map[string]string{
 				"resource":      "cpu",
-				"net.host.name": k.PodName, // for this we assume each pod run on its own node.
+				"net.host.name": Pod, // for this we assume each pod run on its own node.
 				"cpu":           "0",
 			},
 		},
@@ -240,7 +305,7 @@ func (k *Kubernetes) GenerateMetrics(service ServiceTier) []Metric {
 			Shape:  Average,
 			Jitter: k.Usage.Memory.Jitter,
 			Tags: map[string]string{
-				"net.host.name": k.PodName, // for this we assume each pod run on its own node.
+				"net.host.name": Pod, // for this we assume each pod run on its own node.
 			},
 		},
 
@@ -251,7 +316,7 @@ func (k *Kubernetes) GenerateMetrics(service ServiceTier) []Metric {
 			Max:    memTotal,
 			Jitter: k.Usage.Memory.Jitter,
 			Tags: map[string]string{
-				"net.host.name": k.PodName, // for this we assume each pod run on its own node.
+				"net.host.name": Pod, // for this we assume each pod run on its own node.
 			},
 		},
 
@@ -264,10 +329,10 @@ func (k *Kubernetes) GenerateMetrics(service ServiceTier) []Metric {
 			Shape:  Average,
 			Jitter: k.Usage.CPU.Jitter,
 			Tags: map[string]string{
-				"pod":       k.PodName,
-				"container": service.ServiceName,
-				"image":     service.ServiceName,
-				"namespace": k.Namespace,
+				"pod":       Pod,
+				"container": Container,
+				"image":     Service,
+				"namespace": Namespace,
 			},
 		},
 		{
@@ -280,9 +345,9 @@ func (k *Kubernetes) GenerateMetrics(service ServiceTier) []Metric {
 			Tags: map[string]string{
 				"job":          "kubelet",
 				"metrics_path": "/metrics/cadvisor",
-				"container":    service.ServiceName,
+				"container":    Container,
 				"device":       "/dev/sda",
-				"namespace":    k.Namespace,
+				"namespace":    Namespace,
 			},
 		},
 		{
@@ -295,9 +360,9 @@ func (k *Kubernetes) GenerateMetrics(service ServiceTier) []Metric {
 			Tags: map[string]string{
 				"job":          "kubelet",
 				"metrics_path": "/metrics/cadvisor",
-				"container":    service.ServiceName,
+				"container":    Container,
 				"device":       "/dev/sda",
-				"namespace":    k.Namespace,
+				"namespace":    Namespace,
 			},
 		},
 		{
@@ -310,9 +375,9 @@ func (k *Kubernetes) GenerateMetrics(service ServiceTier) []Metric {
 			Tags: map[string]string{
 				"job":          "kubelet",
 				"metrics_path": "/metrics/cadvisor",
-				"container":    service.ServiceName,
+				"container":    Container,
 				"device":       "/dev/sda",
-				"namespace":    k.Namespace,
+				"namespace":    Namespace,
 			},
 		},
 		{
@@ -325,24 +390,25 @@ func (k *Kubernetes) GenerateMetrics(service ServiceTier) []Metric {
 			Tags: map[string]string{
 				"job":          "kubelet",
 				"metrics_path": "/metrics/cadvisor",
-				"container":    service.ServiceName,
+				"container":    Container,
 				"device":       "/dev/sda",
-				"namespace":    k.Namespace,
+				"namespace":    Namespace,
 			},
 		},
 		{
 			Name:   "container_memory_working_set_bytes",
 			Type:   "Gauge",
 			Period: &minute,
-			Min:    math.Max(memTarget*(1-memJitter), 0),
-			Max:    math.Min(memTarget*(1+memJitter), k.Limit.Memory*megabyte),
-			Shape:  Average,
+			// If k.restart.every is set, min should be 0 and max should be k.Limit.memory
+			Min:    math.Max(memTarget*(1-memJitter)*restart, 0),
+			Max:    math.Min(memTarget*(1+memJitter)+k.Limit.Memory*megabyte*(1-restart), k.Limit.Memory*megabyte),
+			Shape:  memoryShape,
 			Jitter: k.Usage.Memory.Jitter,
 			Tags: map[string]string{
-				"pod":       k.PodName,
-				"container": service.ServiceName,
-				"image":     service.ServiceName,
-				"namespace": k.Namespace,
+				"pod":       Pod,
+				"container": Container,
+				"image":     Service,
+				"namespace": Namespace,
 			},
 		},
 		{
@@ -353,7 +419,7 @@ func (k *Kubernetes) GenerateMetrics(service ServiceTier) []Metric {
 			Shape:  Average,
 			Jitter: k.Usage.Network.Jitter,
 			Tags: map[string]string{
-				"image": service.ServiceName,
+				"image": Service,
 			},
 		},
 		{
@@ -364,7 +430,7 @@ func (k *Kubernetes) GenerateMetrics(service ServiceTier) []Metric {
 			Shape:  Average,
 			Jitter: k.Usage.Network.Jitter,
 			Tags: map[string]string{
-				"image": service.ServiceName,
+				"image": Service,
 			},
 		},
 		{
@@ -375,7 +441,7 @@ func (k *Kubernetes) GenerateMetrics(service ServiceTier) []Metric {
 			Shape:  Average,
 			Jitter: k.Usage.Network.Jitter,
 			Tags: map[string]string{
-				"image": service.ServiceName,
+				"image": Service,
 			},
 		},
 		{
@@ -386,9 +452,13 @@ func (k *Kubernetes) GenerateMetrics(service ServiceTier) []Metric {
 			Shape:  Average,
 			Jitter: k.Usage.Network.Jitter,
 			Tags: map[string]string{
-				"image": service.ServiceName,
+				"image": Service,
 			},
 		},
+	}
+
+	for i := range metrics {
+		metrics[i].Kubernetes = k
 	}
 
 	return metrics
