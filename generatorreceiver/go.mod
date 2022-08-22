@@ -1,4 +1,4 @@
-module github.com/lightstep/lightstep-partner-sdk/collector/generatorreceiver
+module github.com/lightstep/demo-environment/generatorreceiver
 
 go 1.16
 

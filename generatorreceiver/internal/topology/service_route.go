@@ -2,7 +2,7 @@ package topology
 
 import (
 	"fmt"
-	"github.com/lightstep/lightstep-partner-sdk/collector/generatorreceiver/internal/flags"
+	"github.com/lightstep/demo-environment/generatorreceiver/internal/flags"
 	"math/rand"
 )
 

@@ -7,7 +7,7 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/lightstep/lightstep-partner-sdk/collector/generatorreceiver/internal/flags"
+	"github.com/lightstep/demo-environment/generatorreceiver/internal/flags"
 	"go.opentelemetry.io/collector/component"
 	"go.uber.org/zap"
 )

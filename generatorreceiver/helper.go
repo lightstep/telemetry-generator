@@ -3,7 +3,7 @@ package generatorreceiver
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/lightstep/lightstep-partner-sdk/collector/generatorreceiver/internal/topology"
+	"github.com/lightstep/demo-environment/generatorreceiver/internal/topology"
 	"gopkg.in/yaml.v3"
 	"io/ioutil"
 	"os"

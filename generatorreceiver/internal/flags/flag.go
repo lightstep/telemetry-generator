@@ -1,7 +1,7 @@
 package flags
 
 import (
-	"github.com/lightstep/lightstep-partner-sdk/collector/generatorreceiver/internal/cron"
+	"github.com/lightstep/demo-environment/generatorreceiver/internal/cron"
 	"go.uber.org/zap"
 	"sync"
 	"time"

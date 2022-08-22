@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lightstep/lightstep-partner-sdk/collector/generatorreceiver/internal/topology"
+	"github.com/lightstep/demo-environment/generatorreceiver/internal/topology"
 	"go.opentelemetry.io/collector/model/pdata"
 	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
 )

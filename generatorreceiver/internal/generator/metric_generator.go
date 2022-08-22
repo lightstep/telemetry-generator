@@ -1,7 +1,7 @@
 package generator
 
 import (
-	"github.com/lightstep/lightstep-partner-sdk/collector/generatorreceiver/internal/topology"
+	"github.com/lightstep/demo-environment/generatorreceiver/internal/topology"
 	"time"
 
 	"go.opentelemetry.io/collector/model/pdata"

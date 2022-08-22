@@ -1,0 +1,14 @@
+dist:
+    module: github.com/lightstep/demo-environment # the module name for the new distribution, following Go mod conventions. Optional, but recommended.
+    name: lightstep-demo-environment
+    description: "Custom Lightstep Partner OpenTelemetry Collector distribution" # a long name for the application. Optional.
+    include_core: true # whether the core components should be included in the distribution. Optional.
+    output_path: /tmp/ls-demo-env-distribution # the path to write the output (sources and binary). Optional.
+    version: "0.0.1" # the version for your custom OpenTelemetry Collector. Optional.
+receivers:
+  - gomod: "github.com/lightstep/demo-environment/generatorreceiver v0.0.1"
+    name: "generatorreceiver"
+    path: "./generatorreceiver"
+processors:
+  - gomod: "github.com/open-telemetry/opentelemetry-collector-contrib/processor/spanmetricsprocessor v0.35.0"
+    name: "spanmetricsprocessor"
