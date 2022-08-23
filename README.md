@@ -20,7 +20,7 @@ Install the `opentelemetry-collector-builder`; this is deprecated but its replac
     `$ git checkout generatorv2`
 1. `$ cd collector` (this will be our working directory for everything that follows)
 1. Copy `hipster_shop.yaml` to `dev.yaml` for local development. Not strictly necessary but will potentially save heartache and hassle 😅 This file is in .gitignore, so it won't be included in your commits. If you want to share config changes, add them to a new example config file.
-   `$ cp generatorreceiver/topos/hipster_shop.yaml generatorreceiver/topos/dev.yaml`
+   `$ cp examples/hipster_shop.yaml examples/dev.yaml`
 
 ## Environment variables
 
@@ -44,10 +44,10 @@ $ export OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=ingest.lightstep.com:443
 
 The env var `TOPO_FILE` determines which config file the generatorreceiver uses.
 
-If you use the opentelemetry-collector-builder you'll want to point to `generatorreceiver/topos/<filename.yaml>`:
+If you use the opentelemetry-collector-builder you'll want to point to `examples/<filename.yaml>`:
 
 ```shell
-$ export TOPO_FILE=generatorreceiver/topos/dev.yaml
+$ export TOPO_FILE=examples/dev.yaml
 ```
 
 For Docker builds, these files are copied to `/etc/otel/`, so set `TOPO_FILE` like this:
