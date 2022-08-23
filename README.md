@@ -1,4 +1,4 @@
-# Demo Environment / generatorreceiver
+# Telemetry generator
 
 ## Prerequisites & setup
 
@@ -65,7 +65,7 @@ There are two options here, but if possible we recommend using the opentelemetry
 (You must first install the `opentelemetry-collector-builder`; see Prerequisites above.)
 ```shell
 $ opentelemetry-collector-builder --config config/builder-config.yml
-$ /tmp/telemetry-generator/telemetry-generator --config config/collector-config.yml
+$ build/telemetry-generator --config config/collector-config.yml
 ```
 
 When using the builder, you only need to re-run the first command for code changes; for config changes just re-run the second command. To run with a different topo file, change the `TOPO_FILE` environment variable.

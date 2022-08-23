@@ -19,7 +19,7 @@ RUN update-ca-certificates
 RUN mkdir -p /etc/otel
 WORKDIR /otel
 
-COPY --from=builder /tmp/telemetry-generator/telemetry-generator .
+COPY --from=builder /build/build/telemetry-generator .
 COPY --from=builder /build/generatorreceiver/topos/* /etc/otel/
 COPY --from=builder /build/config/collector-config.yml /etc/otel/config.yaml
 

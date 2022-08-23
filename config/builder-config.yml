@@ -3,7 +3,7 @@ dist:
     name: telemetry-generator
     description: "Custom Lightstep Partner OpenTelemetry Collector distribution" # a long name for the application. Optional.
     include_core: true # whether the core components should be included in the distribution. Optional.
-    output_path: /tmp/telemetry-generator # the path to write the output (sources and binary). Optional.
+    output_path: build # the path to write the output (sources and binary). Optional.
     version: "0.0.1" # the version for your custom OpenTelemetry Collector. Optional.
 receivers:
   - gomod: "github.com/lightstep/demo-environment/generatorreceiver v0.0.1"
