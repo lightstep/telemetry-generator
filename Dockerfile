@@ -7,7 +7,7 @@ RUN GO111MODULE=on go get github.com/open-telemetry/opentelemetry-collector-buil
 
 ADD . .
 
-RUN /go/bin/opentelemetry-collector-builder --config /build/builder-config.yml
+RUN /go/bin/opentelemetry-collector-builder --config /build/config/builder-config.yml
 
 FROM debian:stretch-slim
 
@@ -19,7 +19,7 @@ RUN update-ca-certificates
 RUN mkdir -p /etc/otel
 WORKDIR /otel
 
-COPY --from=builder /tmp/ls-partner-col-distribution/lightstep-partner-collector .
+COPY --from=builder /tmp/telemetry-generator/telemetry-generator .
 COPY --from=builder /build/generatorreceiver/topos/* /etc/otel/
 COPY --from=builder /build/config/collector-config.yml /etc/otel/config.yaml
 
@@ -27,5 +27,5 @@ ENV TOPO_FILE=/etc/otel/hipster_shop.json
 ENV OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=ingest.lightstep.com:443
 ENV OTEL_INSECURE=false
 
-ENTRYPOINT [ "./lightstep-partner-collector" ]
+ENTRYPOINT [ "./telemetry-generator" ]
 CMD [ "--config", "/etc/otel/config.yaml" ]
