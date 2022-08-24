@@ -1,6 +1,8 @@
 package topology
 
 import (
+	"github.com/lightstep/demo-environment/generatorreceiver/internal/flags"
+	"go.uber.org/zap"
 	"math"
 	"math/rand"
 	"sync"
@@ -72,11 +74,30 @@ func (k *Kubernetes) CreatePod(serviceName string) {
 	k.Service = serviceName
 }
 
-func (k *Kubernetes) RestartPod() {
+func (k *Kubernetes) RestartIfNeeded(flags flags.EmbeddedFlags, logger *zap.Logger) {
+	if k == nil || k.Restart.Every == 0 {
+		return
+	}
+
 	k.mutex.Lock()
 	defer k.mutex.Unlock()
+
+	flagTime := flags.UpdatedTime()
+	if flagTime.After(k.StartTime) {
+		// consider that the pod started at the time that a flag was enabled/disabled.
+		k.restartPod(logger)
+	}
+
+	if time.Since(k.StartTime) >= k.Restart.Every {
+		k.restartPod(logger)
+	}
+}
+
+func (k *Kubernetes) restartPod(logger *zap.Logger) {
+	// this is locked by RestartIfNeeded
 	k.StartTime = time.Now()
 	k.PodName = k.ReplicaSetName + "-" + generateK8sName(5)
+	logger.Info("pod restarted", zap.String("service", k.Service), zap.String("pod", k.PodName))
 }
 
 func (k *Kubernetes) GetK8sTags() map[string]string {
