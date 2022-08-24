@@ -15,9 +15,9 @@ const (
 // TODO: separate config types from code types generally
 
 type IncidentConfig struct {
-	ParentFlag string        `json:"parentFlag" yaml:"parentFlag"`
-	Start      time.Duration `json:"start" yaml:"start"`
-	End        time.Duration `json:"end" yaml:"end"`
+	ParentFlag string          `json:"parentFlag" yaml:"parentFlag"`
+	Start      []time.Duration `json:"start" yaml:"start"`
+	Duration   time.Duration   `json:"duration" yaml:"duration"`
 }
 
 type CronConfig struct {
@@ -67,16 +67,23 @@ func (f *Flag) update() {
 
 	parent := f.parent() // won't be nil because we already validated all parents exist
 	incidentDuration := parent.CurrentDuration()
-	afterStart := incidentDuration > f.cfg.Incident.Start
-	beforeEnd := f.cfg.Incident.End == 0 || incidentDuration < f.cfg.Incident.End
-	// shouldBeActive will be true if and only if both of the following are true:
-	// - parent has been Active for at least f's incident start time
-	// - either f has no end *or* parent has been active for less than f's incident end time
-	shouldBeActive := afterStart && beforeEnd
-
-	if f.active() != shouldBeActive {
+	if f.active() != f.shouldBeActive(incidentDuration) {
 		f.Toggle()
 	}
+}
+
+func (f *Flag) shouldBeActive(incidentDuration time.Duration) bool {
+	startTimes := f.cfg.Incident.Start
+	childDuration := f.cfg.Incident.Duration
+	for _, start := range startTimes { // relies on startTimes being in increasing order
+		if incidentDuration <= start {
+			return false
+		}
+		if incidentDuration > start && (incidentDuration < start+childDuration || childDuration == 0) {
+			return true
+		}
+	}
+	return false
 }
 
 func (f *Flag) CurrentDuration() time.Duration {
