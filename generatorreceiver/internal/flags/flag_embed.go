@@ -1,6 +1,9 @@
 package flags
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
 type EmbeddedFlags struct {
 	FlagSet   string `json:"flag_set" yaml:"flag_set"`
@@ -24,6 +27,21 @@ func (f *EmbeddedFlags) ShouldGenerate() bool {
 
 func (f *EmbeddedFlags) IsDefault() bool {
 	return f.FlagSet == "" && f.FlagUnset == ""
+}
+
+func (f *EmbeddedFlags) UpdatedTime() time.Time {
+	if f.FlagSet != "" {
+		if set := Manager.GetFlag(f.FlagSet); set != nil {
+			return set.updated
+		}
+	}
+	if f.FlagUnset != "" {
+		if unset := Manager.GetFlag(f.FlagUnset); unset != nil {
+			return unset.updated
+		}
+	}
+
+	return time.Time{}
 }
 
 func (f *EmbeddedFlags) ValidateFlags() error {

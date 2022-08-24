@@ -7,11 +7,6 @@ import (
 	"time"
 )
 
-const (
-	DisabledState = 0.0
-	EnabledState  = 1.0
-)
-
 // TODO: separate config types from code types generally
 
 type IncidentConfig struct {
@@ -34,6 +29,7 @@ type FlagConfig struct {
 type Flag struct {
 	cfg     FlagConfig
 	started time.Time
+	updated time.Time
 	mu      sync.Mutex
 }
 
@@ -89,11 +85,15 @@ func (f *Flag) CurrentDuration() time.Duration {
 func (f *Flag) Enable() {
 	if !f.active() {
 		f.started = time.Now()
+		f.updated = time.Now()
 	}
 }
 
 func (f *Flag) Disable() {
-	f.started = time.Time{}
+	if f.active() {
+		f.started = time.Time{}
+		f.updated = time.Now()
+	}
 }
 
 func (f *Flag) Toggle() {
