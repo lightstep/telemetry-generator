@@ -24,7 +24,6 @@ func (fs *funcShape) GetValue(phase float64) float64 {
 }
 
 type leakingShape struct {
-	increase   float64
 	average    ShapeInterface
 	kubernetes *Kubernetes
 }
