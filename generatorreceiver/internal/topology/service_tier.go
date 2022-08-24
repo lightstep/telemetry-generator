@@ -64,8 +64,8 @@ func (st *ServiceTier) Validate(topology Topology) error {
 			return fmt.Errorf("error with tagSets in service %s: %v", st.ServiceName, err)
 		}
 	}
-	for _, ra := range st.ResourceAttributeSets {
-		err := ra.ValidateFlags()
+	for i := range st.ResourceAttributeSets {
+		err := st.ResourceAttributeSets[i].ValidateFlags()
 		if err != nil {
 			return fmt.Errorf("error with resourceAttributeSets in service %s: %v", st.ServiceName, err)
 		}
