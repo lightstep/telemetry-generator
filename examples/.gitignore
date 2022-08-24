@@ -1,1 +1,3 @@
 dev.yaml
+internal-*.yaml
+.DS_Store
