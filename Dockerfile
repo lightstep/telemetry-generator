@@ -12,7 +12,7 @@ RUN /go/bin/opentelemetry-collector-builder --config /build/config/builder-confi
 FROM debian:stretch-slim
 
 RUN apt-get update \
- && apt-get install -y --no-install-recommends ca-certificates
+    && apt-get install -y --no-install-recommends ca-certificates
 
 RUN update-ca-certificates
 
@@ -23,7 +23,7 @@ COPY --from=builder /build/build/telemetry-generator .
 COPY --from=builder /build/generatorreceiver/topos/* /etc/otel/
 COPY --from=builder /build/config/collector-config.yml /etc/otel/config.yaml
 
-ENV TOPO_FILE=/etc/otel/hipster_shop.json
+ENV TOPO_FILE=/etc/otel/hipster_shop.yaml
 ENV OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=ingest.lightstep.com:443
 ENV OTEL_INSECURE=false
 

@@ -2,7 +2,7 @@
 
 ## Prerequisites & setup
 
-### Opentelemetry collector builder
+### OpenTelemetry collector builder
 Install the `opentelemetry-collector-builder`; this is deprecated but its replacement does not work with the old version of the collector we're still pinned to.
    1. `$ cd /tmp` (or wherever you like to keep code)
    1. `$ git clone https://github.com/open-telemetry/opentelemetry-collector-builder`
@@ -79,3 +79,16 @@ $ docker run --rm -e LS_ACCESS_TOKEN -e OTEL_EXPORTER_OTLP_TRACES_ENDPOINT -e TO
 ```
 
 When building with Docker, you need to re-run both steps for any code *or* config changes. If you run into errors while building, please open [an issue](https://github.com/lightstep/telemetry-generator).
+
+### Non-development Workflow: Run a published image
+
+If you just want to run (vs build or develop), you can run the most recent image published to this repository's container registry. 
+
+For defaults, see `Dockerfile`.
+
+```shell
+$ export LS_ACCESS_TOKEN=your token
+# can override to any other OTLP endpoint
+$ export OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=ingest.lightstep.com:443
+$ docker run -e LS_ACCESS_TOKEN --rm lightstep/telemetry-generator:latest
+```
