@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"go.uber.org/zap"
 	"sync"
+	"time"
 )
 
 type FlagManager struct {
@@ -74,9 +75,32 @@ func (fm *FlagManager) traverseFlagGraph(f *Flag) (map[string]bool, error) {
 		if f.parent() == nil { // parent was specified but it's not an actual flag
 			return nil, fmt.Errorf("flag %s has parent %s which does not exist", f.Name(), f.cfg.Incident.ParentFlag)
 		}
+		// this is a child flag, so check that its start times and duration are valid
+		err := validateChildFlagTiming(f.cfg.Incident)
+		if err != nil {
+			return nil, fmt.Errorf("error with flag %s: %v", f.Name(), err)
+		}
+
 		f = f.parent()
 	}
 	return nil, fmt.Errorf("cyclical flag graph detected: %s", printFlagCycle(orderedFlags, f.Name()))
+}
+
+func validateChildFlagTiming(incidentCfg *IncidentConfig) error {
+	if len(incidentCfg.Start) == 0 {
+		return fmt.Errorf("start cannot be empty")
+	}
+	if incidentCfg.Duration == 0 && len(incidentCfg.Start) > 1 {
+		return fmt.Errorf("if duration is not specified, only one start time is permitted (will last until end of incident)")
+	}
+	currentStart := time.Duration(-1)
+	for i := range incidentCfg.Start {
+		if incidentCfg.Start[i] <= currentStart {
+			return fmt.Errorf("start times must be in strictly increasing order")
+		}
+		currentStart = incidentCfg.Start[i]
+	}
+	return nil
 }
 
 func printFlagCycle(seenNames []string, repeated string) (s string) {
