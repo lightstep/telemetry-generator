@@ -13,12 +13,12 @@ type EmbeddedFlags struct {
 func (f *EmbeddedFlags) ShouldGenerate() bool {
 	// TODO: use the set flag's _value_... somehow
 	if f.FlagSet != "" {
-		if set := Manager.GetFlag(f.FlagSet); !(set != nil && set.Active()) {
+		if set := Manager.GetFlag(f.FlagSet); !set.Active() {
 			return false
 		}
 	}
 	if f.FlagUnset != "" {
-		if unset := Manager.GetFlag(f.FlagUnset); unset != nil && unset.Active() {
+		if unset := Manager.GetFlag(f.FlagUnset); unset.Active() {
 			return false
 		}
 	}
@@ -29,19 +29,26 @@ func (f *EmbeddedFlags) IsDefault() bool {
 	return f.FlagSet == "" && f.FlagUnset == ""
 }
 
-func (f *EmbeddedFlags) UpdatedTime() time.Time {
-	if f.FlagSet != "" {
-		if set := Manager.GetFlag(f.FlagSet); set != nil {
-			return set.updated
-		}
-	}
-	if f.FlagUnset != "" {
-		if unset := Manager.GetFlag(f.FlagUnset); unset != nil {
-			return unset.updated
-		}
+func (f *EmbeddedFlags) GenerateStartTime() time.Time {
+	if !f.ShouldGenerate() {
+		return time.UnixMilli(0)
 	}
 
-	return time.Time{}
+	s, u := time.UnixMilli(0), time.UnixMilli(0)
+
+	if f.FlagSet != "" {
+		s = Manager.GetFlag(f.FlagSet).updated
+	}
+
+	if f.FlagUnset != "" {
+		u = Manager.GetFlag(f.FlagUnset).updated
+	}
+
+	if s.After(u) {
+		return s
+	}
+
+	return u
 }
 
 func (f *EmbeddedFlags) ValidateFlags() error {
