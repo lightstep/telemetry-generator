@@ -141,14 +141,10 @@ func (g *generatorReceiver) startMetricGenerator(ctx context.Context, host compo
 	// TODO: do we actually need to generate every second?
 	metricTicker := time.NewTicker(topology.DefaultMetricTickerPeriod)
 	go func() {
-		g.logger.Info("generating metrics", zap.String("service", serviceName), zap.String("name", m.Name))
+		g.logger.Info("generating metrics", zap.String("service", serviceName), zap.String("name", m.Name), zap.String("flag_set", m.EmbeddedFlags.FlagSet), zap.String("flag_unset", m.EmbeddedFlags.FlagUnset))
 		metricGen := generator.NewMetricGenerator()
 		for range metricTicker.C {
-			if m.Kubernetes != nil && m.Kubernetes.Restart.Every != 0 {
-				if time.Since(m.Kubernetes.StartTime) >= m.Kubernetes.Restart.Every {
-					m.Kubernetes.RestartPod()
-				}
-			}
+			m.Kubernetes.RestartIfNeeded(m.EmbeddedFlags, g.logger)
 
 			if metrics, report := metricGen.Generate(&m, serviceName); report {
 				err := g.metricConsumer.ConsumeMetrics(ctx, metrics)
