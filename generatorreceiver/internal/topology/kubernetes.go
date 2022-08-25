@@ -82,7 +82,7 @@ func (k *Kubernetes) RestartIfNeeded(flags flags.EmbeddedFlags, logger *zap.Logg
 	k.mutex.Lock()
 	defer k.mutex.Unlock()
 
-	flagTime := flags.UpdatedTime()
+	flagTime := flags.GenerateStartTime()
 	if flagTime.After(k.StartTime) {
 		// consider that the pod started at the time that a flag was enabled/disabled.
 		k.restartPod(logger)
