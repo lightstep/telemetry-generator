@@ -199,11 +199,11 @@ func TestIncidentConfig_validate(t *testing.T) {
 			}
 			Manager.LoadFlags(theFlags, zap.NewNop())
 
-			// Populate incidentConfig with parsed times
+			// Populate incidentConfig with parsed durations
 			parsedStart := make([]time.Duration, 0, len(tt.start))
 			for _, s := range tt.start {
-				duration, _ := time.ParseDuration(s)
-				parsedStart = append(parsedStart, duration)
+				time, _ := time.ParseDuration(s)
+				parsedStart = append(parsedStart, time)
 			}
 			parsedDuration, _ := time.ParseDuration(tt.duration)
 			incidentCfg := IncidentConfig{
@@ -212,7 +212,6 @@ func TestIncidentConfig_validate(t *testing.T) {
 				Duration:   parsedDuration,
 			}
 
-			// Run validate() method and check if error is expected
 			err := incidentCfg.validate()
 			if err != nil && !tt.error {
 				assert.Fail(t, fmt.Sprintf("did not expect validation error but got: %v", err))
@@ -220,6 +219,100 @@ func TestIncidentConfig_validate(t *testing.T) {
 			if err == nil && tt.error {
 				assert.Fail(t, "expected validation error")
 			}
+		})
+	}
+}
+
+func TestFlag_shouldBeActive(t *testing.T) {
+	tests := []struct {
+		name             string
+		incidentDuration string
+		start            []string
+		duration         string
+		result           bool
+	}{
+		{
+			name:             "Incident duration equals child start time",
+			incidentDuration: "0m",
+			start:            []string{"0m"},
+			duration:         "5m",
+			result:           false,
+		},
+		{
+			name:             "Incident duration is just past child start time",
+			incidentDuration: "1ms",
+			start:            []string{"0m"},
+			duration:         "5m",
+			result:           true,
+		},
+		{
+			name:             "Incident duration equals child end time",
+			incidentDuration: "15m",
+			start:            []string{"5m"},
+			duration:         "10m",
+			result:           false,
+		},
+		{
+			name:             "Incident duration is just past child end time",
+			incidentDuration: "15m1ms",
+			start:            []string{"5m"},
+			duration:         "10m",
+			result:           false,
+		},
+		{
+			name:             "Incident duration is between child start times and within child duration",
+			incidentDuration: "13m",
+			start:            []string{"4m", "12m", "20m"},
+			duration:         "2m",
+			result:           true,
+		},
+		{
+			name:             "Incident duration is between child start times and not within child duration",
+			incidentDuration: "7m",
+			start:            []string{"4m", "12m", "20m"},
+			duration:         "2m",
+			result:           false,
+		},
+		{
+			name:             "Incident duration falls within overlapping child durations",
+			incidentDuration: "12m",
+			start:            []string{"5m", "10m"},
+			duration:         "10m",
+			result:           true,
+		},
+		{
+			name:             "Incident duration does not fall within overlapping child durations",
+			incidentDuration: "30m",
+			start:            []string{"5m", "10m"},
+			duration:         "10m",
+			result:           false,
+		},
+		{
+			name:             "Incident duration is after child start time and no child duration is specified",
+			incidentDuration: "10m",
+			start:            []string{"3m"},
+			duration:         "",
+			result:           true,
+		},
+		{
+			name:             "Incident duration is before child start time and no child duration is specified",
+			incidentDuration: "2m",
+			start:            []string{"3m"},
+			duration:         "",
+			result:           false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			parsedStart := make([]time.Duration, 0, len(tt.start))
+			for _, s := range tt.start {
+				time, _ := time.ParseDuration(s)
+				parsedStart = append(parsedStart, time)
+			}
+			parsedDuration, _ := time.ParseDuration(tt.duration)
+			f := Flag{cfg: FlagConfig{Incident: &IncidentConfig{Start: parsedStart, Duration: parsedDuration}}}
+			parsedIncidentDuration, _ := time.ParseDuration(tt.incidentDuration)
+			assert.Equal(t, tt.result, f.shouldBeActive(parsedIncidentDuration))
 		})
 	}
 }
