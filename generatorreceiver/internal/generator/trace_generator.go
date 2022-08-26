@@ -140,10 +140,10 @@ func (g *TraceGenerator) createSpanForServiceRouteCall(traces *pdata.Traces, ser
 	// after a sample of the current route's latency, which doesn't really
 	// make sense - but maybe it's realistic enough?
 	endTime := startTimeNanos + route.SampleLatency()
-	for s, r := range route.DownstreamCalls {
+	for _, r := range route.DownstreamCalls {
 		var childStartTimeNanos = startTimeNanos + route.SampleLatency()
 
-		childSpan := g.createSpanForServiceRouteCall(traces, s, r, childStartTimeNanos, traceId, newSpanId)
+		childSpan := g.createSpanForServiceRouteCall(traces, r.Service, r.Route, childStartTimeNanos, traceId, newSpanId)
 		endTime = Max(endTime, int64(childSpan.EndTimestamp()))
 	}
 

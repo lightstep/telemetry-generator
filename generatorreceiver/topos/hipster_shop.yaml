@@ -37,35 +37,121 @@ topology:
             cluster_name: k8s-cluster-1
             request:
               cpu: 0.5
-              memory: 2048
             limit:
               cpu: 0.75
-              memory: 3072
-            restart:
-              every: 5m
           resourceAttrs:
             cloud.provider: aws
             cloud.region: us-west-2
+      metrics:
+        - name: another_gauge
+          type: Gauge
+          max: 10000
+          min: 1000
+          period: 2m
+          flag_unset: frontend_doom
+          tags:
+            something: good
+        - name: please_counter
+          type: Counter
+          max: 10000
+          min: 1000
+          period: 2m
+        - name: another_gauge
+          type: Gauge
+          max: 20000
+          min: 10000
+          period: 2m
+          flag_set: frontend_doom.phase_1
+          tags:
+            something: bad
+        - name: another_gauge
+          type: Gauge
+          max: 50000
+          min: 0
+          period: 2m
+          shape: sawtooth
+          flag_set: frontend_doom.phase_2
+          tags:
+            something: worse
+        - name: node_cpu_seconds_total
+          type: Sum
+          max: 100
+          min: 0
+          period: 2m
+          shape: sawtooth
+          tags:
+            host.name: frontend.internal
+            net.host.name: frontend.internal
+            cpu: "1"
+            namespace: hipster-shop
+        - name: node_memory_Active_bytes
+          type: Gauge
+          max: 50000
+          min: 0
+          period: 5m
+          shape: sawtooth
+          tags:
+            host.name: frontend.internal
+            net.host.name: frontend.internal
+            namespace: hipster-shop
+        - name: node_memory_MemTotal_bytes
+          type: Gauge
+          max: 2147483648
+          min: 1000000000
+          period: 5m
+          shape: sawtooth
+          tags:
+            host.name: frontend.internal
+            net.host.name: frontend.internal
+            namespace: hipster-shop
+        - name: node_memory_MemAvailable_bytes
+          type: Gauge
+          max: 2147483648
+          min: 20000
+          period: 5m
+          shape: sawtooth
+          flag_unset: currencyservice_oom.phase_2
+          tags:
+            host.name: frontend.internal
+            net.host.name: frontend.internal
+            namespace: hipster-shop
+        - name: node_memory_MemAvailable_bytes
+          type: Gauge
+          max: 200000
+          min: 20000
+          period: 5m
+          shape: sawtooth
+          flag_set: currencyservice_oom.phase_2
+          tags:
+            host.name: frontend.internal
+            net.host.name: frontend.internal
+            namespace: hipster-shop
+        - name: container_cpu_usage_seconds_total
+          type: Sum
+          max: 200
+          min: 0
+          period: 2m
+          shape: triangle
+          tags:
+            host.name: frontend.internal
+            cpu: "1"
+            namespace: hipster-shop
       routes:
         /product:
           downstreamCalls:
-            productcatalogservice: /GetProducts
-            recommendationservice: /GetRecommendations
-            adservice: /AdRequest
-          latencyConfigs:
-            - flag_set: frontend_errors
-              p0: 25ms
-              p50: 185ms
-              p95: 250ms
-              p99: 300ms
-              p99.9: 400ms
-              p100: 600ms
-            - p0: 25ms
-              p50: 75ms
-              p95: 100ms
-              p99: 120ms
-              p99.9: 150ms
-              p100: 200ms
+            - service: productcatalogservice
+              route: /GetProducts
+            - service: recommendationservice
+              route: /GetRecommendations
+            - service: adservice
+              route: /AdRequest
+          latencyPercentiles:
+            p0: 25ms
+            p50: 75ms
+            p95: 100ms
+            p99: 120ms
+            p99.9: 150ms
+            p100: 200ms
           tagSets:
             - weight: 1
               tags:
@@ -82,30 +168,36 @@ topology:
                 starter: bulbasaur
         /cart:
           downstreamCalls:
-            cartservice: /GetCart
-            recommendationservice: /GetRecommendations
-          latencyConfigs:
-            - p0: 25ms
-              p50: 75ms
-              p95: 100ms
-              p99: 120ms
-              p99.9: 150ms
-              p100: 200ms
+            - service: cartservice
+              route: /GetCart
+            - service: recommendationservice
+              route: /GetRecommendations
+          latencyPercentiles:
+            p0: 25ms
+            p50: 75ms
+            p95: 100ms
+            p99: 120ms
+            p99.9: 150ms
+            p100: 200ms
         /checkout:
           downstreamCalls:
-            checkoutservice: /PlaceOrder
+            - service: checkoutservice
+              route: /PlaceOrder
           maxLatencyMillis: 800
         /shipping:
           downstreamCalls:
-            shippingservice: /GetQuote
+            - service: shippingservice 
+              route: /GetQuote
           maxLatencyMillis: 50
         /currency:
           downstreamCalls:
-            currencyservice: /GetConversion
+            - service: currencyservice
+              route: /GetConversion
           maxLatencyMillis: 1500
         /currency_slow:
           downstreamCalls:
-            currencyservice: /DoSomethingSlow
+            - service: currencyservice 
+              route: /DoSomethingSlow
           flag_set: currencyservice_oom.phase_1
           maxLatencyMillis: 3500
     productcatalogservice:
@@ -183,7 +275,8 @@ topology:
       routes:
         /GetRecommendations:
           downstreamCalls:
-            productcatalogservice: /GetProducts
+            - service: productcatalogservice
+              route: /GetProducts
           maxLatencyMillis: 200
     cartservice:
       tagSets:
@@ -228,11 +321,16 @@ topology:
       routes:
         /PlaceOrder:
           downstreamCalls:
-            paymentservice: /CreditCardInfo
-            shippingservice: /Address
-            currencyservice: /GetConversion
-            cartservice: /GetCart
-            emailservice: /SendOrderConfirmation
+            - service: paymentservice
+              route: /CreditCardInfo
+            - service: shippingservice
+              route: /Address
+            - service: currencyservice
+              route: /GetConversion
+            - service: cartservice
+              route: /GetCart
+            - service: emailservice
+              route: /SendOrderConfirmation
           tagSets:
             - weight: 25
               tags:
@@ -261,7 +359,8 @@ topology:
       routes:
         /ChargeRequest:
           downstreamCalls:
-            paymentservice: /CreditCardInfo
+            - service: paymentservice
+              route: /CreditCardInfo
           maxLatencyMillis: 700
         /CreditCardInfo:
           downstreamCalls: {}
@@ -286,11 +385,13 @@ topology:
       routes:
         /GetQuote:
           downstreamCalls:
-            shippingservice: /Address
+            - service: shippingservice
+              route: /Address
           maxLatencyMillis: 250
         /ShipOrder:
           downstreamCalls:
-            shippingservice: /Address
+            - service: shippingservice
+              route: /Address
           maxLatencyMillis: 500
         /Address:
           downstreamCalls: {}
@@ -315,7 +416,8 @@ topology:
       routes:
         /SendOrderConfirmation:
           downstreamCalls:
-            emailservice: /OrderResult
+            - service: emailservice
+              route: /OrderResult
           tagSets:
             - weight: 15
               tags:
@@ -345,10 +447,44 @@ topology:
               memory: 1024
           resourceAttrs:
             host.name: currencyservice-hostname
+      metrics:
+        - name: node_memory_MemTotal_bytes
+          type: Gauge
+          max: 2147483648
+          min: 2000000000
+          period: 5m
+          shape: sawtooth
+          tags:
+            host.name: currencyservice.internal
+            net.host.name: currencyservice.internal
+            namespace: hipster-shop
+        - name: node_memory_MemAvailable_bytes
+          type: Gauge
+          max: 1500000000
+          min: 1000000000
+          flag_set: currencyservice_oom.default
+          period: 5m
+          shape: sawtooth
+          tags:
+            host.name: currencyservice.internal
+            net.host.name: currencyservice.internal
+            namespace: hipster-shop
+        - name: node_memory_MemAvailable_bytes
+          type: Gauge
+          flag_set: currencyservice_oom.phase_1
+          max: 10000000
+          min: 2000000
+          period: 5m
+          shape: sawtooth
+          tags:
+            host.name: currencyservice.internal
+            net.host.name: currencyservice.internal
+            namespace: hipster-shop
       routes:
         /GetConversion:
           downstreamCalls:
-            currencyservice: /Money
+            - service: currencyservice
+              route: /Money
           maxLatencyMillis: 100
         /Money:
           downstreamCalls: {}
@@ -398,11 +534,13 @@ topology:
       routes:
         /api/make-payment:
           downstreamCalls:
-            iOS: /api/submit-payment
+            - service: iOS
+              route: /api/submit-payment
+            - service: iOS
+              route: /api/payment-status 
           maxLatencyMillis: 100
         /api/submit-payment:
-          downstreamCalls:
-           iOS: /api/payment-status
+          downstreamCalls: {}
           maxLatencyMillis: 100
         /api/payment-status:
           downstreamCalls: {}
@@ -425,15 +563,17 @@ topology:
       routes:
         /api/make-payment:
           downstreamCalls:
-            android: /api/submit-payment
+            - service: android
+              route: /api/submit-payment
+            - service: android
+              route: /api/payment-status  
           maxLatencyMillis: 100
         /api/submit-payment:
-          downstreamCalls:
-           android: /api/payment-status
+          downstreamCalls: {}
           maxLatencyMillis: 100
         /api/payment-status:
           downstreamCalls: {}
-          maxLatencyMillis: 100               
+          maxLatencyMillis: 100                
 
 flags:
   # This is a cron-style flag

@@ -2,20 +2,21 @@ package topology
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 var topoTestFrontend = ServiceTier{
 	Routes: map[string]*ServiceRoute{
 		"/product": {
-			DownstreamCalls: map[string]string{
-				"productcatalogservice": "/GetProducts",
-				"recommendationservice": "/GetRecommendations",
+			DownstreamCalls: []Call{
+				{"productcatalogservice", "/GetProducts"},
+				{"recommendationservice", "/GetRecommendations"},
 			},
 		},
 		"/cart": {
-			DownstreamCalls: map[string]string{"recommendationservice": "/GetRecommendations"},
+			DownstreamCalls: []Call{{"recommendationservice", "/GetRecommendations"}},
 		},
 	},
 }
@@ -26,13 +27,13 @@ var topoTestCatalogService = ServiceTier{
 
 var topoTestCyclicalCatalogService = ServiceTier{
 	Routes: map[string]*ServiceRoute{
-		"/GetProducts": {DownstreamCalls: map[string]string{"frontend": "/cart"}},
+		"/GetProducts": {DownstreamCalls: []Call{{"frontend", "/cart"}}},
 	},
 }
 
 var topoTestRecommendationService = ServiceTier{
 	Routes: map[string]*ServiceRoute{
-		"/GetRecommendations": {DownstreamCalls: map[string]string{"productcatalogservice": "/GetProducts"}},
+		"/GetRecommendations": {DownstreamCalls: []Call{{"productcatalogservice", "/GetProducts"}}},
 	},
 }
 

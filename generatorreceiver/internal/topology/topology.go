@@ -35,12 +35,12 @@ func (t *Topology) traverseServiceGraph(service string, route string, seenCalls 
 	downstreamCalls := t.GetServiceTier(service).GetRoute(route).DownstreamCalls
 	// already validated existence of all services/routes, so ^ is safe
 	seenCalls[service+route] = true
-	for ds, dr := range downstreamCalls {
-		if seenCalls[ds+dr] {
-			return fmt.Errorf(printServiceCycle(orderedCalls, ds+dr))
+	for _, r := range downstreamCalls {
+		if seenCalls[r.Service+r.Route] {
+			return fmt.Errorf(printServiceCycle(orderedCalls, r.Service+r.Route))
 		}
 
-		err := t.traverseServiceGraph(ds, dr, seenCalls, append(orderedCalls, ds+dr))
+		err := t.traverseServiceGraph(r.Service, r.Route, seenCalls, append(orderedCalls, r.Service+r.Route))
 		if err != nil {
 			return err
 		}
