@@ -92,7 +92,7 @@ func TestTopology_ValidateServiceGraph(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.topo.Load() // needed for populating ServiceTier.ServiceName and ServiceRoute.Route
+			_ = tt.topo.Load() // needed for populating ServiceTier.ServiceName and ServiceRoute.Route
 			err := tt.topo.ValidateServiceGraph(tt.rootRoutes)
 			if err != nil && !tt.error {
 				assert.Fail(t, fmt.Sprintf("did not expect validation error but got: %v", err))

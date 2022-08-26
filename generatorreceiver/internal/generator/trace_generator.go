@@ -18,7 +18,6 @@ type TraceGenerator struct {
 	sequenceNumber int
 	random         *rand.Rand
 	sync.Mutex
-	tagNameGenerator topology.Generator
 }
 
 func NewTraceGenerator(t *topology.Topology, seed int64, service string, route string) *TraceGenerator {

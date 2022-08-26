@@ -13,10 +13,9 @@ import (
 )
 
 type httpServer struct {
-	serverType string
-	server     *http.Server
-	logger     *zap.Logger
-	config     *Config
+	server *http.Server
+	logger *zap.Logger
+	config *Config
 }
 
 type flagHttpResponse struct {

@@ -91,7 +91,7 @@ func (f *Flag) CurrentDuration() time.Duration {
 	if !f.active() {
 		return 0
 	}
-	return time.Now().Sub(f.started)
+	return time.Since(f.started)
 }
 
 func (f *Flag) Enable() {

@@ -24,7 +24,6 @@ type generatorReceiver struct {
 	topoPath       string
 	topoInline     string
 	randomSeed     int64
-	metricGen      *generator.MetricGenerator
 	tickers        []*time.Ticker
 	server         *httpServer
 }
@@ -98,14 +97,12 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 				resource := &s.ResourceAttributeSets[i]
 				// For each resource generate k8s metrics if enabled
 				k8sMetrics := resource.Kubernetes.GenerateMetrics()
-				if k8sMetrics != nil {
-					for i := range k8sMetrics {
-						// keep the same flags as the resources.
-						k8sMetrics[i].EmbeddedFlags = resource.EmbeddedFlags
+				for i := range k8sMetrics {
+					// keep the same flags as the resources.
+					k8sMetrics[i].EmbeddedFlags = resource.EmbeddedFlags
 
-						metricTicker := g.startMetricGenerator(ctx, host, s.ServiceName, k8sMetrics[i])
-						g.tickers = append(g.tickers, metricTicker)
-					}
+					metricTicker := g.startMetricGenerator(ctx, host, s.ServiceName, k8sMetrics[i])
+					g.tickers = append(g.tickers, metricTicker)
 				}
 			}
 		}
@@ -126,7 +123,7 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 					select {
 					case <-done:
 						return
-					case _ = <-traceTicker.C:
+					case <-traceTicker.C:
 						if r.ShouldGenerate() {
 							traces := traceGen.Generate(time.Now().UnixNano())
 							_ = g.traceConsumer.ConsumeTraces(context.Background(), *traces)
