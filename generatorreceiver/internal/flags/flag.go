@@ -1,6 +1,7 @@
 package flags
 
 import (
+	"fmt"
 	"github.com/lightstep/demo-environment/generatorreceiver/internal/cron"
 	"go.uber.org/zap"
 	"sync"
@@ -73,12 +74,12 @@ func (f *Flag) update() {
 }
 
 func (f *Flag) shouldBeActive(incidentDuration time.Duration) bool {
-	startTimes := f.cfg.Incident.Start
 	childDuration := f.cfg.Incident.Duration
-	for _, start := range startTimes { // relies on startTimes being in increasing order
-		if incidentDuration <= start {
+	for _, start := range f.cfg.Incident.Start {
+		if incidentDuration <= start { // relies on start times being in increasing order (verified in flag validation)
 			return false
 		}
+		// if childDuration not specified, then child flag stays active until end of incident
 		if incidentDuration > start && (incidentDuration < start+childDuration || childDuration == 0) {
 			return true
 		}
@@ -145,4 +146,24 @@ func (f *Flag) parent() *Flag {
 		return nil
 	}
 	return Manager.GetFlag(f.cfg.Incident.ParentFlag)
+}
+
+func (ic IncidentConfig) validate() error {
+	if Manager.GetFlag(ic.ParentFlag) == nil {
+		return fmt.Errorf("parent flag %s does not exist", ic.ParentFlag)
+	}
+	if len(ic.Start) == 0 {
+		return fmt.Errorf("start cannot be empty")
+	}
+	if ic.Duration == 0 && len(ic.Start) > 1 {
+		return fmt.Errorf("if duration is not specified, only one start time is permitted (will last until end of incident)")
+	}
+	previousStart := time.Duration(-1)
+	for _, start := range ic.Start {
+		if start <= previousStart {
+			return fmt.Errorf("start times must be in strictly increasing order")
+		}
+		previousStart = start
+	}
+	return nil
 }
