@@ -123,6 +123,90 @@ func TestEmbeddedFlags_Validate(t *testing.T) {
 	}
 }
 
+func TestEmbeddedFlags_GenerateTime(t *testing.T) {
+	Manager.Clear()
+
+	Manager.LoadFlags([]FlagConfig{
+		{
+			Name: "flag_a",
+		},
+		{
+			Name: "flag_b",
+		},
+	}, zap.NewNop())
+
+	a := Manager.GetFlag("flag_a")
+	b := Manager.GetFlag("flag_b")
+
+	ef := EmbeddedFlags{
+		FlagSet:   "flag_a",
+		FlagUnset: "flag_b",
+	}
+
+	a.Enable()
+	b.Enable()
+	if st := ef.GenerateStartTime().UnixNano(); st != 0 {
+		assert.Fail(t, "'b' is enabled, start time should be 0")
+	}
+
+	a.Disable()
+	b.Disable()
+	if st := ef.GenerateStartTime().UnixNano(); st != 0 {
+		assert.Fail(t, "'a' is disabled, start time should be 0")
+	}
+
+	a.Disable()
+	b.Enable()
+	if st := ef.GenerateStartTime().UnixNano(); st != 0 {
+		assert.Fail(t, "'a' is disabled and 'b' is enabled, start time should be 0")
+	}
+
+	a.Enable()
+	time.Sleep(10 * time.Millisecond)
+	b.Disable()
+	if st := ef.GenerateStartTime().UnixNano(); st != b.updated.UnixNano() {
+		assert.Fail(t, "start time should be the same as the time that the last flag was set.")
+	}
+
+	a.Disable()
+	b.Enable()
+
+	b.Disable()
+	time.Sleep(10 * time.Millisecond)
+	a.Enable()
+	if st := ef.GenerateStartTime().UnixNano(); st != a.updated.UnixNano() {
+		assert.Fail(t, "start time should be the same as the time that the last flag was set.")
+	}
+
+	ef = EmbeddedFlags{
+		FlagSet: "flag_a",
+	}
+
+	a.Enable()
+	if st := ef.GenerateStartTime().UnixNano(); st != a.updated.UnixNano() {
+		assert.Fail(t, "generate start time should be equal 'a'.")
+	}
+
+	a.Disable()
+	if st := ef.GenerateStartTime().UnixNano(); st != 0 {
+		assert.Fail(t, "'a' is disabled, generate start time should be 0.")
+	}
+
+	ef = EmbeddedFlags{
+		FlagUnset: "flag_b",
+	}
+
+	b.Disable()
+	if st := ef.GenerateStartTime().UnixNano(); st != b.updated.UnixNano() {
+		assert.Fail(t, "generate start time should be equal 'b'.")
+	}
+
+	b.Enable()
+	if st := ef.GenerateStartTime().UnixNano(); st != 0 {
+		assert.Fail(t, "'b' is enabled, generate start time should be 0.")
+	}
+}
+
 func TestIncidentConfig_validate(t *testing.T) {
 	tests := []struct {
 		name     string
