@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/lightstep/demo-environment/generatorreceiver/internal/cron"
 	"go.uber.org/zap"
+	"strings"
 	"sync"
 	"time"
 )
@@ -11,10 +12,12 @@ import (
 // TODO: separate config types from code types generally
 
 type IncidentConfig struct {
-	ParentFlag string          `json:"parentFlag" yaml:"parentFlag"`
-	Start      []time.Duration `json:"start" yaml:"start"`
-	Duration   time.Duration   `json:"duration" yaml:"duration"`
+	ParentFlag string        `json:"parentFlag" yaml:"parentFlag"`
+	Start      Start         `json:"start" yaml:"start"`
+	Duration   time.Duration `json:"duration" yaml:"duration"`
 }
+
+type Start []time.Duration
 
 type CronConfig struct {
 	Start string `json:"start" yaml:"start"`
@@ -76,7 +79,7 @@ func (f *Flag) shouldBeActive(incidentDuration time.Duration) bool {
 			return false
 		}
 		// if childDuration not specified, then child flag stays active until end of incident
-		if incidentDuration > start && (incidentDuration < start+childDuration || childDuration == 0) {
+		if incidentDuration < start+childDuration || childDuration == 0 {
 			return true
 		}
 	}
@@ -164,6 +167,24 @@ func (ic IncidentConfig) validate() error {
 			return fmt.Errorf("start times must be in strictly increasing order")
 		}
 		previousStart = start
+	}
+	return nil
+}
+
+// UnmarshalYAML is a custom unmarshaller that parses a comma separated string into a slice of durations
+func (s *Start) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var startStr string
+	if err := unmarshal(&startStr); err != nil {
+		return err
+	}
+	startTimes := strings.Split(startStr, ",")
+	for _, st := range startTimes {
+		st = strings.TrimSpace(st)
+		stDuration, err := time.ParseDuration(st)
+		if err != nil {
+			return err
+		}
+		*s = append(*s, stDuration)
 	}
 	return nil
 }
