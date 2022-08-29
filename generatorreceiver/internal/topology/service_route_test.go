@@ -2,10 +2,11 @@ package topology
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/lightstep/demo-environment/generatorreceiver/internal/flags"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
-	"testing"
 )
 
 var routeTestTopology = Topology{

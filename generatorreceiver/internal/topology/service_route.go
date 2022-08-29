@@ -2,8 +2,9 @@ package topology
 
 import (
 	"fmt"
-	"github.com/lightstep/demo-environment/generatorreceiver/internal/flags"
 	"math/rand"
+
+	"github.com/lightstep/demo-environment/generatorreceiver/internal/flags"
 )
 
 type ServiceRoute struct {
