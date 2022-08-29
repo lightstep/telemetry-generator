@@ -1,7 +1,6 @@
 package generatorreceiver
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/lightstep/demo-environment/generatorreceiver/internal/topology"
 	"gopkg.in/yaml.v3"
@@ -29,11 +28,8 @@ func parseTopoFile(topoPath string) (*topology.File, error) {
 	defer topoFile.Close()
 
 	byteValue, _ := ioutil.ReadAll(topoFile)
-
 	lowerTopoPath := strings.ToLower(topoPath)
-	if strings.HasSuffix(lowerTopoPath, ".json") {
-		err = json.Unmarshal(byteValue, &topo)
-	} else if hasAnySuffix(lowerTopoPath, []string{".yaml", ".yml"}) {
+	if hasAnySuffix(lowerTopoPath, []string{".yaml", ".yml"}) {
 		err = yaml.Unmarshal(byteValue, &topo)
 	} else {
 		err = fmt.Errorf("Unrecognized topology file type: %s", topoPath)
