@@ -14,11 +14,22 @@ type ServiceTier struct {
 	Random                *rand.Rand
 }
 
-func (st *ServiceTier) GetTagSet(routeName string) []TagSet {
-	// TODO: support weight
-	tags := st.TagSets
-	routeTags := st.GetRoute(routeName).TagSets
-	return append(tags, routeTags...)
+func (st *ServiceTier) GetTagSet(routeName string) TagSet {
+	serviceTagSet := pickBasedOnWeight(st.TagSets)
+	routeTagSet := pickBasedOnWeight(st.GetRoute(routeName).TagSets)
+
+	combinedTags := TagMap{}
+	for k, v := range serviceTagSet.Tags {
+		combinedTags[k] = v
+	}
+	for k, v := range routeTagSet.Tags {
+		combinedTags[k] = v // if service and route have a duplicate tag, the value from route will override
+	}
+
+	return TagSet{
+		Tags:          combinedTags,
+		TagGenerators: append(serviceTagSet.TagGenerators, routeTagSet.TagGenerators...),
+	}
 }
 
 func (st *ServiceTier) GetResourceAttributeSet() *ResourceAttributeSet {
