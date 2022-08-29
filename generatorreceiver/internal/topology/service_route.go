@@ -21,7 +21,7 @@ type ServiceRoute struct {
 type Call struct {
 	Service string `json:"service" yaml:"service"`
 	Route   string `json:"route" yaml:"route"`
-	//flags.EmbeddedFlags   `json:",inline" yaml:",inline"`
+	//TODO: flags.EmbeddedFlags   `json:",inline" yaml:",inline"`
 }
 
 func (r *ServiceRoute) validate(t Topology) error {
