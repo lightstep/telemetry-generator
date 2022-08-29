@@ -16,9 +16,6 @@ Install the `opentelemetry-collector-builder`; this is deprecated but its replac
    1.  `$ cd ~/Code` (or wherever)
    1.  `$ git clone https://github.com/lightstep/telemetry-generator`
    1.  `$ cd telemetry-generator`
-1. Check out the development branch - until we break the receiver out into its own repo, this is our effective "main" branch:
-    `$ git checkout generatorv2`
-1. `$ cd collector` (this will be our working directory for everything that follows)
 1. Copy `hipster_shop.yaml` to `dev.yaml` for local development. Not strictly necessary but will potentially save heartache and hassle 😅 This file is in .gitignore, so it won't be included in your commits. If you want to share config changes, add them to a new example config file.
    `$ cp examples/hipster_shop.yaml examples/dev.yaml`
 
