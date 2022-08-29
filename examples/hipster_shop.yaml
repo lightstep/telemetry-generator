@@ -479,7 +479,7 @@ flags:
     incident:
       parentFlag: currencyservice_fail
       start: 3m
-      duration: 10m
+      duration: 7m
   - name: frontend_doom
     cron:
       start: "57,12,27,42 * * * *"
