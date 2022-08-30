@@ -2,10 +2,11 @@ package topology
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/lightstep/demo-environment/generatorreceiver/internal/flags"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
-	"testing"
 )
 
 var routeTestTopology = Topology{
@@ -19,18 +20,18 @@ var routeTestTopology = Topology{
 var routeTestFrontend = ServiceTier{
 	Routes: map[string]*ServiceRoute{
 		"/cart": {
-			DownstreamCalls:  map[string]string{"cartservice": "/GetCart"}, // valid service and route
+			DownstreamCalls:  []Call{{"cartservice", "/GetCart"}}, // valid service and route
 			MaxLatencyMillis: 500,
 			EmbeddedFlags: flags.EmbeddedFlags{
 				FlagSet:   "someFlag",
 				FlagUnset: "someOtherFlag"},
 		},
 		"/checkout": {
-			DownstreamCalls:  map[string]string{"checkoutservice": "/FakeRoute"}, // valid service, invalid route
+			DownstreamCalls:  []Call{{"checkoutservice", "/FakeRoute"}}, // valid service, invalid route
 			MaxLatencyMillis: 500,
 		},
 		"/badroute": {
-			DownstreamCalls:  map[string]string{"nonexistentservice": "/NonexistentRoute"}, // invalid service & route
+			DownstreamCalls:  []Call{{"nonexistentservice", "/NonexistentRoute"}}, // invalid service & route
 			MaxLatencyMillis: 500,
 		},
 	},

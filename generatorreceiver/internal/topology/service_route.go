@@ -2,13 +2,14 @@ package topology
 
 import (
 	"fmt"
-	"github.com/lightstep/demo-environment/generatorreceiver/internal/flags"
 	"math/rand"
+
+	"github.com/lightstep/demo-environment/generatorreceiver/internal/flags"
 )
 
 type ServiceRoute struct {
 	Route                 string                 `json:"route" yaml:"route"`
-	DownstreamCalls       map[string]string      `json:"downstreamCalls,omitempty" yaml:"downstreamCalls,omitempty"`
+	DownstreamCalls       []Call                 `json:"downstreamCalls,omitempty" yaml:"downstreamCalls,omitempty"`
 	MaxLatencyMillis      int64                  `json:"maxLatencyMillis" yaml:"maxLatencyMillis"`
 	LatencyConfigs        LatencyConfigs         `json:"latencyConfigs" yaml:"latencyConfigs"`
 	TagSets               []TagSet               `json:"tagSets" yaml:"tagSets"`
@@ -17,19 +18,25 @@ type ServiceRoute struct {
 	// TODO: rename all references from `tag` to `attribute`, to follow the otel standard.
 }
 
+type Call struct {
+	Service string `json:"service" yaml:"service"`
+	Route   string `json:"route" yaml:"route"`
+	//TODO: flags.EmbeddedFlags   `json:",inline" yaml:",inline"`
+}
+
 func (r *ServiceRoute) validate(t Topology) error {
 	err := r.ValidateFlags()
 	if err != nil {
 		return err
 	}
 
-	for service, route := range r.DownstreamCalls {
-		st := t.GetServiceTier(service)
+	for _, call := range r.DownstreamCalls {
+		st := t.GetServiceTier(call.Service)
 		if st == nil {
-			return fmt.Errorf("downstream service %s does not exist", service)
+			return fmt.Errorf("downstream service %s does not exist", call.Service)
 		}
-		if st.GetRoute(route) == nil {
-			return fmt.Errorf("downstream service %s does not have route %s defined", service, route)
+		if st.GetRoute(call.Route) == nil {
+			return fmt.Errorf("downstream service %s does not have route %s defined", call.Service, call.Route)
 		}
 	}
 
