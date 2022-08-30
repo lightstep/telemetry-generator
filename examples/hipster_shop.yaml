@@ -31,7 +31,6 @@ topology:
           resourceAttrs:
             cloud.provider: aws
             cloud.region: us-east-1
-
         - weight: 1
           kubernetes:
             cluster_name: k8s-cluster-1
@@ -395,8 +394,28 @@ topology:
             host.name: adservice-hostname
       routes:
         /AdRequest:
-          downstreamCalls:
-          maxLatencyMillis: 500
+          downstreamCalls: {}
+          latencyConfigs:
+            - flag_set: adservice_bug.slow
+              p0: 30ms
+              p50: 100ms
+              p95: 170ms
+              p99: 200ms
+              p99.9: 300ms
+              p100: 500ms
+            - flag_set: adservice_bug.slower
+              p0: 40ms
+              p50: 125ms
+              p95: 200ms
+              p99: 300ms
+              p99.9: 450ms
+              p100: 600ms
+            - p0: 25ms
+              p50: 75ms
+              p95: 100ms
+              p99: 120ms
+              p99.9: 150ms
+              p100: 200ms
         /Ad:
           downstreamCalls:
           maxLatencyMillis: 500
@@ -473,17 +492,17 @@ flags:
     incident:
       parentFlag: currencyservice_fail
       start: 0m
-      end: 10m
+      duration: 10m
   - name: currencyservice_oom.phase_1
     incident:
       parentFlag: currencyservice_fail
       start: 0m
-      end: 10m
+      duration: 10m
   - name: currencyservice_oom.phase_2
     incident:
       parentFlag: currencyservice_fail
       start: 3m
-      end: 10m
+      duration: 7m
   - name: frontend_doom
     cron:
       start: "57,12,27,42 * * * *"
@@ -498,11 +517,25 @@ flags:
     incident:
       parentFlag: frontend_doom
       start: 5m
-      # with no end, lasts until the incident finishes
+      # with no duration, lasts until the incident finishes
   - name: currencyservice_fail
     cron:
       start: "57,12,27,42 * * * *"
       end: "10,25,40,55 * * * *"
+  - name: adservice_bug
+    cron:
+      start: "0,20,40 * * * *"
+      end: "10,30,50 * * * *"
+  - name: adservice_bug.slow
+    incident:
+      parentFlag: adservice_bug
+      start: 0m, 7m
+      duration: 3m
+  - name: adservice_bug.slower
+    incident:
+      parentFlag: adservice_bug
+      start: 3m
+      duration: 4m
 
 rootRoutes:
   - service: frontend
