@@ -1,8 +1,10 @@
 package flags
 
 import (
+	"fmt"
 	"github.com/lightstep/demo-environment/generatorreceiver/internal/cron"
 	"go.uber.org/zap"
+	"strings"
 	"sync"
 	"time"
 )
@@ -11,9 +13,11 @@ import (
 
 type IncidentConfig struct {
 	ParentFlag string        `json:"parentFlag" yaml:"parentFlag"`
-	Start      time.Duration `json:"start" yaml:"start"`
-	End        time.Duration `json:"end" yaml:"end"`
+	Start      Start         `json:"start" yaml:"start"`
+	Duration   time.Duration `json:"duration" yaml:"duration"`
 }
+
+type Start []time.Duration
 
 type CronConfig struct {
 	Start string `json:"start" yaml:"start"`
@@ -63,16 +67,23 @@ func (f *Flag) update() {
 
 	parent := f.parent() // won't be nil because we already validated all parents exist
 	incidentDuration := parent.CurrentDuration()
-	afterStart := incidentDuration > f.cfg.Incident.Start
-	beforeEnd := f.cfg.Incident.End == 0 || incidentDuration < f.cfg.Incident.End
-	// shouldBeActive will be true if and only if both of the following are true:
-	// - parent has been Active for at least f's incident start time
-	// - either f has no end *or* parent has been active for less than f's incident end time
-	shouldBeActive := afterStart && beforeEnd
-
-	if f.active() != shouldBeActive {
+	if f.active() != f.shouldBeActive(incidentDuration) {
 		f.Toggle()
 	}
+}
+
+func (f *Flag) shouldBeActive(incidentDuration time.Duration) bool {
+	childDuration := f.cfg.Incident.Duration
+	for _, start := range f.cfg.Incident.Start {
+		if incidentDuration <= start { // relies on start times being in increasing order (verified in flag validation)
+			return false
+		}
+		// if childDuration not specified, then child flag stays active until end of incident
+		if incidentDuration < start+childDuration || childDuration == 0 {
+			return true
+		}
+	}
+	return false
 }
 
 func (f *Flag) CurrentDuration() time.Duration {
@@ -138,4 +149,42 @@ func (f *Flag) parent() *Flag {
 		return nil
 	}
 	return Manager.GetFlag(f.cfg.Incident.ParentFlag)
+}
+
+func (ic IncidentConfig) validate() error {
+	if Manager.GetFlag(ic.ParentFlag) == nil {
+		return fmt.Errorf("parent flag %s does not exist", ic.ParentFlag)
+	}
+	if len(ic.Start) == 0 {
+		return fmt.Errorf("start cannot be empty")
+	}
+	if ic.Duration == 0 && len(ic.Start) > 1 {
+		return fmt.Errorf("if duration is not specified, only one start time is permitted (will last until end of incident)")
+	}
+	previousStart := time.Duration(-1)
+	for _, start := range ic.Start {
+		if start <= previousStart {
+			return fmt.Errorf("start times must be in strictly increasing order")
+		}
+		previousStart = start
+	}
+	return nil
+}
+
+// UnmarshalYAML is a custom unmarshaller that parses a comma separated string into a slice of durations
+func (s *Start) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var startStr string
+	if err := unmarshal(&startStr); err != nil {
+		return err
+	}
+	startTimes := strings.Split(startStr, ",")
+	for _, st := range startTimes {
+		st = strings.TrimSpace(st)
+		stDuration, err := time.ParseDuration(st)
+		if err != nil {
+			return err
+		}
+		*s = append(*s, stDuration)
+	}
+	return nil
 }

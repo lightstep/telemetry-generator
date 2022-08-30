@@ -2,7 +2,6 @@ package generatorreceiver
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"github.com/lightstep/demo-environment/generatorreceiver/internal/cron"
 	"math/rand"
@@ -29,19 +28,10 @@ type generatorReceiver struct {
 }
 
 func (g generatorReceiver) loadTopoFile(topoInline string, path string) (topoFile *topology.File, err error) {
-	// fetch from env var.
-	if len(topoInline) > 0 {
-		g.logger.Info("reading topo inline")
-		err = json.Unmarshal([]byte(topoInline), topoFile)
-		if err != nil {
-			return nil, fmt.Errorf("could not parse inline json file: %v", err)
-		}
-	} else {
-		g.logger.Info("reading topo from file path", zap.String("path", g.topoPath))
-		topoFile, err = parseTopoFile(path)
-		if err != nil {
-			return nil, err
-		}
+	g.logger.Info("reading topo from file path", zap.String("path", g.topoPath))
+	topoFile, err = parseTopoFile(path)
+	if err != nil {
+		return nil, err
 	}
 	flags.Manager.LoadFlags(topoFile.Flags, g.logger)
 

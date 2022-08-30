@@ -71,9 +71,11 @@ func (fm *FlagManager) traverseFlagGraph(f *Flag) (map[string]bool, error) {
 		if !f.parentSpecified() { // no parent specified -> this is a root flag, so we've traversed graph without finding cycle
 			return seenFlags, nil
 		}
-		if f.parent() == nil { // parent was specified but it's not an actual flag
-			return nil, fmt.Errorf("flag %s has parent %s which does not exist", f.Name(), f.cfg.Incident.ParentFlag)
+		err := f.cfg.Incident.validate() // this is a child flag, so check that its incident config is valid
+		if err != nil {
+			return nil, fmt.Errorf("error with flag %s: %v", f.Name(), err)
 		}
+
 		f = f.parent()
 	}
 	return nil, fmt.Errorf("cyclical flag graph detected: %s", printFlagCycle(orderedFlags, f.Name()))

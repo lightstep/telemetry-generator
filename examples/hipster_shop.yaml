@@ -48,9 +48,12 @@ topology:
       routes:
         /product:
           downstreamCalls:
-            productcatalogservice: /GetProducts
-            recommendationservice: /GetRecommendations
-            adservice: /AdRequest
+            - service: productcatalogservice
+              route: /GetProducts
+            - service: recommendationservice
+              route: /GetRecommendations
+            - service:  adservice
+              route: /AdRequest
           latencyConfigs:
             - flag_set: frontend_errors
               p0: 25ms
@@ -81,8 +84,10 @@ topology:
                 starter: bulbasaur
         /cart:
           downstreamCalls:
-            cartservice: /GetCart
-            recommendationservice: /GetRecommendations
+            - service: cartservice
+              route: /GetCart
+            - service: recommendationservice
+              route: /GetRecommendations
           latencyConfigs:
             - p0: 25ms
               p50: 75ms
@@ -92,19 +97,23 @@ topology:
               p100: 200ms
         /checkout:
           downstreamCalls:
-            checkoutservice: /PlaceOrder
+            - service: checkoutservice
+              route: /PlaceOrder
           maxLatencyMillis: 800
         /shipping:
           downstreamCalls:
-            shippingservice: /GetQuote
+            - service: shippingservice
+              route: /GetQuote
           maxLatencyMillis: 50
         /currency:
           downstreamCalls:
-            currencyservice: /GetConversion
+            - service: currencyservice
+              route: /GetConversion
           maxLatencyMillis: 1500
         /currency_slow:
           downstreamCalls:
-            currencyservice: /DoSomethingSlow
+            - service: currencyservice
+              route: /DoSomethingSlow
           flag_set: currencyservice_oom.phase_1
           maxLatencyMillis: 3500
     productcatalogservice:
@@ -135,14 +144,14 @@ topology:
             host.type: t3.medium
       routes:
         /GetProducts:
-          downstreamCalls: {}
+          downstreamCalls:
           maxLatencyMillis: 100
           tagSets:
             - weight: 1
               inherit:
                 - starter
         /SearchProducts:
-          downstreamCalls: {}
+          downstreamCalls:
           tagSets:
             - weight: 15
               tags:
@@ -185,7 +194,8 @@ topology:
       routes:
         /GetRecommendations:
           downstreamCalls:
-            productcatalogservice: /GetProducts
+            - service: productcatalogservice
+              route: /GetProducts
           maxLatencyMillis: 200
     cartservice:
       tagSets:
@@ -211,7 +221,7 @@ topology:
             host.name: cartservice-hostname
       routes:
         /GetCart:
-          downstreamCalls: {}
+          downstreamCalls:
           maxLatencyMillis: 200
     checkoutservice:
       tagSets:
@@ -232,11 +242,16 @@ topology:
       routes:
         /PlaceOrder:
           downstreamCalls:
-            paymentservice: /CreditCardInfo
-            shippingservice: /Address
-            currencyservice: /GetConversion
-            cartservice: /GetCart
-            emailservice: /SendOrderConfirmation
+            - service: paymentservice
+              route: /CreditCardInfo
+            - service: shippingservice
+              route: /Address
+            - service: currencyservice
+              route: /GetConversion
+            - service: cartservice
+              route: /GetCart
+            - service: emailservice
+              route: /SendOrderConfirmation
           tagSets:
             - weight: 25
               tags:
@@ -266,10 +281,11 @@ topology:
       routes:
         /ChargeRequest:
           downstreamCalls:
-            paymentservice: /CreditCardInfo
+            - service: paymentservice
+              route: /CreditCardInfo
           maxLatencyMillis: 700
         /CreditCardInfo:
-          downstreamCalls: {}
+          downstreamCalls:
           maxLatencyMillis: 50
     shippingservice:
       tagSets:
@@ -292,14 +308,16 @@ topology:
       routes:
         /GetQuote:
           downstreamCalls:
-            shippingservice: /Address
+            - service: shippingservice
+              route: /Address
           maxLatencyMillis: 250
         /ShipOrder:
           downstreamCalls:
-            shippingservice: /Address
+            - service: shippingservice
+              route: /Address
           maxLatencyMillis: 500
         /Address:
-          downstreamCalls: {}
+          downstreamCalls:
           maxLatencyMillis: 100
     emailservice:
       tagSets:
@@ -322,7 +340,8 @@ topology:
       routes:
         /SendOrderConfirmation:
           downstreamCalls:
-            emailservice: /OrderResult
+            - service: emailservice
+              route: /OrderResult
           tagSets:
             - weight: 15
               tags:
@@ -330,10 +349,10 @@ topology:
                 service.version: v122
                 http.status_code: 503
             - weight: 85
-              tags: {}
+              tags:
           maxLatencyMillis: 500
         /OrderResult:
-          downstreamCalls: {}
+          downstreamCalls:
           maxLatencyMillis: 100
     currencyservice:
       tagSets:
@@ -356,13 +375,14 @@ topology:
       routes:
         /GetConversion:
           downstreamCalls:
-            currencyservice: /Money
+            - service: currencyservice
+              route: /Money
           maxLatencyMillis: 100
         /Money:
-          downstreamCalls: {}
+          downstreamCalls:
           maxLatencyMillis: 100
         /DoSomethingSlow:
-          downstreamCalls: {}
+          downstreamCalls:
           maxLatencyMillis: 4000
           flag_set: currencyservice_oom.phase_1
     adservice:
@@ -386,9 +406,29 @@ topology:
       routes:
         /AdRequest:
           downstreamCalls: {}
-          maxLatencyMillis: 500
+          latencyConfigs:
+            - flag_set: adservice_bug.slow
+              p0: 30ms
+              p50: 100ms
+              p95: 170ms
+              p99: 200ms
+              p99.9: 300ms
+              p100: 500ms
+            - flag_set: adservice_bug.slower
+              p0: 40ms
+              p50: 125ms
+              p95: 200ms
+              p99: 300ms
+              p99.9: 450ms
+              p100: 600ms
+            - p0: 25ms
+              p50: 75ms
+              p95: 100ms
+              p99: 120ms
+              p99.9: 150ms
+              p100: 200ms
         /Ad:
-          downstreamCalls: {}
+          downstreamCalls:
           maxLatencyMillis: 500
     iOS:
       resourceAttrSets:
@@ -408,14 +448,15 @@ topology:
       routes:
         /api/make-payment:
           downstreamCalls:
-            iOS: /api/submit-payment
+            - service: iOS
+              route: /api/submit-payment
           maxLatencyMillis: 100
         /api/submit-payment:
           downstreamCalls:
-           iOS: /api/payment-status
+            - service: iOS
+              route: /api/payment-status
           maxLatencyMillis: 100
         /api/payment-status:
-          downstreamCalls: {}
           maxLatencyMillis: 100
     android:
       resourceAttrs:
@@ -435,14 +476,16 @@ topology:
       routes:
         /api/make-payment:
           downstreamCalls:
-            android: /api/submit-payment
+            - service: android
+              route: /api/submit-payment
           maxLatencyMillis: 100
         /api/submit-payment:
           downstreamCalls:
-           android: /api/payment-status
+            - service: android
+              route: /api/payment-status
           maxLatencyMillis: 100
         /api/payment-status:
-          downstreamCalls: {}
+          downstreamCalls:
           maxLatencyMillis: 100               
 
 flags:
@@ -460,17 +503,17 @@ flags:
     incident:
       parentFlag: currencyservice_fail
       start: 0m
-      end: 10m
+      duration: 10m
   - name: currencyservice_oom.phase_1
     incident:
       parentFlag: currencyservice_fail
       start: 0m
-      end: 10m
+      duration: 10m
   - name: currencyservice_oom.phase_2
     incident:
       parentFlag: currencyservice_fail
       start: 3m
-      end: 10m
+      duration: 7m
   - name: frontend_doom
     cron:
       start: "57,12,27,42 * * * *"
@@ -485,11 +528,25 @@ flags:
     incident:
       parentFlag: frontend_doom
       start: 5m
-      # with no end, lasts until the incident finishes
+      # with no duration, lasts until the incident finishes
   - name: currencyservice_fail
     cron:
       start: "57,12,27,42 * * * *"
       end: "10,25,40,55 * * * *"
+  - name: adservice_bug
+    cron:
+      start: "0,20,40 * * * *"
+      end: "10,30,50 * * * *"
+  - name: adservice_bug.slow
+    incident:
+      parentFlag: adservice_bug
+      start: 0m, 7m
+      duration: 3m
+  - name: adservice_bug.slower
+    incident:
+      parentFlag: adservice_bug
+      start: 3m
+      duration: 4m
 
 rootRoutes:
   - service: frontend
