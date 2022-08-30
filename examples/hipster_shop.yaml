@@ -405,7 +405,7 @@ topology:
             host.name: adservice-hostname
       routes:
         /AdRequest:
-          downstreamCalls: {}
+          downstreamCalls:
           latencyConfigs:
             - flag_set: adservice_bug.slow
               p0: 30ms
