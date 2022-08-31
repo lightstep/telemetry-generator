@@ -1,0 +1,29 @@
+
+name: Build Collector Docker Image
+
+on:
+  # manually triggered by GitHub Action menu for testing/validation
+  workflow_dispatch:
+  #push:
+  #  branches:
+  #    - 'main'
+
+jobs:
+  Deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v1
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and Push Demo Docker Image
+        uses: docker/build-push-action@v2
+        with:
+          push: true # Pushes after image build
+          context: ./
+          tags: |
+            ghcr.io/${{ github.repository }}:latest
