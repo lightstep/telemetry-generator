@@ -5,9 +5,9 @@ import (
 )
 
 type ResourceAttributeSet struct {
-	Weight              int        `json:"weight" yaml:"weight"`
 	Kubernetes          Kubernetes `json:"kubernetes" yaml:"kubernetes"`
 	ResourceAttributes  TagMap     `json:"resourceAttrs,omitempty" yaml:"resourceAttrs,omitempty"`
+	EmbeddedWeight      `json:",inline" yaml:",inline"`
 	flags.EmbeddedFlags `json:",inline" yaml:",inline"`
 }
 

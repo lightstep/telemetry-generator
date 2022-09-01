@@ -1,6 +1,6 @@
 module github.com/lightstep/demo-environment/generatorreceiver
 
-go 1.16
+go 1.18
 
 require go.opentelemetry.io/collector v0.35.0
 

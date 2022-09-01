@@ -95,7 +95,7 @@ func (g *TraceGenerator) createSpanForServiceRouteCall(traces *pdata.Traces, ser
 	span.SetKind(pdata.SpanKindServer)
 	span.Attributes().InsertString("load_generator.seq_num", fmt.Sprintf("%v", g.sequenceNumber))
 
-	ts := serviceTier.GetTagSet(routeName) // ts is single tagSet consisting of tags from the service AND route
+	ts := serviceTier.GetTagSet(routeName) // ts is single TagSet consisting of tags from the service AND route
 	attr := span.Attributes()
 	ts.Tags.InsertTags(&attr) // add service and route tags to span attributes
 

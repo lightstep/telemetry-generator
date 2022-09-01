@@ -33,23 +33,9 @@ func (st *ServiceTier) GetTagSet(routeName string) TagSet {
 }
 
 func (st *ServiceTier) GetResourceAttributeSet() *ResourceAttributeSet {
-	if len(st.ResourceAttributeSets) == 0 {
-		return nil
-	}
-	var enabledResources []*ResourceAttributeSet
-	for i := range st.ResourceAttributeSets {
-		if st.ResourceAttributeSets[i].ShouldGenerate() {
-			enabledResources = append(enabledResources, &st.ResourceAttributeSets[i])
-		}
-	}
-
-	if len(enabledResources) == 0 {
-		return nil
-	}
-
 	// TODO: also support resource attributes on routes
-	// TODO: support weight
-	return enabledResources[st.Random.Intn(len(enabledResources))]
+	chosenSet := pickBasedOnWeight(st.ResourceAttributeSets)
+	return &chosenSet
 }
 
 func (st *ServiceTier) GetRoute(routeName string) *ServiceRoute {
