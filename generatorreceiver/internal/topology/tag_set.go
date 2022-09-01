@@ -2,6 +2,7 @@ package topology
 
 import (
 	"encoding/csv"
+	"fmt"
 	"github.com/lightstep/demo-environment/generatorreceiver/internal/flags"
 	"os"
 )
@@ -15,34 +16,39 @@ type TagSet struct {
 	flags.EmbeddedFlags `json:",inline" yaml:",inline"`
 }
 
-func (ts *TagSet) Load() error {
+func (ts *TagSet) LoadFromCSV() error {
 	for name, path := range ts.CsvTags {
-		ts.Tags[name] = readFile(path)
-		//validate that name isn't already in Tags
+		if ts.Tags[name] != nil { //if tag name already exists
+			return fmt.Errorf("csv tag %s was already defined in the yaml", name)
+		}
+		ts.Tags[name] = getTagsFromCSV(path)
 	}
-	//if any of the files its looking for is not there, it should also return an error
-	//using fmt: https://stackoverflow.com/questions/37194739/how-check-whether-a-file-contains-a-string-or-not
-	//look up the name in the map and if it's already there, could probably just overwrite
-
 	return nil
 }
 
 //figure out where to call this load function - in load tree & validation
 
-func readFile(file string) [][]string {
+func getTagsFromCSV(file string) []string {
 	csvfile, err := os.Open(file)
 	if err != nil {
 		return nil
 	}
 	defer csvfile.Close()
 
-	//read lines from file
 	csvReader := csv.NewReader(csvfile)
 	data, err := csvReader.ReadAll()
-	//if err != nil { //add the log library? }
+	if err != nil {
+		return nil
+	}
 
-	//helper function? - make a slice for strings, one for each line
-	//strip the whitespace/all the formatting
+	tagValues := make([]string, 0, len(data))
 
-	return data
+	//loop through each slice and convert to string
+	for _, tagValue := range data {
+		str := tagValue[0]
+		tagValues = append(tagValues, str)
+	}
+	fmt.Println(tagValues)
+
+	return tagValues
 }

@@ -3,7 +3,9 @@ package topology
 import (
 	"fmt"
 	"go.opentelemetry.io/collector/model/pdata"
+	"math/rand"
 	"strconv"
+	"time"
 )
 
 type TagMap map[string]interface{}
@@ -22,8 +24,11 @@ func (tm *TagMap) InsertTags(attr *pdata.AttributeMap) {
 			}
 		case bool:
 			attr.InsertBool(key, val)
+		case []string:
+			rand.Seed(time.Now().Unix())
+			choice := rand.Intn(len(val))
+			attr.InsertString(key, val[choice])
 		default:
-
 			attr.InsertString(key, fmt.Sprint(val))
 		}
 	}

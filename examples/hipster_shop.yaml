@@ -7,10 +7,6 @@ topology:
           tags:
             version: v127
             error: true
-          csv_tags:
-            #make sure path is relative to the yaml file
-            path: csv("./files/MOCK_DATA.csv")
-            #field: customer
         - weight: 1
           flag_unset: frontend_errors
           tags:
@@ -116,6 +112,9 @@ topology:
       tagSets:
         - tags:
             version: v52
+          csv_tags:
+            #make sure path is relative to the yaml file
+            customer: "./files/MOCK_DATA.csv"
           inherit:
             - region
       resourceAttrSets:
