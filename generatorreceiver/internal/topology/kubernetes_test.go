@@ -7,16 +7,21 @@ import (
 
 func TestReplaceTags(t *testing.T) {
 	k := &Kubernetes{
-		PodName:        "testapp-abbab-abb",
 		Service:        "testapp-service",
 		Namespace:      "testapp-namespace",
-		Container:      "testapp-container",
 		ClusterName:    "testapp-cluster",
 		ReplicaSetName: "testapp-replica",
+		pods:           make([]*Pod, 0, 1),
 	}
+	pod := Pod{
+		PodName:    "testapp-abbab-abb",
+		Container:  "testapp-container",
+		Kubernetes: k,
+	}
+	k.pods = append(k.pods, &pod)
 
 	tags := map[string]string{
-		"my_pod":       Pod,
+		"my_pod":       PodName,
 		"my_service":   Service,
 		"my_namespace": Namespace,
 		"my_container": Container,
@@ -25,7 +30,7 @@ func TestReplaceTags(t *testing.T) {
 		"my_key":       "my_value",
 	}
 
-	tags = k.ReplaceTags(tags)
+	tags = k.pods[0].ReplaceTags(tags)
 
 	require.Equal(t,
 		map[string]string{

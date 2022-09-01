@@ -18,7 +18,7 @@ const (
 
 	// Templated variables, these will get replaced with real values at metric generation with ReplaceTags.
 
-	Pod        = "$pod"
+	PodName    = "$pod"
 	Service    = "$service"
 	Namespace  = "$namespace"
 	Container  = "$container"
@@ -26,20 +26,28 @@ const (
 	ReplicaSet = "$replicaset"
 )
 
+type Pod struct {
+	StartTime  time.Time
+	PodName    string
+	Container  string
+	Kubernetes *Kubernetes
+}
+
 type Kubernetes struct {
 	ClusterName string   `json:"cluster_name" yaml:"cluster_name"`
 	Request     Resource `json:"request" yaml:"request"`
 	Limit       Resource `json:"limit" yaml:"limit"`
 	Usage       Usage    `json:"usage" yaml:"usage"`
 	Restart     Restart  `json:"restart" yaml:"restart"`
+	PodCount    int64    `json:"pod_count" yaml:"pod_count"`
 
-	mutex          sync.Mutex
-	StartTime      time.Time `json:"-" yaml:"-"`
-	Service        string    `json:"-" yaml:"-"`
-	ReplicaSetName string    `json:"-" yaml:"-"`
-	Namespace      string    `json:"-" yaml:"-"`
-	PodName        string    `json:"-" yaml:"-"`
-	Container      string    `json:"-" yaml:"-"`
+	ReplicaSetName string
+	Service        string
+	Namespace      string
+
+	mutex sync.Mutex
+	pods  []*Pod
+	Cfg   *Config
 }
 
 type Resource struct {
@@ -63,74 +71,96 @@ type ResourceUsage struct {
 	Jitter float64 `json:"jitter" yaml:"jitter"`
 }
 
-func (k *Kubernetes) CreatePod(serviceName string) {
+func (k *Kubernetes) CreatePods(serviceName string) {
 	k.mutex.Lock()
 	defer k.mutex.Unlock()
-	k.StartTime = time.Now()
 	k.ReplicaSetName = serviceName + "-" + generateK8sName(10)
-	k.PodName = k.ReplicaSetName + "-" + generateK8sName(5)
 	k.Namespace = serviceName
-	k.Container = serviceName
 	k.Service = serviceName
+	k.pods = make([]*Pod, k.GetPodCount())
+	for i := 0; i < len(k.pods); i++ {
+		k.pods[i] = &Pod{
+			StartTime:  time.Now(),
+			PodName:    k.ReplicaSetName + "-" + generateK8sName(5),
+			Container:  serviceName,
+			Kubernetes: k,
+		}
+	}
 }
 
-func (k *Kubernetes) RestartIfNeeded(flags flags.EmbeddedFlags, logger *zap.Logger) {
-	if k == nil || k.Restart.Every == 0 {
+func (k *Kubernetes) GetPodCount() int64 {
+	if k.PodCount > 0 {
+		return k.PodCount
+	} else if k.Cfg.Kubernetes.PodCount > 0 {
+		return k.Cfg.Kubernetes.PodCount
+	} else {
+		return 1
+	}
+}
+
+func (p *Pod) RestartIfNeeded(flags flags.EmbeddedFlags, logger *zap.Logger) {
+	if p == nil || p.Kubernetes.Restart.Every == 0 {
 		return
 	}
 
-	k.mutex.Lock()
-	defer k.mutex.Unlock()
+	p.Kubernetes.mutex.Lock()
+	defer p.Kubernetes.mutex.Unlock()
 
 	flagTime := flags.GenerateStartTime()
-	if flagTime.After(k.StartTime) {
+	if flagTime.After(p.StartTime) {
 		// consider that the pod started at the time that a flag was enabled/disabled.
-		k.restartPod(logger)
+		// TODO: restart with some jitter
+		p.restart(logger)
+	} else if time.Since(p.StartTime) >= p.Kubernetes.Restart.Every {
+		// TODO: restart with some jitter
+		p.restart(logger)
 	}
 
-	if time.Since(k.StartTime) >= k.Restart.Every {
-		k.restartPod(logger)
-	}
 }
 
-func (k *Kubernetes) restartPod(logger *zap.Logger) {
+func (p *Pod) restart(logger *zap.Logger) {
 	// this is locked by RestartIfNeeded
-	k.StartTime = time.Now()
-	k.PodName = k.ReplicaSetName + "-" + generateK8sName(5)
-	logger.Info("pod restarted", zap.String("service", k.Service), zap.String("pod", k.PodName))
+	p.StartTime = time.Now()
+	p.PodName = p.Kubernetes.ReplicaSetName + "-" + generateK8sName(5)
+	logger.Info("pod restarted", zap.String("service", p.Kubernetes.Service), zap.String("pod", p.PodName))
+}
+
+func (k *Kubernetes) randomPod() *Pod {
+	return k.pods[rand.Intn(len(k.pods))]
 }
 
 func (k *Kubernetes) GetK8sTags() map[string]string {
 	k.mutex.Lock()
 	defer k.mutex.Unlock()
+	pod := k.randomPod()
 	// ref: https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/resource/semantic_conventions/k8s.md
 	return map[string]string{
 		"k8s.cluster.name":   k.ClusterName,
-		"k8s.pod.name":       k.PodName,
+		"k8s.pod.name":       pod.PodName,
 		"k8s.namespace.name": k.Namespace,
-		"k8s.container.name": k.Container,
+		"k8s.container.name": pod.Container,
 	}
 }
 
-func (k *Kubernetes) ReplaceTags(tags map[string]string) map[string]string {
-	k.mutex.Lock()
-	defer k.mutex.Unlock()
+func (p *Pod) ReplaceTags(tags map[string]string) map[string]string {
+	p.Kubernetes.mutex.Lock()
+	defer p.Kubernetes.mutex.Unlock()
 
 	replaced := make(map[string]string, len(tags))
 	for key, value := range tags {
 		switch value {
-		case Pod:
-			replaced[key] = k.PodName
+		case PodName:
+			replaced[key] = p.PodName
 		case Service:
-			replaced[key] = k.Service
+			replaced[key] = p.Kubernetes.Service
 		case Namespace:
-			replaced[key] = k.Namespace
+			replaced[key] = p.Kubernetes.Namespace
 		case Container:
-			replaced[key] = k.Container
+			replaced[key] = p.Container
 		case Cluster:
-			replaced[key] = k.ClusterName
+			replaced[key] = p.Kubernetes.ClusterName
 		case ReplicaSet:
-			replaced[key] = k.ReplicaSetName
+			replaced[key] = p.Kubernetes.ReplicaSetName
 		default:
 			replaced[key] = value
 		}
@@ -199,287 +229,293 @@ func (k *Kubernetes) GenerateMetrics() []Metric {
 		memoryShape = Leaking
 	}
 
-	metrics := []Metric{
-		// kube_pod metrics
-		{
-			Name: "kube_pod_status_phase",
-			Type: "Gauge",
-			Min:  1,
-			Max:  1,
-			Tags: map[string]string{
-				"phase": "Running",
-				"pod":   Pod,
-			},
-		},
-		{
-			Name: "kube_pod_owner",
-			Type: "Gauge",
-			Min:  1,
-			Max:  1,
-			Tags: map[string]string{
-				"pod":        Pod,
-				"namespace":  Namespace,
-				"owner_name": ReplicaSet,
-				"owner_kind": "ReplicaSet",
-			},
-		},
-		{
-			Name: "kube_node_status_allocatable",
-			Type: "Gauge",
-			Min:  cpuTotal,
-			Max:  cpuTotal,
-			Tags: map[string]string{
-				"resource": "cpu",
-				"pod":      Pod, // used to created multiple time series that will be summed up.
-			},
-		},
-		{
-			Name: "kube_node_status_allocatable",
-			Type: "Gauge",
-			Min:  memTotal,
-			Max:  memTotal,
-			Tags: map[string]string{
-				"resource": "memory",
-				"pod":      Pod, // used to created multiple time series that will be summed up.
-			},
-		},
-		{
-			Name: "kube_pod_container_resource_requests",
-			Type: "Gauge",
-			Min:  k.Request.CPU,
-			Max:  k.Request.CPU,
-			Tags: map[string]string{
-				"resource":  "cpu",
-				"namespace": Namespace,
-				"container": Container,
-				"pod":       Pod,
-			},
-		},
-		{
-			Name: "kube_pod_container_resource_requests",
-			Type: "Gauge",
-			Min:  k.Request.Memory * megabyte,
-			Max:  k.Request.Memory * megabyte,
-			Tags: map[string]string{
-				"resource":  "memory",
-				"namespace": Namespace,
-				"container": Container,
-				"pod":       Pod,
-			},
-		},
-		{
-			Name: "kube_pod_container_resource_limits",
-			Type: "Gauge",
-			Min:  k.Limit.CPU,
-			Max:  k.Limit.CPU,
-			Tags: map[string]string{
-				"resource":  "cpu",
-				"namespace": Namespace,
-				"container": Container,
-				"pod":       Pod,
-			},
-		},
-		{
-			Name: "kube_pod_container_resource_limits",
-			Type: "Gauge",
-			Min:  k.Limit.Memory * megabyte,
-			Max:  k.Limit.Memory * megabyte,
-			Tags: map[string]string{
-				"resource":  "memory",
-				"namespace": Namespace,
-				"container": Container,
-				"pod":       Pod,
-			},
-		},
-		// node metrics
-		{
-			Name: "node_cpu_seconds_total",
-			Type: "Sum",
-			Min:  k.Limit.CPU * 1.2,
-			Max:  k.Limit.CPU * 1.2,
-			Tags: map[string]string{
-				"resource":      "cpu",
-				"net.host.name": Pod, // for this we assume each pod run on its own node.
-				"cpu":           "0",
-			},
-		},
-		{
-			Name:   "node_cpu_seconds_total",
-			Type:   "Sum",
-			Period: &minute,
-			Min:    math.Max(cpuTarget*(1-cpuJitter), 0),
-			Max:    math.Min(cpuTarget*(1+cpuJitter), k.Limit.CPU),
-			Shape:  Average,
-			Jitter: k.Usage.CPU.Jitter,
-			Tags: map[string]string{
-				"resource":      "cpu",
-				"net.host.name": Pod, // for this we assume each pod run on its own node.
-				"cpu":           "0",
-			},
-		},
+	metrics := []Metric{}
 
-		{
-			Name:   "node_memory_MemAvailable_bytes",
-			Type:   "Gauge",
-			Min:    math.Max(memTotal-memTarget*(1+memJitter), 0),
-			Max:    math.Min(memTotal-memTarget*(1-memJitter), k.Limit.Memory*megabyte),
-			Shape:  Average,
-			Jitter: k.Usage.Memory.Jitter,
-			Tags: map[string]string{
-				"net.host.name": Pod, // for this we assume each pod run on its own node.
+	for _, pod := range k.pods {
+		podMetrics := []Metric{
+			// kube_pod metrics
+			{
+				Name: "kube_pod_status_phase",
+				Type: "Gauge",
+				Min:  1,
+				Max:  1,
+				Tags: map[string]string{
+					"phase": "Running",
+					"pod":   PodName,
+				},
 			},
-		},
+			{
+				Name: "kube_pod_owner",
+				Type: "Gauge",
+				Min:  1,
+				Max:  1,
+				Tags: map[string]string{
+					"pod":        PodName,
+					"namespace":  Namespace,
+					"owner_name": ReplicaSet,
+					"owner_kind": "ReplicaSet",
+				},
+			},
+			{
+				Name: "kube_node_status_allocatable",
+				Type: "Gauge",
+				Min:  cpuTotal,
+				Max:  cpuTotal,
+				Tags: map[string]string{
+					"resource": "cpu",
+					"pod":      PodName, // used to created multiple time series that will be summed up.
+				},
+			},
+			{
+				Name: "kube_node_status_allocatable",
+				Type: "Gauge",
+				Min:  memTotal,
+				Max:  memTotal,
+				Tags: map[string]string{
+					"resource": "memory",
+					"pod":      PodName, // used to created multiple time series that will be summed up.
+				},
+			},
+			{
+				Name: "kube_pod_container_resource_requests",
+				Type: "Gauge",
+				Min:  k.Request.CPU,
+				Max:  k.Request.CPU,
+				Tags: map[string]string{
+					"resource":  "cpu",
+					"namespace": Namespace,
+					"container": Container,
+					"pod":       PodName,
+				},
+			},
+			{
+				Name: "kube_pod_container_resource_requests",
+				Type: "Gauge",
+				Min:  k.Request.Memory * megabyte,
+				Max:  k.Request.Memory * megabyte,
+				Tags: map[string]string{
+					"resource":  "memory",
+					"namespace": Namespace,
+					"container": Container,
+					"pod":       PodName,
+				},
+			},
+			{
+				Name: "kube_pod_container_resource_limits",
+				Type: "Gauge",
+				Min:  k.Limit.CPU,
+				Max:  k.Limit.CPU,
+				Tags: map[string]string{
+					"resource":  "cpu",
+					"namespace": Namespace,
+					"container": Container,
+					"pod":       PodName,
+				},
+			},
+			{
+				Name: "kube_pod_container_resource_limits",
+				Type: "Gauge",
+				Min:  k.Limit.Memory * megabyte,
+				Max:  k.Limit.Memory * megabyte,
+				Tags: map[string]string{
+					"resource":  "memory",
+					"namespace": Namespace,
+					"container": Container,
+					"pod":       PodName,
+				},
+			},
+			// node metrics
+			{
+				Name: "node_cpu_seconds_total",
+				Type: "Sum",
+				Min:  k.Limit.CPU * 1.2,
+				Max:  k.Limit.CPU * 1.2,
+				Tags: map[string]string{
+					"resource":      "cpu",
+					"net.host.name": PodName, // for this we assume each pod run on its own node.
+					"cpu":           "0",
+				},
+			},
+			{
+				Name:   "node_cpu_seconds_total",
+				Type:   "Sum",
+				Period: &minute,
+				Min:    math.Max(cpuTarget*(1-cpuJitter), 0),
+				Max:    math.Min(cpuTarget*(1+cpuJitter), k.Limit.CPU),
+				Shape:  Average,
+				Jitter: k.Usage.CPU.Jitter,
+				Tags: map[string]string{
+					"resource":      "cpu",
+					"net.host.name": PodName, // for this we assume each pod run on its own node.
+					"cpu":           "0",
+				},
+			},
 
-		{
-			Name:   "node_memory_MemTotal_bytes",
-			Type:   "Gauge",
-			Min:    memTotal,
-			Max:    memTotal,
-			Jitter: k.Usage.Memory.Jitter,
-			Tags: map[string]string{
-				"net.host.name": Pod, // for this we assume each pod run on its own node.
+			{
+				Name:   "node_memory_MemAvailable_bytes",
+				Type:   "Gauge",
+				Min:    math.Max(memTotal-memTarget*(1+memJitter), 0),
+				Max:    math.Min(memTotal-memTarget*(1-memJitter), k.Limit.Memory*megabyte),
+				Shape:  Average,
+				Jitter: k.Usage.Memory.Jitter,
+				Tags: map[string]string{
+					"net.host.name": PodName, // for this we assume each pod run on its own node.
+				},
 			},
-		},
 
-		// container metrics
-		{
-			Name:   "container_cpu_usage_seconds_total",
-			Type:   "Sum",
-			Min:    math.Max(cpuTarget*(1-cpuJitter), 0),
-			Max:    math.Min(cpuTarget*(1+cpuJitter), k.Limit.CPU),
-			Shape:  Average,
-			Jitter: k.Usage.CPU.Jitter,
-			Tags: map[string]string{
-				"pod":       Pod,
-				"container": Container,
-				"image":     Service,
-				"namespace": Namespace,
+			{
+				Name:   "node_memory_MemTotal_bytes",
+				Type:   "Gauge",
+				Min:    memTotal,
+				Max:    memTotal,
+				Jitter: k.Usage.Memory.Jitter,
+				Tags: map[string]string{
+					"net.host.name": PodName, // for this we assume each pod run on its own node.
+				},
 			},
-		},
-		{
-			Name:   "container_fs_reads_total",
-			Type:   "Sum",
-			Min:    math.Max(diskTarget*(1-diskJitter), 0),
-			Max:    diskTarget * (1 + diskJitter),
-			Shape:  Average,
-			Jitter: k.Usage.Disk.Jitter,
-			Tags: map[string]string{
-				"job":          "kubelet",
-				"metrics_path": "/metrics/cadvisor",
-				"container":    Container,
-				"device":       "/dev/sda",
-				"namespace":    Namespace,
-			},
-		},
-		{
-			Name:   "container_fs_writes_total",
-			Type:   "Sum",
-			Min:    math.Max(diskTarget*(1-diskJitter), 0),
-			Max:    diskTarget * (1 + diskJitter),
-			Shape:  Average,
-			Jitter: k.Usage.Disk.Jitter,
-			Tags: map[string]string{
-				"job":          "kubelet",
-				"metrics_path": "/metrics/cadvisor",
-				"container":    Container,
-				"device":       "/dev/sda",
-				"namespace":    Namespace,
-			},
-		},
-		{
-			Name:   "container_fs_reads_bytes_total",
-			Type:   "Sum",
-			Min:    math.Max(diskTarget*(1-diskJitter), 0),
-			Max:    diskTarget * (1 + diskJitter),
-			Shape:  Average,
-			Jitter: k.Usage.Disk.Jitter,
-			Tags: map[string]string{
-				"job":          "kubelet",
-				"metrics_path": "/metrics/cadvisor",
-				"container":    Container,
-				"device":       "/dev/sda",
-				"namespace":    Namespace,
-			},
-		},
-		{
-			Name:   "container_fs_writes_bytes_total",
-			Type:   "Sum",
-			Min:    math.Max(diskTarget*(1-diskJitter), 0),
-			Max:    diskTarget * (1 + diskJitter),
-			Shape:  Average,
-			Jitter: k.Usage.Disk.Jitter,
-			Tags: map[string]string{
-				"job":          "kubelet",
-				"metrics_path": "/metrics/cadvisor",
-				"container":    Container,
-				"device":       "/dev/sda",
-				"namespace":    Namespace,
-			},
-		},
-		{
-			Name:   "container_memory_working_set_bytes",
-			Type:   "Gauge",
-			Period: &minute,
-			// If k.restart.every is set, min should be 0 and max should be k.Limit.memory
-			Min:    math.Max(memTarget*(1-memJitter)*restart, 0),
-			Max:    math.Min(memTarget*(1+memJitter)+k.Limit.Memory*megabyte*(1-restart), k.Limit.Memory*megabyte),
-			Shape:  memoryShape,
-			Jitter: k.Usage.Memory.Jitter,
-			Tags: map[string]string{
-				"pod":       Pod,
-				"container": Container,
-				"image":     Service,
-				"namespace": Namespace,
-			},
-		},
-		{
-			Name:   "container_network_receive_bytes_total",
-			Type:   "Sum",
-			Min:    networkTarget * (1 + networkJitter),
-			Max:    networkTarget * (2000 + networkJitter),
-			Shape:  Average,
-			Jitter: k.Usage.Network.Jitter,
-			Tags: map[string]string{
-				"image": Service,
-			},
-		},
-		{
-			Name:   "container_network_transmit_bytes_total",
-			Type:   "Sum",
-			Min:    networkTarget * (1 + networkJitter),
-			Max:    networkTarget * (2000 + networkJitter),
-			Shape:  Average,
-			Jitter: k.Usage.Network.Jitter,
-			Tags: map[string]string{
-				"image": Service,
-			},
-		},
-		{
-			Name:   "container_network_receive_packets_total",
-			Type:   "Sum",
-			Min:    math.Max(networkTarget*(1-networkJitter), 0),
-			Max:    networkTarget * (1 + networkJitter),
-			Shape:  Average,
-			Jitter: k.Usage.Network.Jitter,
-			Tags: map[string]string{
-				"image": Service,
-			},
-		},
-		{
-			Name:   "container_network_transmit_packets_total",
-			Type:   "Sum",
-			Min:    math.Max(networkTarget*(1-networkJitter), 0),
-			Max:    networkTarget * (1 + networkJitter),
-			Shape:  Average,
-			Jitter: k.Usage.Network.Jitter,
-			Tags: map[string]string{
-				"image": Service,
-			},
-		},
-	}
 
-	for i := range metrics {
-		metrics[i].Kubernetes = k
+			// container metrics
+			{
+				Name:   "container_cpu_usage_seconds_total",
+				Type:   "Sum",
+				Min:    math.Max(cpuTarget*(1-cpuJitter), 0),
+				Max:    math.Min(cpuTarget*(1+cpuJitter), k.Limit.CPU),
+				Shape:  Average,
+				Jitter: k.Usage.CPU.Jitter,
+				Tags: map[string]string{
+					"pod":       PodName,
+					"container": Container,
+					"image":     Service,
+					"namespace": Namespace,
+				},
+			},
+			{
+				Name:   "container_fs_reads_total",
+				Type:   "Sum",
+				Min:    math.Max(diskTarget*(1-diskJitter), 0),
+				Max:    diskTarget * (1 + diskJitter),
+				Shape:  Average,
+				Jitter: k.Usage.Disk.Jitter,
+				Tags: map[string]string{
+					"job":          "kubelet",
+					"metrics_path": "/metrics/cadvisor",
+					"container":    Container,
+					"device":       "/dev/sda",
+					"namespace":    Namespace,
+				},
+			},
+			{
+				Name:   "container_fs_writes_total",
+				Type:   "Sum",
+				Min:    math.Max(diskTarget*(1-diskJitter), 0),
+				Max:    diskTarget * (1 + diskJitter),
+				Shape:  Average,
+				Jitter: k.Usage.Disk.Jitter,
+				Tags: map[string]string{
+					"job":          "kubelet",
+					"metrics_path": "/metrics/cadvisor",
+					"container":    Container,
+					"device":       "/dev/sda",
+					"namespace":    Namespace,
+				},
+			},
+			{
+				Name:   "container_fs_reads_bytes_total",
+				Type:   "Sum",
+				Min:    math.Max(diskTarget*(1-diskJitter), 0),
+				Max:    diskTarget * (1 + diskJitter),
+				Shape:  Average,
+				Jitter: k.Usage.Disk.Jitter,
+				Tags: map[string]string{
+					"job":          "kubelet",
+					"metrics_path": "/metrics/cadvisor",
+					"container":    Container,
+					"device":       "/dev/sda",
+					"namespace":    Namespace,
+				},
+			},
+			{
+				Name:   "container_fs_writes_bytes_total",
+				Type:   "Sum",
+				Min:    math.Max(diskTarget*(1-diskJitter), 0),
+				Max:    diskTarget * (1 + diskJitter),
+				Shape:  Average,
+				Jitter: k.Usage.Disk.Jitter,
+				Tags: map[string]string{
+					"job":          "kubelet",
+					"metrics_path": "/metrics/cadvisor",
+					"container":    Container,
+					"device":       "/dev/sda",
+					"namespace":    Namespace,
+				},
+			},
+			{
+				Name:   "container_memory_working_set_bytes",
+				Type:   "Gauge",
+				Period: &minute,
+				// If k.restart.every is set, min should be 0 and max should be k.Limit.memory
+				Min:    math.Max(memTarget*(1-memJitter)*restart, 0),
+				Max:    math.Min(memTarget*(1+memJitter)+k.Limit.Memory*megabyte*(1-restart), k.Limit.Memory*megabyte),
+				Shape:  memoryShape,
+				Jitter: k.Usage.Memory.Jitter,
+				Tags: map[string]string{
+					"pod":       PodName,
+					"container": Container,
+					"image":     Service,
+					"namespace": Namespace,
+				},
+			},
+			{
+				Name:   "container_network_receive_bytes_total",
+				Type:   "Sum",
+				Min:    networkTarget * (1 + networkJitter),
+				Max:    networkTarget * (2000 + networkJitter),
+				Shape:  Average,
+				Jitter: k.Usage.Network.Jitter,
+				Tags: map[string]string{
+					"image": Service,
+				},
+			},
+			{
+				Name:   "container_network_transmit_bytes_total",
+				Type:   "Sum",
+				Min:    networkTarget * (1 + networkJitter),
+				Max:    networkTarget * (2000 + networkJitter),
+				Shape:  Average,
+				Jitter: k.Usage.Network.Jitter,
+				Tags: map[string]string{
+					"image": Service,
+				},
+			},
+			{
+				Name:   "container_network_receive_packets_total",
+				Type:   "Sum",
+				Min:    math.Max(networkTarget*(1-networkJitter), 0),
+				Max:    networkTarget * (1 + networkJitter),
+				Shape:  Average,
+				Jitter: k.Usage.Network.Jitter,
+				Tags: map[string]string{
+					"image": Service,
+				},
+			},
+			{
+				Name:   "container_network_transmit_packets_total",
+				Type:   "Sum",
+				Min:    math.Max(networkTarget*(1-networkJitter), 0),
+				Max:    networkTarget * (1 + networkJitter),
+				Shape:  Average,
+				Jitter: k.Usage.Network.Jitter,
+				Tags: map[string]string{
+					"image": Service,
+				},
+			},
+		}
+
+		for i := range podMetrics {
+			podMetrics[i].Pod = pod
+			metrics = append(metrics, podMetrics[i])
+		}
+
 	}
 
 	return metrics
