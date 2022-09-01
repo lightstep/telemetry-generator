@@ -128,6 +128,7 @@ func (g *TraceGenerator) createSpanForServiceRouteCall(traces *pdata.Traces, ser
 	//adds attributes to the tagSets that have specified weights
 	attr := span.Attributes()
 	chosen.Tags.InsertTags(&attr)
+	// chosen.CsvTags.InsertTags(&attr) - tag_map.go
 	for _, tg := range chosen.TagGenerators {
 		tg.Random = g.random
 		for k, v := range tg.GenerateTags() {
