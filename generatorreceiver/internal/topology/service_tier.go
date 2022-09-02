@@ -32,10 +32,9 @@ func (st *ServiceTier) GetTagSet(routeName string) TagSet {
 	}
 }
 
-func (st *ServiceTier) GetResourceAttributeSet() *ResourceAttributeSet {
+func (st *ServiceTier) GetResourceAttributeSet() ResourceAttributeSet {
 	// TODO: also support resource attributes on routes
-	chosenSet := pickBasedOnWeight(st.ResourceAttributeSets)
-	return &chosenSet
+	return pickBasedOnWeight(st.ResourceAttributeSets)
 }
 
 func (st *ServiceTier) GetRoute(routeName string) *ServiceRoute {
