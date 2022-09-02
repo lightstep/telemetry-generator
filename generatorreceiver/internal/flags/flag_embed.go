@@ -10,7 +10,7 @@ type EmbeddedFlags struct {
 	FlagUnset string `json:"flag_unset" yaml:"flag_unset"`
 }
 
-func (f *EmbeddedFlags) ShouldGenerate() bool {
+func (f EmbeddedFlags) ShouldGenerate() bool {
 	// TODO: use the set flag's _value_... somehow
 	if f.FlagSet != "" {
 		if set := Manager.GetFlag(f.FlagSet); !set.Active() {
@@ -25,11 +25,11 @@ func (f *EmbeddedFlags) ShouldGenerate() bool {
 	return true
 }
 
-func (f *EmbeddedFlags) IsDefault() bool {
+func (f EmbeddedFlags) IsDefault() bool {
 	return f.FlagSet == "" && f.FlagUnset == ""
 }
 
-func (f *EmbeddedFlags) GenerateStartTime() time.Time {
+func (f EmbeddedFlags) GenerateStartTime() time.Time {
 	if !f.ShouldGenerate() {
 		return time.UnixMilli(0)
 	}
@@ -51,7 +51,7 @@ func (f *EmbeddedFlags) GenerateStartTime() time.Time {
 	return u
 }
 
-func (f *EmbeddedFlags) ValidateFlags() error {
+func (f EmbeddedFlags) ValidateFlags() error {
 	if f.FlagSet != "" && Manager.GetFlag(f.FlagSet) == nil {
 		return fmt.Errorf("flag %v does not exist", f.FlagSet)
 	}
