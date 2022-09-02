@@ -13,6 +13,7 @@ func TestInsertTag(t *testing.T) {
 		"key2": "hi",
 		"key3": 123.123,
 		"key4": 10,
+		"key5": []string{"hello"},
 	}
 
 	ts := &TagSet{
@@ -28,5 +29,7 @@ func TestInsertTag(t *testing.T) {
 	expectedAttr.InsertString("key2", "hi")
 	expectedAttr.InsertDouble("key3", 123.123)
 	expectedAttr.InsertInt("key4", 10)
+	expectedAttr.InsertString("key5", "hello")
+
 	require.Equal(t, attr.Sort().AsRaw(), expectedAttr.Sort().AsRaw())
 }

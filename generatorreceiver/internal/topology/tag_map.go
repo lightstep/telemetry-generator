@@ -3,6 +3,7 @@ package topology
 import (
 	"fmt"
 	"go.opentelemetry.io/collector/model/pdata"
+	"math/rand"
 	"strconv"
 )
 
@@ -22,8 +23,9 @@ func (tm *TagMap) InsertTags(attr *pdata.AttributeMap) {
 			}
 		case bool:
 			attr.InsertBool(key, val)
+		case []string:
+			attr.InsertString(key, val[rand.Intn(len(val))])
 		default:
-
 			attr.InsertString(key, fmt.Sprint(val))
 		}
 	}
