@@ -2,11 +2,12 @@ package generatorreceiver
 
 import (
 	"fmt"
-	"github.com/lightstep/telemetry-generator/generatorreceiver/internal/topology"
-	"gopkg.in/yaml.v3"
 	"io/ioutil"
 	"os"
 	"strings"
+
+	"github.com/lightstep/telemetry-generator/generatorreceiver/internal/topology"
+	"gopkg.in/yaml.v3"
 )
 
 func hasAnySuffix(s string, suffixes []string) bool {
