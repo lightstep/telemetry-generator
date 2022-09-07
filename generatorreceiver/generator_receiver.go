@@ -3,13 +3,13 @@ package generatorreceiver
 import (
 	"context"
 	"fmt"
-	"github.com/lightstep/demo-environment/generatorreceiver/internal/cron"
+	"github.com/lightstep/telemetry-generator/generatorreceiver/internal/cron"
 	"math/rand"
 	"time"
 
-	"github.com/lightstep/demo-environment/generatorreceiver/internal/flags"
-	"github.com/lightstep/demo-environment/generatorreceiver/internal/generator"
-	"github.com/lightstep/demo-environment/generatorreceiver/internal/topology"
+	"github.com/lightstep/telemetry-generator/generatorreceiver/internal/flags"
+	"github.com/lightstep/telemetry-generator/generatorreceiver/internal/generator"
+	"github.com/lightstep/telemetry-generator/generatorreceiver/internal/topology"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/component/componenterror"
 	"go.opentelemetry.io/collector/consumer"

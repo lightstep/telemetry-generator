@@ -1,7 +1,7 @@
 package topology
 
 import (
-	"github.com/lightstep/demo-environment/generatorreceiver/internal/flags"
+	"github.com/lightstep/telemetry-generator/generatorreceiver/internal/flags"
 	"go.uber.org/zap"
 	"math"
 	"math/rand"
