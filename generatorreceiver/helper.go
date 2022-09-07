@@ -2,7 +2,7 @@ package generatorreceiver
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"strings"
 
@@ -28,7 +28,7 @@ func parseTopoFile(topoPath string) (*topology.File, error) {
 	}
 	defer topoFile.Close()
 
-	byteValue, _ := ioutil.ReadAll(topoFile)
+	byteValue, _ := io.ReadAll(topoFile)
 	lowerTopoPath := strings.ToLower(topoPath)
 	if hasAnySuffix(lowerTopoPath, []string{".yaml", ".yml"}) {
 		err = yaml.Unmarshal(byteValue, &topo)
