@@ -2,7 +2,7 @@ package generatorreceiver
 
 import (
 	"fmt"
-	"github.com/lightstep/demo-environment/generatorreceiver/internal/topology"
+	"github.com/lightstep/telemetry-generator/generatorreceiver/internal/topology"
 	"gopkg.in/yaml.v3"
 	"io/ioutil"
 	"os"
