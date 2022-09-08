@@ -23,7 +23,7 @@ func (ts *TagSet) loadCsvTags() error {
 
 	for name, path := range ts.CsvTags {
 		if ts.Tags[name] != nil {
-			return fmt.Errorf("csv tag %s was already defined in config file", name)
+			return fmt.Errorf("tag %s in csv file %s was already defined in yaml", name, path)
 		}
 		tags, err := readCsv(path)
 		if err != nil {
@@ -47,13 +47,13 @@ func readCsv(file string) ([]string, error) {
 		return nil, err
 	}
 	if len(data) == 0 {
-		return nil, fmt.Errorf("csv file cannot be empty")
+		return nil, fmt.Errorf("csv file %s cannot be empty", file)
 	}
 
 	tags := make([]string, 0, len(data))
 	for _, tag := range data {
 		if len(tag) != 1 {
-			return nil, fmt.Errorf("each row in csv file must contain exactly one string")
+			return nil, fmt.Errorf("each row in csv file %s must contain exactly one string", file)
 		}
 		str := tag[0]
 		tags = append(tags, str)
