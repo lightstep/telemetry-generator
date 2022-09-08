@@ -71,6 +71,12 @@ func (st *ServiceTier) Validate(topology Topology) error {
 
 func (st *ServiceTier) load(service string) error {
 	st.ServiceName = service
+	for i := range st.TagSets {
+		err := st.TagSets[i].loadCsvTags()
+		if err != nil {
+			return fmt.Errorf("error loading csv tags for service %s: %v", service, err)
+		}
+	}
 	for name, route := range st.Routes {
 		err := route.load(name)
 		if err != nil {
