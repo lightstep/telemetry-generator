@@ -17,6 +17,10 @@ type TagSet struct {
 }
 
 func (ts *TagSet) loadCsvTags() error {
+	if ts.Tags == nil && ts.CsvTags != nil {
+		ts.Tags = make(TagMap)
+	}
+
 	for name, path := range ts.CsvTags {
 		if ts.Tags[name] != nil {
 			return fmt.Errorf("csv tag %s was already defined in config file", name)
@@ -41,6 +45,9 @@ func readCsv(file string) ([]string, error) {
 	data, err := csvReader.ReadAll()
 	if err != nil {
 		return nil, err
+	}
+	if len(data) == 0 {
+		return nil, fmt.Errorf("csv file cannot be empty")
 	}
 
 	tags := make([]string, 0, len(data))
