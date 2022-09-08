@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/lightstep/demo-environment/generatorreceiver/internal/flags"
+	"github.com/lightstep/telemetry-generator/generatorreceiver/internal/flags"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 )

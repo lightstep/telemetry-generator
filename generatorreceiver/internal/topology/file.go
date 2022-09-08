@@ -2,7 +2,7 @@ package topology
 
 import (
 	"fmt"
-	"github.com/lightstep/demo-environment/generatorreceiver/internal/flags"
+	"github.com/lightstep/telemetry-generator/generatorreceiver/internal/flags"
 )
 
 type File struct {

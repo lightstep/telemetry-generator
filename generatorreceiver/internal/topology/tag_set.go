@@ -3,8 +3,9 @@ package topology
 import (
 	"encoding/csv"
 	"fmt"
-	"github.com/lightstep/demo-environment/generatorreceiver/internal/flags"
 	"os"
+
+	"github.com/lightstep/telemetry-generator/generatorreceiver/internal/flags"
 )
 
 type TagSet struct {

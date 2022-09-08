@@ -1,4 +1,4 @@
-module github.com/lightstep/demo-environment/generatorreceiver
+module github.com/lightstep/telemetry-generator/generatorreceiver
 
 go 1.18
 
