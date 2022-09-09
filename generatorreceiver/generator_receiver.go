@@ -69,7 +69,8 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 
 	for _, s := range topoFile.Topology.Services {
 		for i := range s.ResourceAttributeSets {
-			s.ResourceAttributeSets[i].Kubernetes.CreatePod(s.ServiceName)
+			s.ResourceAttributeSets[i].Kubernetes.Cfg = topoFile.Config
+			s.ResourceAttributeSets[i].Kubernetes.CreatePods(s.ServiceName)
 		}
 	}
 
@@ -134,7 +135,7 @@ func (g *generatorReceiver) startMetricGenerator(ctx context.Context, host compo
 		g.logger.Info("generating metrics", zap.String("service", serviceName), zap.String("name", m.Name), zap.String("flag_set", m.EmbeddedFlags.FlagSet), zap.String("flag_unset", m.EmbeddedFlags.FlagUnset))
 		metricGen := generator.NewMetricGenerator()
 		for range metricTicker.C {
-			m.Kubernetes.RestartIfNeeded(m.EmbeddedFlags, g.logger)
+			m.Pod.RestartIfNeeded(m.EmbeddedFlags, g.logger)
 
 			if metrics, report := metricGen.Generate(&m, serviceName); report {
 				err := g.metricConsumer.ConsumeMetrics(ctx, metrics)

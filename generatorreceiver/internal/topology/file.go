@@ -9,6 +9,15 @@ type File struct {
 	Topology   *Topology          `json:"topology" yaml:"topology"`
 	Flags      []flags.FlagConfig `json:"flags" yaml:"flags"`
 	RootRoutes []RootRoute        `json:"rootRoutes" yaml:"rootRoutes"`
+	Config     *Config            `json:"config" yaml:"config"`
+}
+
+type Config struct {
+	Kubernetes *KubernetesConfig
+}
+
+type KubernetesConfig struct {
+	PodCount int `json:"pod_count" yaml:"pod_count"`
 }
 
 type RootRoute struct {

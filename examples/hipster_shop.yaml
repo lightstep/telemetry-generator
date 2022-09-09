@@ -18,7 +18,11 @@ topology:
       resourceAttrSets:
         - weight: 1
           kubernetes:
-            cluster_name: k8s-cluster-1
+            pod_count: 7
+            restart:
+              every: 10m
+              jitter: 2m
+            cluster_name: k8s-cluster-23
             request:
               cpu: 0.5
               memory: 2048
@@ -162,7 +166,7 @@ topology:
                 error: true
                 http.status_code: 503
             - weight: 85
-              tags: {}
+              tags:
           maxLatencyMillis: 400
     recommendationservice:
       tagSets:
@@ -262,7 +266,7 @@ topology:
                 error: true
                 http.status_code: 503
             - weight: 85
-              tags: {}
+              tags:
           maxLatencyMillis: 500
     paymentservice:
       tagSets:
@@ -463,8 +467,8 @@ topology:
         /api/payment-status:
           maxLatencyMillis: 100
     android:
-      resourceAttrs:
-        - weight: 1 
+      resourceAttrSets:
+        - weight: 1
           resourceAttrs:
             instrument.name: lighstep
             http.method: POST
@@ -574,3 +578,7 @@ rootRoutes:
   - service: android  
     route: /api/make-payment
     tracesPerHour: 480
+
+config:
+  kubernetes:
+    pod_count: 1

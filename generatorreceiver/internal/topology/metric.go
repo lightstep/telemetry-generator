@@ -24,19 +24,19 @@ func (fs *funcShape) GetValue(phase float64) float64 {
 }
 
 type leakingShape struct {
-	average    ShapeInterface
-	kubernetes *Kubernetes
+	average ShapeInterface
+	pod     *Pod
 }
 
 func (ls *leakingShape) GetValue(phase float64) float64 {
-	if ls.kubernetes == nil {
+	if ls.pod == nil {
 		return ls.average.GetValue(phase)
 	}
 
-	timeAlive := time.Since(ls.kubernetes.StartTime)
+	timeAlive := time.Since(ls.pod.StartTime)
 
 	// Start at 35% and increase it to 100% right before the restart time.
-	factor := .35 + float64(timeAlive)/float64(ls.kubernetes.Restart.Every)*.7
+	factor := .35 + float64(timeAlive)/float64(ls.pod.RestartDuration)*.7
 
 	return factor
 }
@@ -64,12 +64,12 @@ type Metric struct {
 	Tags                map[string]string `json:"tags" yaml:"tags"`
 	Jitter              float64           `json:"jitter" yaml:"jitter"`
 	flags.EmbeddedFlags `json:",inline" yaml:",inline"`
-	Kubernetes          *Kubernetes
+	Pod                 *Pod
 }
 
 func (m *Metric) GetTags() map[string]string {
-	if m.Kubernetes != nil {
-		return m.Kubernetes.ReplaceTags(m.Tags)
+	if m.Pod != nil {
+		return m.Pod.ReplaceTags(m.Tags)
 	}
 
 	return m.Tags
@@ -92,7 +92,7 @@ func (m *Metric) InitMetric() {
 	case Average:
 		m.ShapeInterface = &funcShape{AverageValue}
 	case Leaking:
-		m.ShapeInterface = &leakingShape{average: &funcShape{AverageValue}, kubernetes: m.Kubernetes}
+		m.ShapeInterface = &leakingShape{average: &funcShape{AverageValue}, pod: m.Pod}
 	default:
 		// TODO: what would be a reasonable default? Maybe just sine?
 		m.ShapeInterface = &funcShape{SineValue}
