@@ -36,7 +36,7 @@ func (ls *leakingShape) GetValue(phase float64) float64 {
 	timeAlive := time.Since(ls.pod.StartTime)
 
 	// Start at 35% and increase it to 100% right before the restart time.
-	factor := .35 + float64(timeAlive)/float64(ls.pod.Kubernetes.Restart.Every)*.7
+	factor := .35 + float64(timeAlive)/float64(ls.pod.RestartDuration)*.7
 
 	return factor
 }

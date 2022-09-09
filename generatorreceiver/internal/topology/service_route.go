@@ -8,13 +8,12 @@ import (
 )
 
 type ServiceRoute struct {
-	Route                 string                 `json:"route" yaml:"route"`
-	DownstreamCalls       []Call                 `json:"downstreamCalls,omitempty" yaml:"downstreamCalls,omitempty"`
-	MaxLatencyMillis      int64                  `json:"maxLatencyMillis" yaml:"maxLatencyMillis"`
-	LatencyConfigs        LatencyConfigs         `json:"latencyConfigs" yaml:"latencyConfigs"`
-	TagSets               []TagSet               `json:"tagSets" yaml:"tagSets"`
-	ResourceAttributeSets []ResourceAttributeSet `json:"resourceAttrSets" yaml:"resourceAttrSets"`
-	flags.EmbeddedFlags   `json:",inline" yaml:",inline"`
+	Route               string         `json:"route" yaml:"route"`
+	DownstreamCalls     []Call         `json:"downstreamCalls,omitempty" yaml:"downstreamCalls,omitempty"`
+	MaxLatencyMillis    int64          `json:"maxLatencyMillis" yaml:"maxLatencyMillis"`
+	LatencyConfigs      LatencyConfigs `json:"latencyConfigs" yaml:"latencyConfigs"`
+	TagSets             []TagSet       `json:"tagSets" yaml:"tagSets"`
+	flags.EmbeddedFlags `json:",inline" yaml:",inline"`
 	// TODO: rename all references from `tag` to `attribute`, to follow the otel standard.
 }
 

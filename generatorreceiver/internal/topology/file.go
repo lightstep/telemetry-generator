@@ -13,9 +13,11 @@ type File struct {
 }
 
 type Config struct {
-	Kubernetes struct {
-		PodCount int64 `json:"pod_count" yaml:"pod_count"`
-	}
+	Kubernetes *KubernetesConfig
+}
+
+type KubernetesConfig struct {
+	PodCount int `json:"pod_count" yaml:"pod_count"`
 }
 
 type RootRoute struct {
