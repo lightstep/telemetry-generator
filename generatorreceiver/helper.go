@@ -2,11 +2,12 @@ package generatorreceiver
 
 import (
 	"fmt"
-	"github.com/lightstep/telemetry-generator/generatorreceiver/internal/topology"
-	"gopkg.in/yaml.v3"
-	"io/ioutil"
+	"io"
 	"os"
 	"strings"
+
+	"github.com/lightstep/telemetry-generator/generatorreceiver/internal/topology"
+	"gopkg.in/yaml.v3"
 )
 
 func hasAnySuffix(s string, suffixes []string) bool {
@@ -27,7 +28,7 @@ func parseTopoFile(topoPath string) (*topology.File, error) {
 	}
 	defer topoFile.Close()
 
-	byteValue, _ := ioutil.ReadAll(topoFile)
+	byteValue, _ := io.ReadAll(topoFile)
 	lowerTopoPath := strings.ToLower(topoPath)
 	if hasAnySuffix(lowerTopoPath, []string{".yaml", ".yml"}) {
 		err = yaml.Unmarshal(byteValue, &topo)
