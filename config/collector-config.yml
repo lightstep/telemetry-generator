@@ -16,7 +16,6 @@ receivers:
             - targets: ['0.0.0.0:8888']
 processors:
   batch:
-
   spanmetrics:
     metrics_exporter: otlp
     dimensions:
@@ -38,7 +37,7 @@ exporters:
     insecure_skip_verify: true
     insecure: "${OTEL_INSECURE}"
     headers:
-      "lightstep-access-token-internal": "${LS_ACCESS_TOKEN}"         
+      "lightstep-access-token": "${LS_ACCESS_TOKEN}"         
 
 service:
   pipelines:
