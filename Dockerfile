@@ -3,7 +3,7 @@ FROM golang:1.19.1 as builder
 RUN mkdir /build
 WORKDIR /build
 
-RUN GO111MODULE=on go get github.com/open-telemetry/opentelemetry-collector-builder@v0.35.0
+RUN GO111MODULE=on go install github.com/open-telemetry/opentelemetry-collector-builder@v0.35.0
 
 ADD . .
 
