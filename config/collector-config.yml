@@ -14,13 +14,17 @@ receivers:
           scrape_interval: 5s
           static_configs:
             - targets: ['0.0.0.0:8888']
+          relabel_configs:
+          - replacement: "internal-demo-otel-collector"
+            target_label: "service"
+            action: replace
+               
 processors:
   batch:
   spanmetrics:
     metrics_exporter: otlp
     dimensions:
       - name: http.method
-
 
 exporters:
   logging:
@@ -33,11 +37,11 @@ exporters:
       "lightstep-access-token": "${LS_ACCESS_TOKEN}"
   # export internal metrics to monitoring project  
   otlp/2:
-    endpoint: "${OTEL_EXPORTER_OTLP_TRACES_ENDPOINT}"
+    endpoint: "${OTEL_EXPORTER_OTLP_TRACES_ENDPOINT_INTERNAL}"
     insecure_skip_verify: true
     insecure: "${OTEL_INSECURE}"
     headers:
-      "lightstep-access-token": "${LS_ACCESS_TOKEN}"         
+      "lightstep-access-token": "${LS_ACCESS_TOKEN_INTERNAL}"         
 
 service:
   pipelines:
@@ -54,7 +58,6 @@ service:
     metrics/2:
       receivers:
       - prometheus
-      processors: {}
       exporters:
       - otlp/2
     traces:
