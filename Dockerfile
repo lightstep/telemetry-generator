@@ -1,4 +1,4 @@
-FROM golang:1.17-stretch as builder
+FROM golang:1.19.1 as builder
 
 RUN mkdir /build
 WORKDIR /build
