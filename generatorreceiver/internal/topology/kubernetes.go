@@ -140,6 +140,10 @@ func (k *Kubernetes) randomPod() *Pod {
 
 // only called from tag generator!
 func (k *Kubernetes) GetK8sTags() map[string]string {
+	if k.pods == nil {
+		return map[string]string{}
+	}
+
 	k.mutex.Lock()
 	defer k.mutex.Unlock()
 
