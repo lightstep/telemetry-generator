@@ -69,8 +69,12 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 
 	for _, s := range topoFile.Topology.Services {
 		for i := range s.ResourceAttributeSets {
-			s.ResourceAttributeSets[i].Kubernetes.Cfg = topoFile.Config
-			s.ResourceAttributeSets[i].Kubernetes.CreatePods(s.ServiceName)
+			k := s.ResourceAttributeSets[i].Kubernetes
+			if k == nil {
+				continue
+			}
+			k.Cfg = topoFile.Config
+			k.CreatePods(s.ServiceName)
 		}
 	}
 
@@ -87,6 +91,9 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 			for i := range s.ResourceAttributeSets {
 				resource := &s.ResourceAttributeSets[i]
 				// For each resource generate k8s metrics if enabled
+				if resource.Kubernetes == nil {
+					continue
+				}
 				k8sMetrics := resource.Kubernetes.GenerateMetrics()
 				for i := range k8sMetrics {
 					// keep the same flags as the resources.
