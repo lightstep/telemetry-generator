@@ -27,7 +27,7 @@ func (g *MetricGenerator) Generate(metric *topology.Metric, serviceName string) 
 	}
 
 	rms := metrics.ResourceMetrics().AppendEmpty()
-	rms.Resource().Attributes().PutStr("service.name", serviceName)
+	rms.Resource().Attributes().PutString("service.name", serviceName)
 
 	m := rms.ScopeMetrics().AppendEmpty().Metrics().AppendEmpty()
 	m.SetName(metric.Name)
@@ -35,22 +35,22 @@ func (g *MetricGenerator) Generate(metric *topology.Metric, serviceName string) 
 		m.SetEmptyGauge()
 		dp := m.Gauge().DataPoints().AppendEmpty()
 		dp.SetTimestamp(pcommon.NewTimestampFromTime(time.Now()))
-		dp.SetDoubleValue(metric.GetValue())
+		dp.SetDoubleVal(metric.GetValue())
 		for k, v := range metric.GetTags() {
-			dp.Attributes().PutStr(k, v)
+			dp.Attributes().PutString(k, v)
 		}
 	} else if metric.Type == "Sum" {
 		// TODO: support int-type values
 		// TODO: support cumulative?
 		m.SetEmptySum()
 		m.Sum().SetIsMonotonic(true)
-		m.Sum().SetAggregationTemporality(pmetric.AggregationTemporalityDelta)
+		m.Sum().SetAggregationTemporality(pmetric.MetricAggregationTemporalityDelta)
 		dp := m.Sum().DataPoints().AppendEmpty()
 		dp.SetStartTimestamp(pcommon.NewTimestampFromTime(time.Now()))
 		dp.SetTimestamp(pcommon.NewTimestampFromTime(time.Now()))
-		dp.SetDoubleValue(metric.GetValue())
+		dp.SetDoubleVal(metric.GetValue())
 		for k, v := range metric.GetTags() {
-			dp.Attributes().PutStr(k, v)
+			dp.Attributes().PutString(k, v)
 		}
 	}
 	// TODO: support histograms!

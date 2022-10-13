@@ -19,14 +19,14 @@ func (tm *TagMap) InsertTags(attr *pcommon.Map) {
 		case string:
 			_, err := strconv.Atoi(val)
 			if err != nil {
-				attr.PutStr(key, val)
+				attr.PutString(key, val)
 			}
 		case bool:
 			attr.PutBool(key, val)
 		case []string:
-			attr.PutStr(key, val[rand.Intn(len(val))])
+			attr.PutString(key, val[rand.Intn(len(val))])
 		default:
-			attr.PutStr(key, fmt.Sprint(val))
+			attr.PutString(key, fmt.Sprint(val))
 		}
 	}
 }

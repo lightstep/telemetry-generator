@@ -3,8 +3,8 @@ module github.com/lightstep/telemetry-generator/generatorreceiver
 go 1.18
 
 require (
-	go.opentelemetry.io/collector v0.62.0
-	go.opentelemetry.io/collector/pdata v0.62.0
+	go.opentelemetry.io/collector v0.60.0
+	go.opentelemetry.io/collector/pdata v0.60.0
 )
 
 require (
