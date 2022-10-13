@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.opentelemetry.io/collector/model/pdata"
+	"go.opentelemetry.io/collector/pdata/pcommon"
 )
 
 func TestTagMap_InsertTag(t *testing.T) {
@@ -24,18 +24,18 @@ func TestTagMap_InsertTag(t *testing.T) {
 		Tags: tags,
 	}
 
-	attr := pdata.NewAttributeMap()
+	attr := pcommon.NewMap()
 
 	rand.Seed(123)
 	ts.Tags.InsertTags(&attr)
 
-	expectedAttr := pdata.NewAttributeMap()
-	expectedAttr.InsertBool("key1", true)
-	expectedAttr.InsertString("key2", "hi")
-	expectedAttr.InsertDouble("key3", 123.123)
-	expectedAttr.InsertInt("key4", 10)
+	expectedAttr := pcommon.NewMap()
+	expectedAttr.PutBool("key1", true)
+	expectedAttr.PutStr("key2", "hi")
+	expectedAttr.PutDouble("key3", 123.123)
+	expectedAttr.PutInt("key4", 10)
 	rand.Seed(123)
-	expectedAttr.InsertString("key5", csvTags[rand.Intn(len(csvTags))])
+	expectedAttr.PutStr("key5", csvTags[rand.Intn(len(csvTags))])
 
 	require.Equal(t, attr.Sort().AsRaw(), expectedAttr.Sort().AsRaw())
 }

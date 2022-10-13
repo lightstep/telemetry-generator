@@ -5,8 +5,9 @@ receivers:
     inline: "${TOPO_INLINE}"
     api:
       endpoint: 0.0.0.0:9999
-      cors_allowed_origins:
-        - '*'
+      cors:
+        allowed_origins:
+          - '*'
   prometheus:
     config:
       scrape_configs:

@@ -91,7 +91,11 @@ func (h *httpServer) Start(_ context.Context, host component.Host) error {
 
 	var listener net.Listener
 	var err error
-	h.server = h.config.ApiIngress.ToServer(handler)
+	h.server, err = h.config.ApiIngress.ToServer(host, component.TelemetrySettings{Logger: h.logger}, handler)
+	if err != nil {
+		h.logger.Fatal("failed to create server at address %s: %w", zap.String("endpoint", h.config.ApiIngress.Endpoint), zap.Error(err))
+		return err
+	}
 	listener, err = h.config.ApiIngress.ToListener()
 	if err != nil {
 		h.logger.Fatal("failed to bind to address %s: %w", zap.String("endpoint", h.config.ApiIngress.Endpoint), zap.Error(err))

@@ -11,7 +11,6 @@ import (
 	"github.com/lightstep/telemetry-generator/generatorreceiver/internal/generator"
 	"github.com/lightstep/telemetry-generator/generatorreceiver/internal/topology"
 	"go.opentelemetry.io/collector/component"
-	"go.opentelemetry.io/collector/component/componenterror"
 	"go.opentelemetry.io/collector/consumer"
 	"go.uber.org/zap"
 )
@@ -172,7 +171,7 @@ func newMetricReceiver(config *Config,
 	logger *zap.Logger, randomSeed int64) (component.MetricsReceiver, error) {
 
 	if consumer == nil {
-		return nil, componenterror.ErrNilNextConsumer
+		return nil, component.ErrNilNextConsumer
 	}
 
 	genReceiver.logger = logger
@@ -198,7 +197,7 @@ func newTraceReceiver(config *Config,
 	logger *zap.Logger, randomSeed int64) (component.TracesReceiver, error) {
 
 	if consumer == nil {
-		return nil, componenterror.ErrNilNextConsumer
+		return nil, component.ErrNilNextConsumer
 	}
 
 	genReceiver.logger = logger

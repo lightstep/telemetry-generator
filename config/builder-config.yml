@@ -9,8 +9,8 @@ receivers:
   - gomod: "github.com/lightstep/telemetry-generator/generatorreceiver v0.10.0"
     name: "generatorreceiver"
     path: "./generatorreceiver"
-  - gomod: "github.com/open-telemetry/opentelemetry-collector-contrib/receiver/prometheusreceiver v0.35.0"
+  - gomod: "github.com/open-telemetry/opentelemetry-collector-contrib/receiver/prometheusreceiver v0.61.0"
     name: "prometheusreceiver"
 processors:
-  - gomod: "github.com/open-telemetry/opentelemetry-collector-contrib/processor/spanmetricsprocessor v0.35.0"
+  - gomod: "github.com/open-telemetry/opentelemetry-collector-contrib/processor/spanmetricsprocessor v0.61.0"
     name: "spanmetricsprocessor"
