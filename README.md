@@ -15,13 +15,8 @@ $ export OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=ingest.lightstep.com:443
 $ docker run -e LS_ACCESS_TOKEN --rm ghcr.io/lightstep//telemetry-generator:latest
 ```
 ### OpenTelemetry collector builder
-Install the `opentelemetry-collector-builder`; this is deprecated but its replacement does not work with the old version of the collector we're still pinned to.
-   1. `$ cd /tmp` (or wherever you like to keep code)
-   1. `$ git clone https://github.com/open-telemetry/opentelemetry-collector-builder`
-   1. `$ cd opentelemetry-collector-builder`
-   1. `$ git checkout v0.35.0`
-   1. `$ go get -u golang.org/x/sys`
-   1. `$ go install .`
+Install the `opentelemetry-collector-builder`:
+   1. `$ go install go.opentelemetry.io/collector/cmd/builder@v0.60.0`
 
 ### Get the code
 1. Clone the [telemetry generator repo](https://github.com/lightstep/telemetry-generator) to a directory of your choosing:
