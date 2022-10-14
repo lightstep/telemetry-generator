@@ -15,7 +15,7 @@ $ export OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=ingest.lightstep.com:443
 $ docker run -e LS_ACCESS_TOKEN --rm ghcr.io/lightstep//telemetry-generator:latest
 ```
 ### OpenTelemetry collector builder
-Install the `opentelemetry-collector-builder`:
+Install the [OpenTelemetry Collector Builder](https://github.com/open-telemetry/opentelemetry-collector/tree/main/cmd/builder):
    1. `$ go install go.opentelemetry.io/collector/cmd/builder@v0.60.0`
 
 ### Get the code
@@ -48,7 +48,7 @@ $ export OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=ingest.lightstep.com:443
 
 The env var `TOPO_FILE` determines which config file the generatorreceiver uses.
 
-If you use the opentelemetry-collector-builder you'll want to point to `examples/<filename.yaml>`:
+If you're using the `builder` you'll want to point to `examples/<filename.yaml>`:
 
 ```shell
 $ export TOPO_FILE=examples/dev.yaml
@@ -62,17 +62,17 @@ $ export TOPO_FILE=/etc/otel/dev.yaml
 
 ## Build and run the collector
 
-There are two options here, but if possible we recommend using the opentelemetry-collector-builder, which is much faster and lets you test config changes without rebuilding. With the Docker build method, you need to rebuild the image for all changes, code or config, and the build process takes much longer.
+There are two options here, but if possible we recommend using the OpenTelemetry Collector Builder, which is much faster and lets you test config changes without rebuilding. With the Docker build method, you need to rebuild the image for all changes, code or config, and the build process takes much longer.
 
-### Build and run with the opentelemetry-collector-builder (recommended)
+### Build and run with the OpenTelemetry Collector Builder (recommended)
 
-(You must first install the `opentelemetry-collector-builder`; see Prerequisites above.)
+(You must first install the `builder`; see Prerequisites above.)
 ```shell
-$ opentelemetry-collector-builder --config config/builder-config.yml
+$ builder --config config/builder-config.yml
 $ build/telemetry-generator --config config/collector-config.yml
 ```
 
-When using the builder, you only need to re-run the first command for code changes; for config changes just re-run the second command. To run with a different topo file, change the `TOPO_FILE` environment variable.
+When using the `builder`, you only need to re-run the first command for code changes; for config changes just re-run the second command. To run with a different topo file, change the `TOPO_FILE` environment variable.
 
 If you run into errors while building, please open [an issue](https://github.com/lightstep/telemetry-generator).
 

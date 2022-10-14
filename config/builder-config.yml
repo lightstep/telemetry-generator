@@ -2,7 +2,6 @@ dist:
     module: github.com/lightstep/telemetry-generator # the module name for the new distribution, following Go mod conventions. Optional, but recommended.
     name: telemetry-generator
     description: "Custom Lightstep Partner OpenTelemetry Collector distribution" # a long name for the application. Optional.
-    include_core: true # whether the core components should be included in the distribution. Optional.
     output_path: build # the path to write the output (sources and binary). Optional.
     version: "0.10.0" # the version for your custom OpenTelemetry Collector. Optional.
 receivers:
@@ -11,6 +10,13 @@ receivers:
     path: "./generatorreceiver"
   - gomod: "github.com/open-telemetry/opentelemetry-collector-contrib/receiver/prometheusreceiver v0.61.0"
     name: "prometheusreceiver"
+exporters:
+  - import: go.opentelemetry.io/collector/exporter/otlpexporter
+    gomod: go.opentelemetry.io/collector v0.61.0
+  - import: go.opentelemetry.io/collector/exporter/loggingexporter
+    gomod: go.opentelemetry.io/collector v0.61.0
 processors:
   - gomod: "github.com/open-telemetry/opentelemetry-collector-contrib/processor/spanmetricsprocessor v0.61.0"
     name: "spanmetricsprocessor"
+  - import: go.opentelemetry.io/collector/processor/batchprocessor
+    gomod: go.opentelemetry.io/collector v0.61.0
