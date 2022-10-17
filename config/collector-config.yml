@@ -3,10 +3,6 @@ receivers:
   generator:
     path: "${TOPO_FILE}"
     inline: "${TOPO_INLINE}"
-    api:
-      endpoint: 0.0.0.0:9999
-      cors_allowed_origins:
-        - '*'
   prometheus:
     config:
       scrape_configs:
@@ -31,8 +27,9 @@ exporters:
   # Export to Lightstep Public Satellites
   otlp:
     endpoint: "${OTEL_EXPORTER_OTLP_TRACES_ENDPOINT}"
-    insecure_skip_verify: true
-    insecure: "${OTEL_INSECURE}"
+    tls:
+      insecure_skip_verify: true
+      insecure: "${OTEL_INSECURE}"
     headers:
       "lightstep-access-token": "${LS_ACCESS_TOKEN}"
     sending_queue:
@@ -41,8 +38,9 @@ exporters:
   # export internal metrics to monitoring project  
   otlp/2:
     endpoint: "${OTEL_EXPORTER_OTLP_TRACES_ENDPOINT_INTERNAL}"
-    insecure_skip_verify: true
-    insecure: "${OTEL_INSECURE}"
+    tls:
+      insecure_skip_verify: true
+      insecure: "${OTEL_INSECURE}"
     headers:
       "lightstep-access-token": "${LS_ACCESS_TOKEN_INTERNAL}"         
 
