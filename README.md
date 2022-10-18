@@ -87,11 +87,11 @@ When building with Docker, you need to re-run both steps for any code *or* confi
 ## Publishing a Release
 These steps enable a new Docker image to be available with `docker pull ghcr.io/lightstep/telemetry-generator:<tag>`
 
-0. Make whatever changes you're ready to do, add into a release.
-1. Update VERSION in the file `VERSION`
-2. Update CHANGELOG.md
-3. Create PR, get approvals, merge changes
-4. Run `make add-tag` 
+0. Make your code changes and add to a new PR, ensure to include an:
+   * Update to VERSION in the file `VERSION`
+   * Update to `CHANGELOG.md`
+1. Create PR, get approvals, merge changes
+2. Run `make add-tag` 
     * (This will run `git tag` under the hood using the version number in VERSION)
-5. Run `make push-tag`
-    & (This will push the tags to Github. **THIS** is the operation that will kick off the GHA workflow, build  and push a new image out to GHCR.io)
+3. Run `make push-tag`
+    * (This will push the tags to Github. **THIS** is the operation that will kick off the GHA workflow, build  and push a new image out to GHCR.io)
