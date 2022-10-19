@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.2](https://github.com/lightstep/telemetry-generator/releases/tag/v0.11.2) - 2022-10-19
+### Changed
+* Dockerfile to make use of proper builder module.
 ## [0.11.1](https://github.com/lightstep/telemetry-generator/releases/tag/v0.11.1) - 2022-10-19
 ### Changed
 * (NO-OP) Changed VERSION while testing workflow.

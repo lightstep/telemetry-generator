@@ -3,11 +3,11 @@ FROM golang:1.19.1 as builder
 RUN mkdir /build
 WORKDIR /build
 
-RUN GO111MODULE=on go install github.com/open-telemetry/opentelemetry-collector-builder@v0.60.0
+RUN GO111MODULE=on go install go.opentelemetry.io/collector/cmd/builder@v0.60.0 
 
 ADD . .
 
-RUN /go/bin/opentelemetry-collector-builder --config /build/config/builder-config.yml
+RUN builder --config /build/config/builder-config.yml
 
 FROM debian:stretch-slim
 
