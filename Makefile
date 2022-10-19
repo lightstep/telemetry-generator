@@ -1,3 +1,5 @@
+TAG := "v$(shell cat ./VERSION)"
+
 .PHONY: test
 test:
 	$(MAKE) -C generatorreceiver test
