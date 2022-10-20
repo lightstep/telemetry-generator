@@ -20,5 +20,5 @@ processors:
     name: "spanmetricsprocessor"
   - import: go.opentelemetry.io/collector/processor/batchprocessor
     gomod: go.opentelemetry.io/collector v0.61.0
-  - import: go.opentelemetry.io/collector/processor/memorylimiter
+  - import: go.opentelemetry.io/collector/processor/memorylimiterprocessor
     gomod: go.opentelemetry.io/collector v0.61.0
