@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.3](https://github.com/lightstep/telemetry-generator/releases/tag/v0.11.3) - 2022-10-20
+### Added
+* Make targets for building the binary and docker image.
+* Memory limiter processor in build config.
+* Github action step for `make build` in pr automation.
+
 ## [0.11.2](https://github.com/lightstep/telemetry-generator/releases/tag/v0.11.2) - 2022-10-19
 ### Changed
 * Dockerfile to make use of proper builder module.
