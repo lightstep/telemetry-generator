@@ -9,7 +9,7 @@ import (
 
 const DefaultPeriod = 60 * time.Minute
 const DefaultOffset = 0 * time.Minute
-const DefaultMetricTickerPeriod = 1 * time.Second
+const DefaultMetricTickerPeriod = 15 * time.Second
 
 type ShapeInterface interface {
 	GetValue(phase float64) float64
