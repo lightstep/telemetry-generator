@@ -13,6 +13,7 @@ add-tag:
 	@[ "${TAG}" ] || ( echo ">> env var TAG is not set"; exit 1 )
 	@echo "Adding tag ${TAG}"
 	@git tag -a ${TAG} -m "Version ${TAG}"
+	@git tag -a generatorreceiver/${TAG} -m "Version ${TAG} for module generatorreceiver"
 
 
 .PHONY: push-tag
@@ -20,6 +21,7 @@ push-tag:
 	@[ "${TAG}" ] || ( echo ">> env var TAG is not set"; exit 1 )
 	@echo "Pushing tag ${TAG}"
 	@git push git@github.com:lightstep/telemetry-generator.git ${TAG}
+	@git push git@github.com:lightstep/telemetry-generator.git generatorreceiver/${TAG}
 
 .PHONY: install-otel-builder
 install-otel-builder:
