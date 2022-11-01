@@ -33,4 +33,13 @@ build: install-otel-builder
 
 .PHONY: docker-build
 docker-build:
-	docker build . -f ./Dockerfile
+	docker build . -f ./Dockerfile -t local-telemetry-generator-demo
+
+docker-run:
+	docker run --rm -e LS_ACCESS_TOKEN \
+	-e LS_ACCESS_TOKEN_INTERNAL \
+	-e OTEL_EXPORTER_OTLP_TRACES_ENDPOINT \
+	-e OTEL_EXPORTER_OTLP_TRACES_ENDPOINT_INTERNAL \
+	--env TOPO_FILE=/etc/otel/hipster_shop.yaml \
+	local-telemetry-generator-demo:latest
+	

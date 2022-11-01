@@ -27,10 +27,14 @@ Install the [OpenTelemetry Collector Builder](https://github.com/open-telemetry/
    `$ cp examples/hipster_shop.yaml examples/dev.yaml`
 
 ## Environment variables
+* LS_ACCESS_TOKEN = Access token used for sending DEMO telemetry 
+* LS_ACCESS_TOKEN_INTERNAL = Access token used for sending META (self monitoring) telemetry
+* OTEL_EXPORTER_OTLP_TRACES_ENDPOINT = Endpoint for ingesting DEMO telemetry
+* OTEL_EXPORTER_OTLP_TRACES_ENDPOINT_INTERNAL = Endpoint for ingesting META telemetry.
 
 ### Access token
 
-To send telemetery data to Lightstep, you'll need an access token associated with the lightstep project you want to use. Go to ⚙ -> Access Tokens to copy an existing one or create a new one. Then:
+To send demo telemetry data to Lightstep, you'll need an access token associated with the lightstep project you want to use. Go to ⚙ -> Access Tokens to copy an existing one or create a new one. Then:
 
 ```shell
 $ export LS_ACCESS_TOKEN="<your token>"
@@ -38,7 +42,7 @@ $ export LS_ACCESS_TOKEN="<your token>"
 
 ### Collector endpoint
 
-The env var `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` determines the endpoint for traces and metrics. To send data to Lightstep, use:
+The env var `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` determines the endpoint for demo traces and metrics. To send data to Lightstep, use:
 
 ```shell
 $ export OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=ingest.lightstep.com:443
@@ -60,11 +64,14 @@ For Docker builds, these files are copied to `/etc/otel/`, so set `TOPO_FILE` li
 $ export TOPO_FILE=/etc/otel/dev.yaml
 ```
 
+# Development Workflows
+> These steps build the collector from the source in this repo.
+
 ## Build and run the collector
 
 There are two options here, but if possible we recommend using the OpenTelemetry Collector Builder, which is much faster and lets you test config changes without rebuilding. With the Docker build method, you need to rebuild the image for all changes, code or config, and the build process takes much longer.
 
-### Build and run with the OpenTelemetry Collector Builder (recommended)
+### 1. Build and run with the OpenTelemetry Collector Builder (recommended)
 
 (You must first install the `builder`; see Prerequisites above.)
 ```shell
@@ -76,10 +83,14 @@ When using the `builder`, you only need to re-run the first command for code cha
 
 If you run into errors while building, please open [an issue](https://github.com/lightstep/telemetry-generator).
 
-### Build and run with Docker (alternative)
+### 2. Build and run with Docker (alternative)
 ```shell
-$ docker build -t lightstep/telemetry-generator:latest .
-$ docker run --rm -e LS_ACCESS_TOKEN -e OTEL_EXPORTER_OTLP_TRACES_ENDPOINT -e TOPO_FILE lightstep/telemetry-generator:latest
+$ docker build -t lightstep/local-telemetry-generator:latest .
+$ export LS_ACCESS_TOKEN=<access-token-for-demo-telemetry>
+$ export LS_ACCESS_TOKEN_INTERNAL=<access-token-for-meta-telemetry>
+$ export OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=<ingest-endpoint-for-demo-telemetry>
+$ export OTEL_EXPORTER_OTLP_TRACES_ENDPOINT_INTERNAL=<ingest-endpoint-for-meta-telemetry>
+$ docker run --rm -e LS_ACCESS_TOKEN -e LS_ACCESS_TOKEN_INTERNAL -e OTEL_EXPORTER_OTLP_TRACES_ENDPOINT -e OTEL_EXPORTER_TRACES_ENDPOINT_INTERNAL --env TOPO_FILE=/etc/otel/hipster_shop.yaml lightstep/local-telemetry-generator:latest
 ```
 
 When building with Docker, you need to re-run both steps for any code *or* config changes. If you run into errors while building, please open [an issue](https://github.com/lightstep/telemetry-generator).

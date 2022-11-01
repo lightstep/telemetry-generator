@@ -4,6 +4,21 @@ on:
   push:
     tags:
       - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
+  workflow_dispatch:
+    inputs:
+      logLevel:
+        description: 'Log level'
+        required: true
+        default: 'warning'
+        type: choice
+        options:
+        - info
+        - warning
+        - debug
+      tags:
+        description: 'Test workflow'
+        required: false
+        type: boolean
 
 jobs:
   Deploy:
@@ -35,5 +50,7 @@ jobs:
         with:
           push: true # Pushes after image build
           context: ./
+          build-args: |
+            TAG=${{github.ref_name}}
           tags: |
             ghcr.io/${{ github.repository }}:${{ github.ref_name }} , ghcr.io/${{ github.repository }}:latest

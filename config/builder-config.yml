@@ -3,7 +3,8 @@ dist:
     name: telemetry-generator
     description: "Custom Lightstep Partner OpenTelemetry Collector distribution" # a long name for the application. Optional.
     output_path: build # the path to write the output (sources and binary). Optional.
-    version: "0.10.0" # the version for your custom OpenTelemetry Collector. Optional.
+    version: "${TAG}" # Builder config gets overriden by Docker build.
+    # the version for your custom OpenTelemetry Collector. Optional. NOTE - this will be overriden by CI/CD during deployment.
 receivers:
   - gomod: "github.com/lightstep/telemetry-generator/generatorreceiver v0.10.0"
     name: "generatorreceiver"
