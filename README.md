@@ -12,7 +12,7 @@ For defaults, see `Dockerfile`.
 $ export LS_ACCESS_TOKEN=your token
 # can override to any other OTLP endpoint
 $ export OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=ingest.lightstep.com:443
-$ docker run -e LS_ACCESS_TOKEN --rm ghcr.io/lightstep//telemetry-generator:latest
+$ docker run -e LS_ACCESS_TOKEN --rm ghcr.io/lightstep/telemetry-generator:latest
 ```
 ### OpenTelemetry collector builder
 Install the [OpenTelemetry Collector Builder](https://github.com/open-telemetry/opentelemetry-collector/tree/main/cmd/builder):
