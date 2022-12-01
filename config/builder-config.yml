@@ -23,3 +23,5 @@ processors:
     gomod: go.opentelemetry.io/collector v0.61.0
   - import: go.opentelemetry.io/collector/processor/memorylimiterprocessor
     gomod: go.opentelemetry.io/collector v0.61.0
+  - gomod: "github.com/open-telemetry/opentelemetry-collector-contrib/processor/attributesprocessor v0.61.0"
+    name: "attributesprocessor"
