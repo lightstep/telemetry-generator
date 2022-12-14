@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/lightstep/telemetry-generator/generatorreceiver/internal/cron"
+	"go.opentelemetry.io/collector/receiver"
 	"math/rand"
 	"time"
 
@@ -168,7 +169,7 @@ func (g generatorReceiver) Shutdown(_ context.Context) error {
 
 func newMetricReceiver(config *Config,
 	consumer consumer.Metrics,
-	logger *zap.Logger, randomSeed int64) (component.MetricsReceiver, error) {
+	logger *zap.Logger, randomSeed int64) (receiver.Metrics, error) {
 
 	if consumer == nil {
 		return nil, component.ErrNilNextConsumer
@@ -194,7 +195,7 @@ func newMetricReceiver(config *Config,
 
 func newTraceReceiver(config *Config,
 	consumer consumer.Traces,
-	logger *zap.Logger, randomSeed int64) (component.TracesReceiver, error) {
+	logger *zap.Logger, randomSeed int64) (receiver.Traces, error) {
 
 	if consumer == nil {
 		return nil, component.ErrNilNextConsumer

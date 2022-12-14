@@ -31,13 +31,15 @@ func TestTagMap_InsertTag(t *testing.T) {
 
 	expectedAttr := pcommon.NewMap()
 	expectedAttr.PutBool("key1", true)
-	expectedAttr.PutString("key2", "hi")
+	expectedAttr.PutStr("key2", "hi")
 	expectedAttr.PutDouble("key3", 123.123)
 	expectedAttr.PutInt("key4", 10)
 	rand.Seed(123)
-	expectedAttr.PutString("key5", csvTags[rand.Intn(len(csvTags))])
+	expectedAttr.PutStr("key5", csvTags[rand.Intn(len(csvTags))])
 
-	require.Equal(t, attr.Sort().AsRaw(), expectedAttr.Sort().AsRaw())
+	attr.Sort()
+	expectedAttr.Sort()
+	require.Equal(t, attr.AsRaw(), expectedAttr.AsRaw())
 }
 
 func TestTagSet_loadCsvTags(t *testing.T) {
