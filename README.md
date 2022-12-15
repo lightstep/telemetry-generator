@@ -16,7 +16,7 @@ $ docker run -e LS_ACCESS_TOKEN --rm ghcr.io/lightstep/telemetry-generator:lates
 ```
 ### OpenTelemetry collector builder
 Install the [OpenTelemetry Collector Builder](https://github.com/open-telemetry/opentelemetry-collector/tree/main/cmd/builder):
-   1. `$ go install go.opentelemetry.io/collector/cmd/builder@v0.60.0`
+   1. `$ go install go.opentelemetry.io/collector/cmd/builder@v0.67.0`
 
 ### Get the code
 1. Clone the [telemetry generator repo](https://github.com/lightstep/telemetry-generator) to a directory of your choosing:
@@ -101,8 +101,30 @@ These steps enable a new Docker image to be available with `docker pull ghcr.io/
 0. Make your code changes and add to a new PR, ensure to include an:
    * Update to VERSION in the file `VERSION`
    * Update to `CHANGELOG.md`
+   * Update to [Compatibility Matrix](#compatibility-matrix) below.
 1. Create PR, get approvals, merge changes
 2. Run `make add-tag` 
     * (This will run `git tag` under the hood using the version number in VERSION)
 3. Run `make push-tag`
     * (This will push the tags to Github. **THIS** is the operation that will kick off the GHA workflow, build  and push a new image out to GHCR.io)
+
+## Compatibility Matrix
+Telemetry generator should be built with the compatible open-telemetry Collector 
+builder binary, with [collector](https://github.com/open-telemetry/opentelemetry-collector)
+and [collector-contrib](https://github.com/open-telemetry/opentelemetry-collector-contrib) 
+components of the same version. Below is a matrix showing the correct collector 
+version for the 10 most recent telemetry-generator versions.
+
+
+| Telemetry Generator | OpenTelemetry Collector |
+|---------------------|-------------------------|
+| v0.11.8             | v0.67.0                 |
+| v0.11.7             | v0.60.0                 |
+| v0.11.6             | v0.60.0                 |
+| v0.11.5             | v0.60.0                 |
+| v0.11.4             | v0.60.0                 |
+| v0.11.3             | v0.60.0                 |
+| v0.11.2             | v0.60.0                 |
+| v0.11.1             | v0.60.0                 |
+| v0.11.0             | v0.60.0                 |
+| v0.10.0             | v0.35.0                 |

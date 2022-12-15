@@ -76,7 +76,7 @@ func (g *TraceGenerator) createSpanForServiceRouteCall(traces *ptrace.Traces, se
 
 	resource := rspan.Resource()
 
-	resource.Attributes().PutString(string(semconv.ServiceNameKey), serviceTier.ServiceName)
+	resource.Attributes().PutStr(string(semconv.ServiceNameKey), serviceTier.ServiceName)
 
 	resourceAttributeSet := serviceTier.GetResourceAttributeSet()
 	attrs := resource.Attributes()
@@ -93,7 +93,7 @@ func (g *TraceGenerator) createSpanForServiceRouteCall(traces *ptrace.Traces, se
 	span.SetParentSpanID(parentSpanId)
 	span.SetSpanID(newSpanId)
 	span.SetKind(ptrace.SpanKindServer)
-	span.Attributes().PutString("load_generator.seq_num", fmt.Sprintf("%v", g.sequenceNumber))
+	span.Attributes().PutStr("load_generator.seq_num", fmt.Sprintf("%v", g.sequenceNumber))
 
 	ts := serviceTier.GetTagSet(routeName) // ts is single TagSet consisting of tags from the service AND route
 	attr := span.Attributes()
@@ -102,7 +102,7 @@ func (g *TraceGenerator) createSpanForServiceRouteCall(traces *ptrace.Traces, se
 	for _, tg := range ts.TagGenerators {
 		tg.Random = g.random
 		for k, v := range tg.GenerateTags() {
-			span.Attributes().PutString(k, v) // add generated tags to span attributes
+			span.Attributes().PutStr(k, v) // add generated tags to span attributes
 		}
 	}
 

@@ -4,37 +4,55 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [Unreleased](https://github.com/lightstep/telemetry-generator/compare/v0.11.8...HEAD)
 
-## [0.11.5](https://github.com/lightstep/telemetry-generator/releases/tag/v0.11.5) - 2022-11-01
+## [0.11.8](https://github.com/lightstep/telemetry-generator/compare/v0.11.7...v0.11.8) - 2022-12-15
+### Changed
+* Collector version upgraded to v0.67.0.
+
+## [0.11.7](https://github.com/lightstep/telemetry-generator/compare/v0.11.6...v0.11.7) - 2022-12-01
+### Added
+* Attributes processor to builder config.
+
+## [0.11.6](https://github.com/lightstep/telemetry-generator/compare/v0.11.5...v0.11.6) - 2022-11-29
+### Fixed
+* default topology path in Dockerfile.
+* set traces endpoint value for otlp/2 exporter in Dockerfile.
+
+## [0.11.5](https://github.com/lightstep/telemetry-generator/compare/v0.11.4...v0.11.5) - 2022-11-01
 ### Changed
 * Version number for collector is now being set by build-tags. 
 
-## [0.11.4](https://github.com/lightstep/telemetry-generator/releases/tag/v0.11.4) - 2022-10-26
+## [0.11.4](https://github.com/lightstep/telemetry-generator/compare/v0.11.3...v0.11.4) - 2022-10-26
 ### Changed
 * Metric points are now generated every 15 seconds, instead of every second.
 
-## [0.11.3](https://github.com/lightstep/telemetry-generator/releases/tag/v0.11.3) - 2022-10-20
+## [0.11.3](https://github.com/lightstep/telemetry-generator/compare/v0.11.2...v0.11.3) - 2022-10-20
 ### Added
 * Make targets for building the binary and docker image.
 * Memory limiter processor in build config.
 * Github action step for `make build` in pr automation.
 
-## [0.11.2](https://github.com/lightstep/telemetry-generator/releases/tag/v0.11.2) - 2022-10-19
+## [0.11.2](https://github.com/lightstep/telemetry-generator/compare/v0.11.1...v0.11.2) - 2022-10-19
 ### Changed
 * Dockerfile to make use of proper builder module.
-## [0.11.1](https://github.com/lightstep/telemetry-generator/releases/tag/v0.11.1) - 2022-10-19
+
+## [0.11.1](https://github.com/lightstep/telemetry-generator/compare/v0.11.0...v0.11.1) - 2022-10-19
 ### Changed
 * (NO-OP) Changed VERSION while testing workflow.
 
-## [0.11.0](https://github.com/lightstep/telemetry-generator/releases/tag/v0.11.0) - 2022-10-18
+## [0.11.0](https://github.com/lightstep/telemetry-generator//compare/v0.10.0...v0.11.0) - 2022-10-18
 ### Added
 * A VERSION file that contains the version number of the current release. (Used in the tagging process).
 * A Changelog.md file that captures changes for releases.
 * A Github Actions Workflow for building and releasing Docker images to GHCR.io. 
 
-
 ### Changed 
 * Update the Dockerfile to build properly.
 * Makefile to contain targets for adding `make add-tag` and pushing `make push-tag` tags.
 * Readme.md to explain how to release images.
+* Collector version upgraded to v0.60.0.
+
+### Fixed
+* ResourceAttributeSet.Kubernetes is now of type *Kubernetes instead of Kubernetes.
+* Create pods, generate k8s metrics, and append k8s tags for a given ResourceAttributeSet only when it has a kubernetes section defined.
