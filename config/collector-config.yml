@@ -13,14 +13,7 @@ receivers:
           relabel_configs:
           - replacement: "telemetry-generator"
             target_label: "service"
-            action: replace
-               
-processors:
-  batch:
-  spanmetrics:
-    metrics_exporter: otlp
-    dimensions:
-      - name: http.method
+            action: replace            
 
 exporters:
   logging:
@@ -34,39 +27,16 @@ exporters:
       "lightstep-access-token": "${LS_ACCESS_TOKEN}"
     sending_queue:
       num_consumers: 20
-      queue_size: 10000  
-  # export internal metrics to monitoring project  
-  otlp/2:
-    endpoint: "${OTEL_EXPORTER_OTLP_TRACES_ENDPOINT_INTERNAL}"
-    tls:
-      insecure_skip_verify: true
-      insecure: "${OTEL_INSECURE}"
-    headers:
-      "lightstep-access-token": "${LS_ACCESS_TOKEN_INTERNAL}"         
+      queue_size: 10000          
 
 service:
   pipelines:
-    metrics:
-      receivers:
-      - generator
-      processors:
-      - batch
-#     - webhook
-      exporters:
-      - otlp
-      - logging
-#pipeline for the collectors own internal metrics      
-    metrics/2:
-      receivers:
-      - prometheus
-      exporters:
-      - otlp/2
     traces:
       receivers:
       - generator
-      processors:
-      - spanmetrics
-      - batch
+      # processors:
+      # - spanmetrics
+      # - batch
       exporters:
       - logging
       - otlp
