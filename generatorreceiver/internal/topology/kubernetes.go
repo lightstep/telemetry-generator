@@ -1,12 +1,13 @@
 package topology
 
 import (
-	"github.com/lightstep/telemetry-generator/generatorreceiver/internal/flags"
-	"go.uber.org/zap"
 	"math"
 	"math/rand"
 	"sync"
 	"time"
+
+	"github.com/lightstep/telemetry-generator/generatorreceiver/internal/flags"
+	"go.uber.org/zap"
 )
 
 const (
@@ -341,18 +342,8 @@ func (k *Kubernetes) GenerateMetrics() []Metric {
 					"pod":       PodName,
 				},
 			},
+
 			// node metrics
-			{
-				Name: "node_cpu_seconds_total",
-				Type: "Sum",
-				Min:  k.Limit.CPU * 1.2,
-				Max:  k.Limit.CPU * 1.2,
-				Tags: map[string]string{
-					"resource":      "cpu",
-					"net.host.name": PodName, // for this we assume each pod run on its own node.
-					"cpu":           "0",
-				},
-			},
 			{
 				Name:   "node_cpu_seconds_total",
 				Type:   "Sum",
@@ -367,7 +358,6 @@ func (k *Kubernetes) GenerateMetrics() []Metric {
 					"cpu":           "0",
 				},
 			},
-
 			{
 				Name:   "node_memory_MemAvailable_bytes",
 				Type:   "Gauge",
@@ -379,7 +369,6 @@ func (k *Kubernetes) GenerateMetrics() []Metric {
 					"net.host.name": PodName, // for this we assume each pod run on its own node.
 				},
 			},
-
 			{
 				Name:   "node_memory_MemTotal_bytes",
 				Type:   "Gauge",
@@ -388,127 +377,6 @@ func (k *Kubernetes) GenerateMetrics() []Metric {
 				Jitter: k.Usage.Memory.Jitter,
 				Tags: map[string]string{
 					"net.host.name": PodName, // for this we assume each pod run on its own node.
-				},
-			},
-			{
-				Name:   "container_fs_reads_total",
-				Type:   "Sum",
-				Min:    math.Max(diskTarget*(1-diskJitter), 0),
-				Max:    diskTarget * (1 + diskJitter),
-				Shape:  Average,
-				Jitter: k.Usage.Disk.Jitter,
-				Tags: map[string]string{
-					"job":          "kubelet",
-					"metrics_path": "/metrics/cadvisor",
-					"container":    Container,
-					"device":       "/dev/sda",
-					"namespace":    Namespace,
-				},
-			},
-			{
-				Name:   "container_fs_writes_total",
-				Type:   "Sum",
-				Min:    math.Max(diskTarget*(1-diskJitter), 0),
-				Max:    diskTarget * (1 + diskJitter),
-				Shape:  Average,
-				Jitter: k.Usage.Disk.Jitter,
-				Tags: map[string]string{
-					"job":          "kubelet",
-					"metrics_path": "/metrics/cadvisor",
-					"container":    Container,
-					"device":       "/dev/sda",
-					"namespace":    Namespace,
-				},
-			},
-			{
-				Name:   "container_fs_reads_bytes_total",
-				Type:   "Sum",
-				Min:    math.Max(diskTarget*(1-diskJitter), 0),
-				Max:    diskTarget * (1 + diskJitter),
-				Shape:  Average,
-				Jitter: k.Usage.Disk.Jitter,
-				Tags: map[string]string{
-					"job":          "kubelet",
-					"metrics_path": "/metrics/cadvisor",
-					"container":    Container,
-					"device":       "/dev/sda",
-					"namespace":    Namespace,
-				},
-			},
-			{
-				Name:   "container_fs_writes_bytes_total",
-				Type:   "Sum",
-				Min:    math.Max(diskTarget*(1-diskJitter), 0),
-				Max:    diskTarget * (1 + diskJitter),
-				Shape:  Average,
-				Jitter: k.Usage.Disk.Jitter,
-				Tags: map[string]string{
-					"job":          "kubelet",
-					"metrics_path": "/metrics/cadvisor",
-					"container":    Container,
-					"device":       "/dev/sda",
-					"namespace":    Namespace,
-				},
-			},
-			{
-				Name:   "container_memory_working_set_bytes",
-				Type:   "Gauge",
-				Period: &minute,
-				// If k.restart.every is set, min should be 0 and max should be k.Limit.memory
-				Min:    math.Max(memTarget*(1-memJitter)*restart, 0),
-				Max:    math.Min(memTarget*(1+memJitter)+k.Limit.Memory*megabyte*(1-restart), k.Limit.Memory*megabyte),
-				Shape:  memoryShape,
-				Jitter: k.Usage.Memory.Jitter,
-				Tags: map[string]string{
-					"pod":        PodName,
-					"container":  Container,
-					"image":      Service,
-					"namespace":  Namespace,
-					"deployment": Deployment,
-				},
-			},
-			{
-				Name:   "container_network_receive_bytes_total",
-				Type:   "Sum",
-				Min:    networkTarget * (1 + networkJitter),
-				Max:    networkTarget * (2000 + networkJitter),
-				Shape:  Average,
-				Jitter: k.Usage.Network.Jitter,
-				Tags: map[string]string{
-					"image": Service,
-				},
-			},
-			{
-				Name:   "container_network_transmit_bytes_total",
-				Type:   "Sum",
-				Min:    networkTarget * (1 + networkJitter),
-				Max:    networkTarget * (2000 + networkJitter),
-				Shape:  Average,
-				Jitter: k.Usage.Network.Jitter,
-				Tags: map[string]string{
-					"image": Service,
-				},
-			},
-			{
-				Name:   "container_network_receive_packets_total",
-				Type:   "Sum",
-				Min:    math.Max(networkTarget*(1-networkJitter), 0),
-				Max:    networkTarget * (1 + networkJitter),
-				Shape:  Average,
-				Jitter: k.Usage.Network.Jitter,
-				Tags: map[string]string{
-					"image": Service,
-				},
-			},
-			{
-				Name:   "container_network_transmit_packets_total",
-				Type:   "Sum",
-				Min:    math.Max(networkTarget*(1-networkJitter), 0),
-				Max:    networkTarget * (1 + networkJitter),
-				Shape:  Average,
-				Jitter: k.Usage.Network.Jitter,
-				Tags: map[string]string{
-					"image": Service,
 				},
 			},
 
@@ -597,10 +465,11 @@ func (k *Kubernetes) GenerateMetrics() []Metric {
 				Shape:  memoryShape,
 				Jitter: k.Usage.Memory.Jitter,
 				Tags: map[string]string{
-					"pod":       PodName,
-					"container": Container,
-					"image":     Service,
-					"namespace": Namespace,
+					"pod":        PodName,
+					"container":  Container,
+					"image":      Service,
+					"namespace":  Namespace,
+					"deployment": Deployment,
 				},
 			},
 			{
