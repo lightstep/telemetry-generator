@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased](https://github.com/lightstep/telemetry-generator/compare/v0.11.11...HEAD)
 
 
-## [0.11.11](https://github.com/lightstep/telemetry-generator/compare/v0.11.10...v0.11.11) - 2023-1-23
+## [0.11.11](https://github.com/lightstep/telemetry-generator/compare/v0.11.10...v0.11.11) - 2023-3-02
 ### Fixed
 * Fixed a bug where multiple traces were being created with the same trace_id and span_id.
 
