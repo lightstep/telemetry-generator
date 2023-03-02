@@ -2,7 +2,6 @@ package topology
 
 import (
 	"fmt"
-	"math/rand"
 )
 
 type ServiceTier struct {
@@ -11,7 +10,6 @@ type ServiceTier struct {
 	TagSets               []TagSet                 `json:"tagSets" yaml:"tagSets"`
 	ResourceAttributeSets []ResourceAttributeSet   `json:"resourceAttrSets" yaml:"resourceAttrSets"`
 	Metrics               []Metric                 `json:"metrics" yaml:"metrics"`
-	Random                *rand.Rand
 }
 
 func (st *ServiceTier) GetTagSet(routeName string) TagSet {

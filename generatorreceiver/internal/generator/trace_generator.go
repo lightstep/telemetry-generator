@@ -2,14 +2,15 @@ package generator
 
 import (
 	"fmt"
-	"go.opentelemetry.io/collector/pdata/pcommon"
-	"go.opentelemetry.io/collector/pdata/ptrace"
 	"math/rand"
 	"sync"
 	"time"
 
-	"github.com/lightstep/telemetry-generator/generatorreceiver/internal/topology"
+	"go.opentelemetry.io/collector/pdata/pcommon"
+	"go.opentelemetry.io/collector/pdata/ptrace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
+
+	"github.com/lightstep/telemetry-generator/generatorreceiver/internal/topology"
 )
 
 type TraceGenerator struct {
@@ -21,13 +22,10 @@ type TraceGenerator struct {
 	sync.Mutex
 }
 
-func NewTraceGenerator(t *topology.Topology, seed int64, service string, route string) *TraceGenerator {
-	r := rand.New(rand.NewSource(seed))
-	r.Seed(seed)
-
+func NewTraceGenerator(t *topology.Topology, randSeed *rand.Rand, service string, route string) *TraceGenerator {
 	tg := &TraceGenerator{
 		topology: t,
-		random:   r,
+		random:   randSeed,
 		service:  service,
 		route:    route,
 	}
@@ -64,7 +62,6 @@ func (g *TraceGenerator) Generate(startTimeNanos int64) *ptrace.Traces {
 
 func (g *TraceGenerator) createSpanForServiceRouteCall(traces *ptrace.Traces, serviceName string, routeName string, startTimeNanos int64, traceId pcommon.TraceID, parentSpanId pcommon.SpanID) *ptrace.Span {
 	serviceTier := g.topology.GetServiceTier(serviceName)
-	serviceTier.Random = g.random
 	route := serviceTier.GetRoute(routeName)
 
 	if !route.ShouldGenerate() {
