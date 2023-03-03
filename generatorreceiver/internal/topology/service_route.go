@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"math/rand"
 
+	"go.opentelemetry.io/collector/pdata/pcommon"
+
 	"github.com/lightstep/telemetry-generator/generatorreceiver/internal/flags"
 )
 
@@ -77,10 +79,10 @@ func (r *ServiceRoute) load(route string) error {
 	return nil
 }
 
-func (r *ServiceRoute) SampleLatency() int64 {
+func (r *ServiceRoute) SampleLatency(traceID pcommon.TraceID) int64 {
 	if r.LatencyConfigs == nil {
 		return rand.Int63n(r.MaxLatencyMillis * 1000000)
 	} else {
-		return r.LatencyConfigs.Sample()
+		return r.LatencyConfigs.Sample(traceID)
 	}
 }

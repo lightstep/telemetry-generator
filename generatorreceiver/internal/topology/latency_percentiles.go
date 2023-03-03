@@ -1,9 +1,12 @@
 package topology
 
 import (
-	"github.com/lightstep/telemetry-generator/generatorreceiver/internal/flags"
 	"math/rand"
 	"time"
+
+	"go.opentelemetry.io/collector/pdata/pcommon"
+
+	"github.com/lightstep/telemetry-generator/generatorreceiver/internal/flags"
 )
 
 type LatencyPercentiles struct {
@@ -21,6 +24,7 @@ type LatencyPercentiles struct {
 		p999 time.Duration
 		p100 time.Duration
 	}
+	EmbeddedWeight      `json:",inline" yaml:",inline"`
 	flags.EmbeddedFlags `json:",inline" yaml:",inline"`
 }
 
@@ -80,7 +84,7 @@ func (l *LatencyPercentiles) loadDurations() error {
 
 type LatencyConfigs []*LatencyPercentiles
 
-func (lcfg *LatencyConfigs) Sample() int64 {
+func (lcfg *LatencyConfigs) Sample(traceID pcommon.TraceID) int64 {
 	var defaultCfg *LatencyPercentiles
 	var enabled []*LatencyPercentiles
 	for _, cfg := range *lcfg {
@@ -91,7 +95,7 @@ func (lcfg *LatencyConfigs) Sample() int64 {
 		}
 	}
 	if len(enabled) > 0 {
-		return enabled[rand.Intn(len(enabled))].Sample()
+		return pickBasedOnWeight(enabled, traceID).Sample()
 	}
 	return defaultCfg.Sample()
 }
