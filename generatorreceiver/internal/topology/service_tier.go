@@ -2,6 +2,8 @@ package topology
 
 import (
 	"fmt"
+
+	"go.opentelemetry.io/collector/pdata/pcommon"
 )
 
 type ServiceTier struct {
@@ -12,9 +14,9 @@ type ServiceTier struct {
 	Metrics               []Metric                 `json:"metrics" yaml:"metrics"`
 }
 
-func (st *ServiceTier) GetTagSet(routeName string) TagSet {
-	serviceTagSet := pickBasedOnWeight(st.TagSets)
-	routeTagSet := pickBasedOnWeight(st.GetRoute(routeName).TagSets)
+func (st *ServiceTier) GetTagSet(routeName string, traceID pcommon.TraceID) TagSet {
+	serviceTagSet := pickBasedOnWeight(st.TagSets, traceID)
+	routeTagSet := pickBasedOnWeight(st.GetRoute(routeName).TagSets, traceID)
 
 	combinedTags := TagMap{}
 	for k, v := range serviceTagSet.Tags {
@@ -30,9 +32,9 @@ func (st *ServiceTier) GetTagSet(routeName string) TagSet {
 	}
 }
 
-func (st *ServiceTier) GetResourceAttributeSet() ResourceAttributeSet {
+func (st *ServiceTier) GetResourceAttributeSet(traceID pcommon.TraceID) ResourceAttributeSet {
 	// TODO: also support resource attributes on routes
-	return pickBasedOnWeight(st.ResourceAttributeSets)
+	return pickBasedOnWeight(st.ResourceAttributeSets, traceID)
 }
 
 func (st *ServiceTier) GetRoute(routeName string) *ServiceRoute {

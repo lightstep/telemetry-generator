@@ -1,6 +1,10 @@
 package topology
 
-import "math/rand"
+import (
+	"encoding/binary"
+
+	"go.opentelemetry.io/collector/pdata/pcommon"
+)
 
 type Pickable interface { // currently TagSet and ResourceAttributeSet satisfy this interface
 	GetWeight() float64
@@ -15,7 +19,7 @@ func (w EmbeddedWeight) GetWeight() float64 {
 	return w.Weight
 }
 
-func pickBasedOnWeight[P Pickable](ps []P) P {
+func pickBasedOnWeight[P Pickable](ps []P, traceID pcommon.TraceID) P {
 	var activeSets []P
 	totalWeight := 0.0
 	for _, set := range ps {
@@ -25,7 +29,14 @@ func pickBasedOnWeight[P Pickable](ps []P) P {
 		}
 	}
 
-	choice := rand.Float64() * totalWeight
+	// Take out last 8 bytes from trace id
+	secondHalf := traceID[8:16]
+	// Transform them into a uint64
+	traceUint := binary.BigEndian.Uint64(secondHalf)
+	// Use the last two digits as percentage.
+	choice := float64(traceUint%100) / 100.0
+
+	choice = choice * totalWeight
 	current := 0.0
 	for _, set := range activeSets {
 		current += set.GetWeight()
