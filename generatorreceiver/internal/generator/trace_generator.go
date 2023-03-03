@@ -111,6 +111,11 @@ func (g *TraceGenerator) createSpanForServiceRouteCall(traces *ptrace.Traces, se
 		var childStartTimeNanos = startTimeNanos + route.SampleLatency(traceId)
 
 		childSpan := g.createSpanForServiceRouteCall(traces, c.Service, c.Route, childStartTimeNanos, traceId, newSpanId)
+		val, ok := childSpan.Attributes().Get("error")
+		if ok {
+			errorAttr := span.Attributes().PutEmpty("error")
+			val.CopyTo(errorAttr)
+		}
 		endTime = Max(endTime, int64(childSpan.EndTimestamp()))
 	}
 

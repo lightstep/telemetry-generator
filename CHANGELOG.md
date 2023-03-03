@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.11.12](https://github.com/lightstep/telemetry-generator/compare/v0.11.11...v0.11.12) - 2023-3-03
 ### Changed
 * Weights the last two digits of a trace_id to generate their randomness.
+* Errors are now propagated up to the parent span. 
 
 ## [0.11.11](https://github.com/lightstep/telemetry-generator/compare/v0.11.10...v0.11.11) - 2023-3-02
 ### Fixed
