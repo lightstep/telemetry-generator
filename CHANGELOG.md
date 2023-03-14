@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased](https://github.com/lightstep/telemetry-generator/compare/v0.11.13...HEAD)
 
 
-## [0.11.12](https://github.com/lightstep/telemetry-generator/compare/v0.11.12...v0.11.13) - 2023-3-14
+## [0.11.13](https://github.com/lightstep/telemetry-generator/compare/v0.11.12...v0.11.13) - 2023-3-14
 ### Fixed
 * Fixed a bug where Latency configurations would panic if no weights are defined.
 
