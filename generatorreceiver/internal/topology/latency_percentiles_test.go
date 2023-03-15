@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/collector/pdata/pcommon"
 )
 
 func TestLatencyPercentiles_LoadDurations(t *testing.T) {
@@ -33,4 +34,25 @@ func TestLatencyPercentiles_LoadDurations(t *testing.T) {
 	require.Equal(t, p99expected, percentiles.durations.p99)
 	require.Equal(t, p999expected, percentiles.durations.p999)
 	require.Equal(t, p100expected, percentiles.durations.p100)
+}
+
+func TestLatencyPercentiles_WorksWithoutWeights(t *testing.T) {
+	cfgs := LatencyConfigs{
+		&LatencyPercentiles{
+			P0Cfg:   "100ms",
+			P50Cfg:  "100ms",
+			P95Cfg:  "100ms",
+			P99Cfg:  "100ms",
+			P999Cfg: "100ms",
+			P100Cfg: "100ms",
+		},
+	}
+
+	for _, cfg := range cfgs {
+		err := cfg.loadDurations()
+		require.NoError(t, err)
+	}
+
+	latency := cfgs.Sample(pcommon.NewTraceIDEmpty())
+	require.Equal(t, 100*time.Millisecond, time.Duration(latency))
 }
