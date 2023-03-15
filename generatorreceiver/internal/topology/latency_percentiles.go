@@ -101,7 +101,11 @@ func (lcfg *LatencyConfigs) Sample(traceID pcommon.TraceID) int64 {
 		}
 	}
 	if len(enabled) > 0 {
-		return pickBasedOnWeight(enabled, traceID).Sample()
+		picked := pickBasedOnWeight(enabled, traceID)
+
+		if picked != nil {
+			return picked.Sample()
+		}
 	}
 	return defaultCfg.Sample()
 }

@@ -56,8 +56,13 @@ func (r *ServiceRoute) load(route string) error {
 			return nil
 		}
 	}
-	hasDefault := false
+	var hasDefault bool
+	var hasWeights bool
 	for _, cfg := range r.LatencyConfigs {
+		if cfg.Weight != 0 {
+			hasWeights = true
+		}
+
 		err := cfg.loadDurations()
 		if err != nil {
 			return fmt.Errorf("error parsing latencyPercentiles: %v", err)
@@ -75,6 +80,13 @@ func (r *ServiceRoute) load(route string) error {
 	}
 	if !hasDefault {
 		return fmt.Errorf("latencyConfigs must include exactly one default config (no flag_set or flag_unset)")
+	}
+
+	if !hasWeights {
+		// If there are no weights, everything should have the same weight.
+		for _, config := range r.LatencyConfigs {
+			config.Weight = 1
+		}
 	}
 	return nil
 }
