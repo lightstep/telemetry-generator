@@ -29,6 +29,12 @@ type LatencyPercentiles struct {
 }
 
 func (l *LatencyPercentiles) Sample() int64 {
+	if l == nil {
+		// This results from having a list where
+		// items are !ShouldGenerate() which leaves
+		// an empty list, the zeroP is returned.
+		return 0
+	}
 	uniform := func(timeA, timeB time.Duration) int64 {
 		min := float64(timeA.Nanoseconds())
 		max := float64(timeB.Nanoseconds())
@@ -36,13 +42,13 @@ func (l *LatencyPercentiles) Sample() int64 {
 	}
 	genNumber := rand.Float64()
 	switch {
-	case genNumber <= 0.5:
+	case genNumber < 0.5:
 		return uniform(l.durations.p0, l.durations.p50)
-	case genNumber <= 0.95:
+	case genNumber < 0.95:
 		return uniform(l.durations.p50, l.durations.p95)
-	case genNumber <= 0.99:
+	case genNumber < 0.99:
 		return uniform(l.durations.p95, l.durations.p99)
-	case genNumber <= 0.999:
+	case genNumber < 0.999:
 		return uniform(l.durations.p99, l.durations.p999)
 	default:
 		return uniform(l.durations.p999, l.durations.p100)
