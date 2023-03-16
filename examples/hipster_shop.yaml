@@ -8,13 +8,13 @@ topology:
             version: v127
             error: true
           csv_tags:
-            customer: "./examples/mock_customer_tags.csv"
+            customer: "../examples/mock_customer_tags.csv"
         - weight: 1
           flag_unset: frontend_errors
           tags:
             version: v125
           csv_tags:
-            customer: "./examples/mock_customer_tags.csv"
+            customer: "../examples/mock_customer_tags.csv"
       resourceAttrSets:
         - weight: 1
           kubernetes:
@@ -560,26 +560,26 @@ flags:
 rootRoutes:
   - service: frontend
     route: /product
-    tracesPerHour: 2880
+    tracesPerHour: 28800
   - service: frontend
     route: /cart
-    tracesPerHour: 1400
+    tracesPerHour: 14000
   - service: frontend
     route: /shipping
-    tracesPerHour: 480
+    tracesPerHour: 4800
   - service: frontend
     route: /currency
-    tracesPerHour: 200
+    tracesPerHour: 2000
   - service: frontend
     route: /checkout
-    tracesPerHour: 480
+    tracesPerHour: 4800
   - service: iOS
     route: /api/make-payment
-    tracesPerHour: 480
+    tracesPerHour: 4800
   - service: android  
     route: /api/make-payment
-    tracesPerHour: 480
+    tracesPerHour: 4800
 
 config:
   kubernetes:
-    pod_count: 1
+    pod_count: 10

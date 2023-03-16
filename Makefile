@@ -44,4 +44,4 @@ docker-run:
 	local-telemetry-generator-demo:latest
 
 run-local:
-	dist/telemetry-generator --config config/collector-config.yml
+	(cd dist && go run . --config ../config/collector-config.yml)
