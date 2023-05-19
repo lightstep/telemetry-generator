@@ -45,3 +45,7 @@ docker-run:
 
 run-local:
 	dist/telemetry-generator --config config/collector-config.yml
+run-local-replay:
+	dist/telemetry-generator --config config/arrow-replay-collector-config.yml
+run-local-record:
+	dist/telemetry-generator --config config/arrow-record-collector-config.yml

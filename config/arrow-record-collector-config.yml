@@ -14,8 +14,6 @@ receivers:
           - replacement: "telemetry-generator"
             target_label: "service"
             action: replace
-  file:
-    path: ./foo
                
 processors:
   batch:
@@ -25,8 +23,8 @@ processors:
       - name: http.method
 
 exporters:
-  file/2:
-    path: ./bar
+  file:
+    path: ./foo
     format: json
   logging:
   # Export to Lightstep Public Satellites
@@ -51,13 +49,11 @@ exporters:
 
 service:
   pipelines:
-    # this metrics pipeline is meant to replay recorded metrics, and export to a desired destination.
-    metrics/replay:
+    # this metrics pipeline is meant to generate metrics and record them to a file
+    metrics/record:
       receivers:
-      - file
+      - generator
       processors:
       - batch
       exporters:
-      - logging
-      - otlp
-      - file/2
+      - file
