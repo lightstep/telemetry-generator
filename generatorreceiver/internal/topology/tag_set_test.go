@@ -37,8 +37,6 @@ func TestTagMap_InsertTag(t *testing.T) {
 	rand.Seed(123)
 	expectedAttr.PutStr("key5", csvTags[rand.Intn(len(csvTags))])
 
-	attr.Sort()
-	expectedAttr.Sort()
 	require.Equal(t, attr.AsRaw(), expectedAttr.AsRaw())
 }
 
