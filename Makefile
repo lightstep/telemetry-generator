@@ -25,7 +25,7 @@ push-tag:
 
 .PHONY: install-otel-builder
 install-otel-builder:
-	GO111module=on go install go.opentelemetry.io/collector/cmd/builder@v0.69.1
+	GO111module=on go install go.opentelemetry.io/collector/cmd/builder@v0.78.1
 
 .PHONY: build
 build: install-otel-builder
