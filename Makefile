@@ -42,3 +42,6 @@ docker-run:
 	-e OTEL_EXPORTER_OTLP_TRACES_ENDPOINT_INTERNAL \
 	--env TOPO_FILE=/etc/otel/hipster_shop.yaml \
 	local-telemetry-generator-demo:latest
+
+run-local:
+	dist/telemetry-generator --config config/collector-config.yml

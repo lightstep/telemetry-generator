@@ -75,8 +75,9 @@ There are two options here, but if possible we recommend using the OpenTelemetry
 
 (You must first install the `builder`; see Prerequisites above.)
 ```shell
-$ builder --config config/builder-config.yml
-$ build/telemetry-generator --config config/collector-config.yml
+# Running this local will output the collector Go files into dist/
+$ make build
+$ make run-local
 ```
 
 When using the `builder`, you only need to re-run the first command for code changes; for config changes just re-run the second command. To run with a different topo file, change the `TOPO_FILE` environment variable.
@@ -118,6 +119,9 @@ version for the 10 most recent telemetry-generator versions.
 
 | Telemetry Generator | OpenTelemetry Collector |
 |---------------------|-------------------------|
+| v0.11.13            | v0.69.1                 |
+| v0.11.12            | v0.69.1                 |
+| v0.11.11            | v0.69.1                 |
 | v0.11.10            | v0.69.1                 |
 | v0.11.9             | v0.68.0                 |
 | v0.11.8             | v0.67.0                 |
