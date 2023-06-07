@@ -1,6 +1,7 @@
 package generator
 
 import (
+	"fmt"
 	"math/rand"
 	"testing"
 	"time"
@@ -11,18 +12,15 @@ import (
 	"go.opentelemetry.io/collector/pdata/ptrace"
 )
 
+// scafolding for tests
 var topoTestFrontend = topology.ServiceTier{
 	Routes: map[string]*topology.ServiceRoute{
 		"/product": {
 			DownstreamCalls: []topology.Call{
-				{"productcatalogservice", "/GetProducts"},
-				{"recommendationservice", "/GetRecommendations"},
+				{Service: "productcatalogservice", Route: "/GetProducts"},
+				{Service: "recommendationservice", Route: "/GetRecommendations"},
 			},
 			MaxLatencyMillis: 100,
-		},
-		"/cart": {
-			DownstreamCalls:  []topology.Call{{"recommendationservice", "/GetRecommendations"}},
-			MaxLatencyMillis: 200,
 		},
 	},
 }
@@ -33,19 +31,11 @@ var topoTestCatalogService = topology.ServiceTier{
 	}},
 }
 
-var topoTestCyclicalCatalogService = topology.ServiceTier{
-	Routes: map[string]*topology.ServiceRoute{
-		"/GetProducts": {
-			DownstreamCalls:  []topology.Call{{"frontend", "/cart"}},
-			MaxLatencyMillis: 400,
-		},
-	},
-}
-
 var topoTestRecommendationService = topology.ServiceTier{
 	Routes: map[string]*topology.ServiceRoute{
 		"/GetRecommendations": {
-			DownstreamCalls:  []topology.Call{{"productcatalogservice", "/GetProducts"}},
+			DownstreamCalls: []topology.Call{
+				{Service: "productcatalogservice", Route: "/GetProducts"}},
 			MaxLatencyMillis: 500,
 		},
 	},
@@ -92,13 +82,23 @@ func TestTraceGenerator_createSpanForServiceRouteCall(t *testing.T) {
 			require.Equal(t, span.Name(), tt.args.routeName)
 			require.Equal(t, span.Name(), g.route)
 			require.Equal(t, span.TraceID(), genTraceID)
-			require.Equal(t, span.ParentSpanID(), pcommon.NewSpanIDEmpty())
+			require.Equal(t, span.ParentSpanID(), pcommon.NewSpanIDEmpty()) //root route will have parent span id of 0
 
 			convertedStartTime := pcommon.NewTimestampFromTime(time.Unix(0, tt.args.startTimeNanos))
 			require.Equal(t, span.StartTimestamp(), convertedStartTime)
 
+			//create child spans for downstream calls to ultimately calculate the end time
+			serviceTier := g.topology.GetServiceTier(tt.args.serviceName)
+			route := serviceTier.GetRoute(g.route)
 			endTime := tt.args.startTimeNanos + g.topology.Services[tt.args.serviceName].Routes[tt.args.routeName].SampleLatency(genTraceID)
+			for _, c := range route.DownstreamCalls {
+				var childStartTimeNanos = tt.args.startTimeNanos + route.SampleLatency(genTraceID)
+
+				childSpan := g.createSpanForServiceRouteCall(tt.args.traces, c.Service, c.Route, childStartTimeNanos, genTraceID, g.genSpanId())
+				endTime = Max(endTime, int64(childSpan.EndTimestamp()))
+			}
 			convertedEndTime := pcommon.NewTimestampFromTime(time.Unix(0, endTime))
+			fmt.Println(convertedEndTime, span.EndTimestamp())
 			require.Equal(t, span.EndTimestamp(), convertedEndTime)
 
 		})
