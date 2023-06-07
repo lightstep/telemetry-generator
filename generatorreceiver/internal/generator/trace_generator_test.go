@@ -19,30 +19,26 @@ var topoTestFrontend = topology.ServiceTier{
 				{Service: "productcatalogservice", Route: "/GetProducts"},
 				{Service: "recommendationservice", Route: "/GetRecommendations"},
 			},
-			MaxLatencyMillis: 100,
+			MaxLatencyMillis: 10,
 		},
 	},
 }
 
 var topoTestFrontendWithoutDownStreamCalls = topology.ServiceTier{
 	Routes: map[string]*topology.ServiceRoute{
-		"/product": {MaxLatencyMillis: 100},
+		"/product": {MaxLatencyMillis: 10},
 	},
 }
 
 var topoTestCatalogService = topology.ServiceTier{
-	Routes: map[string]*topology.ServiceRoute{"/GetProducts": {
-		MaxLatencyMillis: 300,
-	}},
+	Routes: map[string]*topology.ServiceRoute{
+		"/GetProducts": {MaxLatencyMillis: 10},
+	},
 }
 
 var topoTestRecommendationService = topology.ServiceTier{
 	Routes: map[string]*topology.ServiceRoute{
-		"/GetRecommendations": {
-			DownstreamCalls: []topology.Call{
-				{Service: "productcatalogservice", Route: "/GetProducts"}},
-			MaxLatencyMillis: 500,
-		},
+		"/GetRecommendations": {MaxLatencyMillis: 10},
 	},
 }
 
@@ -98,24 +94,22 @@ func TestTraceGenerator_createSpanForServiceRouteCall(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewTraceGenerator(tt.topo, rand.New(rand.NewSource(rand.Int63())), tt.args.serviceName, tt.args.routeName)
 			genTraceID := g.genTraceId()
-			span := g.createSpanForServiceRouteCall(tt.args.traces, g.service, g.route, tt.args.startTimeNanos, genTraceID, pcommon.NewSpanIDEmpty())
+			span := g.createSpanForServiceRouteCall(tt.args.traces, g.service, g.route, tt.args.startTimeNanos, genTraceID, pcommon.NewSpanIDEmpty()) // parent span
 			require.Equal(t, span.Name(), tt.args.routeName)
 			require.Equal(t, span.TraceID(), genTraceID)
-			require.Equal(t, span.ParentSpanID(), pcommon.NewSpanIDEmpty()) //root route will have parent span id of 0
+			require.Equal(t, span.ParentSpanID(), pcommon.NewSpanIDEmpty()) //root span will have parent span id of 0
 
 			convertedSpanStartTime := pcommon.NewTimestampFromTime(time.Unix(0, tt.args.startTimeNanos))
-			require.GreaterOrEqual(t, span.StartTimestamp(), convertedSpanStartTime)
+			require.Equal(t, span.StartTimestamp(), convertedSpanStartTime)
 
 			serviceTier := g.topology.GetServiceTier(tt.args.serviceName)
 			route := serviceTier.GetRoute(g.route)
-			endTime := tt.args.startTimeNanos + g.topology.Services[tt.args.serviceName].Routes[tt.args.routeName].SampleLatency(genTraceID)
+
 			for _, c := range route.DownstreamCalls {
-				var childStartTimeNanos = tt.args.startTimeNanos + route.SampleLatency(genTraceID)
-				childSpan := g.createSpanForServiceRouteCall(tt.args.traces, c.Service, c.Route, childStartTimeNanos, genTraceID, g.genSpanId())
-				endTime = Max(endTime, int64(childSpan.EndTimestamp()))
+				var childStartTimeNanos = int64(span.StartTimestamp()) + route.SampleLatency(span.TraceID())
+				childSpan := g.createSpanForServiceRouteCall(tt.args.traces, c.Service, c.Route, childStartTimeNanos, span.TraceID(), g.genSpanId())
+				require.Greater(t, span.EndTimestamp(), childSpan.EndTimestamp())
 			}
-			childSpanEndTime := pcommon.NewTimestampFromTime(time.Unix(0, endTime))
-			require.GreaterOrEqual(t, span.EndTimestamp(), childSpanEndTime)
 
 		})
 	}
