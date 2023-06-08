@@ -94,7 +94,7 @@ func TestTraceGenerator_createSpanForServiceRouteCall(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewTraceGenerator(tt.topo, rand.New(rand.NewSource(rand.Int63())), tt.args.serviceName, tt.args.routeName)
 			genTraceID := g.genTraceId()
-			span := g.createSpanForServiceRouteCall(tt.args.traces, g.service, g.route, tt.args.startTimeNanos, genTraceID, pcommon.NewSpanIDEmpty()) // parent span
+			span := g.createSpanForServiceRouteCall(tt.args.traces, g.service, g.route, tt.args.startTimeNanos, genTraceID, pcommon.NewSpanIDEmpty())
 			require.Equal(t, span.Name(), tt.args.routeName)
 			require.Equal(t, span.TraceID(), genTraceID)
 			require.Equal(t, span.ParentSpanID(), pcommon.NewSpanIDEmpty()) //root span will have parent span id of 0
