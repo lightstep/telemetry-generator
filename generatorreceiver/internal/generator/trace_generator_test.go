@@ -19,7 +19,45 @@ var topoTestFrontend = topology.ServiceTier{
 				{Service: "productcatalogservice", Route: "/GetProducts"},
 				{Service: "recommendationservice", Route: "/GetRecommendations"},
 			},
-			MaxLatencyMillis: 10,
+			MaxLatencyMillis: 20,
+		},
+	},
+	TagSets: []topology.TagSet{
+		{
+			Tags: topology.TagMap{
+				"version": "v01",
+				"color":   "blue",
+			},
+		},
+	},
+}
+
+var topoTestCatalogService = topology.ServiceTier{
+	Routes: map[string]*topology.ServiceRoute{
+		"/GetProducts": {
+			MaxLatencyMillis: 5,
+		},
+	},
+	TagSets: []topology.TagSet{
+		{
+			Tags: topology.TagMap{
+				"version": "v02",
+				"color":   "red",
+			},
+		},
+	},
+}
+
+var topoTestRecommendationService = topology.ServiceTier{
+	Routes: map[string]*topology.ServiceRoute{
+		"/GetRecommendations": {MaxLatencyMillis: 10},
+	},
+	TagSets: []topology.TagSet{
+		{
+			Tags: topology.TagMap{
+				"version": "v03",
+				"color":   "green",
+			},
 		},
 	},
 }
@@ -27,18 +65,6 @@ var topoTestFrontend = topology.ServiceTier{
 var topoTestFrontendWithoutDownStreamCalls = topology.ServiceTier{
 	Routes: map[string]*topology.ServiceRoute{
 		"/product": {MaxLatencyMillis: 10},
-	},
-}
-
-var topoTestCatalogService = topology.ServiceTier{
-	Routes: map[string]*topology.ServiceRoute{
-		"/GetProducts": {MaxLatencyMillis: 10},
-	},
-}
-
-var topoTestRecommendationService = topology.ServiceTier{
-	Routes: map[string]*topology.ServiceRoute{
-		"/GetRecommendations": {MaxLatencyMillis: 10},
 	},
 }
 
@@ -94,6 +120,7 @@ func TestTraceGenerator_createSpanForServiceRouteCall(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewTraceGenerator(tt.topo, rand.New(rand.NewSource(rand.Int63())), tt.args.serviceName, tt.args.routeName)
 			genTraceID := g.genTraceId()
+
 			span := g.createSpanForServiceRouteCall(tt.args.traces, g.service, g.route, tt.args.startTimeNanos, genTraceID, pcommon.NewSpanIDEmpty())
 			require.Equal(t, span.Name(), tt.args.routeName)
 			require.Equal(t, span.TraceID(), genTraceID)
@@ -102,13 +129,20 @@ func TestTraceGenerator_createSpanForServiceRouteCall(t *testing.T) {
 			convertedSpanStartTime := pcommon.NewTimestampFromTime(time.Unix(0, tt.args.startTimeNanos))
 			require.Equal(t, span.StartTimestamp(), convertedSpanStartTime)
 
-			serviceTier := g.topology.GetServiceTier(tt.args.serviceName)
-			route := serviceTier.GetRoute(g.route)
+			resourceSpans := traces.ResourceSpans()
+			route := g.topology.GetServiceTier(tt.args.serviceName).GetRoute(g.route)
+			for i := range route.DownstreamCalls {
 
-			for _, c := range route.DownstreamCalls {
-				var childStartTimeNanos = int64(span.StartTimestamp()) + route.SampleLatency(span.TraceID())
-				childSpan := g.createSpanForServiceRouteCall(tt.args.traces, c.Service, c.Route, childStartTimeNanos, span.TraceID(), g.genSpanId())
-				require.Greater(t, span.EndTimestamp(), childSpan.EndTimestamp())
+				childSpanEndTime := resourceSpans.At(i).ScopeSpans().At(0).Spans().At(0).EndTimestamp() //there are no children of children so index 0
+				require.GreaterOrEqual(t, span.EndTimestamp(), childSpanEndTime)
+
+				// get the tags from the test cases and compare them to the tags in the spans
+				tagSets := g.topology.GetServiceTier(tt.args.serviceName).GetTagSet(tt.args.routeName, genTraceID)
+				for tagKey, tagValue := range tagSets.Tags {
+					retrievedTagValue, exists := resourceSpans.At(i).ScopeSpans().At(0).Spans().At(0).Attributes().Get(tagKey) //get tagValue from the spans we created
+					require.True(t, exists)
+					require.Equal(t, tagValue, retrievedTagValue.AsString())
+				}
 			}
 
 		})
