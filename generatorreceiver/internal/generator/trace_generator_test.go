@@ -120,19 +120,18 @@ func TestTraceGenerator_createSpanForServiceRouteCall(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewTraceGenerator(tt.topo, rand.New(rand.NewSource(rand.Int63())), tt.args.serviceName, tt.args.routeName)
 			genTraceID := g.genTraceId()
-
 			span := g.createSpanForServiceRouteCall(tt.args.traces, g.service, g.route, tt.args.startTimeNanos, genTraceID, pcommon.NewSpanIDEmpty())
+			convertedSpanStartTime := pcommon.NewTimestampFromTime(time.Unix(0, tt.args.startTimeNanos))
+
+			require.Equal(t, span.StartTimestamp(), convertedSpanStartTime)
 			require.Equal(t, span.Name(), tt.args.routeName)
 			require.Equal(t, span.TraceID(), genTraceID)
 			require.Equal(t, span.ParentSpanID(), pcommon.NewSpanIDEmpty()) //root span will have parent span id of 0
 
-			convertedSpanStartTime := pcommon.NewTimestampFromTime(time.Unix(0, tt.args.startTimeNanos))
-			require.Equal(t, span.StartTimestamp(), convertedSpanStartTime)
-
 			resourceSpans := traces.ResourceSpans()
-			serviceTier := tt.topo.Services //get the service tiers from the topology
-
+			serviceTier := tt.topo.Services
 			i := 0
+
 			for _, value := range serviceTier {
 
 				if len(value.TagSets) > 0 {
