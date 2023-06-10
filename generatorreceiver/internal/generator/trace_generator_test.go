@@ -130,19 +130,22 @@ func TestTraceGenerator_createSpanForServiceRouteCall(t *testing.T) {
 			require.Equal(t, span.StartTimestamp(), convertedSpanStartTime)
 
 			resourceSpans := traces.ResourceSpans()
-			route := g.topology.GetServiceTier(tt.args.serviceName).GetRoute(g.route)
-			for i := range route.DownstreamCalls {
+			serviceTier := tt.topo.Services //get the service tiers from the topology
 
-				childSpanEndTime := resourceSpans.At(i).ScopeSpans().At(0).Spans().At(0).EndTimestamp() //there are no children of children so index 0
-				require.GreaterOrEqual(t, span.EndTimestamp(), childSpanEndTime)
+			i := 0
+			for _, value := range serviceTier {
 
-				// get the tags from the test cases and compare them to the tags in the spans
-				tagSets := g.topology.GetServiceTier(tt.args.serviceName).GetTagSet(tt.args.routeName, genTraceID)
-				for tagKey, tagValue := range tagSets.Tags {
-					retrievedTagValue, exists := resourceSpans.At(i).ScopeSpans().At(0).Spans().At(0).Attributes().Get(tagKey) //get tagValue from the spans we created
-					require.True(t, exists)
-					require.Equal(t, tagValue, retrievedTagValue.AsString())
+				if len(value.TagSets) > 0 {
+					for tagKey, tagValue := range value.TagSets[0].Tags {
+						retrievedTagValue, exists := resourceSpans.At(i).ScopeSpans().At(0).Spans().At(0).Attributes().Get(tagKey)
+						require.Equal(t, tagValue, retrievedTagValue.AsString())
+						require.True(t, exists)
+						spanEndTime := resourceSpans.At(i).ScopeSpans().At(0).Spans().At(0).EndTimestamp() //there are no children of children so index 0
+						require.GreaterOrEqual(t, span.EndTimestamp(), spanEndTime)
+					}
+					i++
 				}
+
 			}
 
 		})
