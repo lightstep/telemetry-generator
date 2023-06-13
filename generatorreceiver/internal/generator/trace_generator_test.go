@@ -97,7 +97,7 @@ func TestTraceGenerator_createSpanForServiceRouteCall2(t *testing.T) {
 		},
 
 		{
-			name: "span with downstream calls",
+			name: "span without downstream calls",
 			args: args{
 				serviceName:    "frontend",
 				routeName:      "/checkout",
