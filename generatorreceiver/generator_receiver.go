@@ -47,12 +47,12 @@ func (g generatorReceiver) loadTopoFile(topoInline string, path string) (topoFil
 func (g generatorReceiver) Start(ctx context.Context, host component.Host) error {
 	topoFile, err := g.loadTopoFile(g.topoInline, g.topoPath)
 	if err != nil {
-		host.ReportFatalError(err)
+		return fmt.Errorf("could not load topo file: %w", err)
 	}
 
 	err = validateConfiguration(*topoFile)
 	if err != nil {
-		host.ReportFatalError(err)
+		return fmt.Errorf("could not validate topo file: %w", err)
 	}
 
 	g.logger.Info("starting flag manager", zap.Int("flag_count", flags.Manager.FlagCount()))
@@ -160,7 +160,6 @@ func (g *generatorReceiver) startMetricGenerator(ctx context.Context, host compo
 					host.ReportFatalError(err)
 				}
 			}
-
 		}
 	}()
 
