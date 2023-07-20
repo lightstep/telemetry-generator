@@ -23,7 +23,7 @@ Install the [OpenTelemetry Collector Builder](https://github.com/open-telemetry/
    1.  `$ cd ~/Code` (or wherever)
    1.  `$ git clone https://github.com/lightstep/telemetry-generator`
    1.  `$ cd telemetry-generator`
-1. Copy `hipster_shop.yaml` to `dev.yaml` for local development. Not strictly necessary but will potentially save heartache and hassle 😅 This file is in .gitignore, so it won't be included in your commits. If you want to share config changes, add them to a new example config file.
+1. Copy `hipster_shop.yaml` to `dev.yaml` for local development. Not strictly necessary (you can point the `TOPO_FILE` environment variable to any config file) but will potentially save heartache and hassle 😅 This file is in .gitignore, so it won't be included in your commits. If you want to share config changes, add them to a new example config file.
    `$ cp examples/hipster_shop.yaml examples/dev.yaml`
 
 ## Environment variables
@@ -38,6 +38,7 @@ To send demo telemetry data to Lightstep, you'll need an access token associated
 
 ```shell
 $ export LS_ACCESS_TOKEN="<your token>"
+$ export LS_ACCESS_TOKEN_INTERNAL="<your token>"
 ```
 
 ### Collector endpoint
@@ -46,6 +47,7 @@ The env var `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` determines the endpoint for dem
 
 ```shell
 $ export OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=ingest.lightstep.com:443
+$ export OTEL_EXPORTER_OTLP_TRACES_ENDPOINT_INTERNAL=ingest.lightstep.com:443
 ```
 
 ### Topo file (generatorreceiver config)
