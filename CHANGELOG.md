@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased](https://github.com/lightstep/telemetry-generator/compare/v0.11.13...HEAD)
 
+## [0.13.0](https://github.com/lightstep/telemetry-generator/compare/v0.12.0...v0.13.0) - 2023-8-16
+### Fixed
+* Fixed a deadlock in Start().
+
+## [0.12.0](https://github.com/lightstep/telemetry-generator/compare/v0.11.13...v0.12.0) - 2023-5-25
+* Minor stability fixes.
 
 ## [0.11.13](https://github.com/lightstep/telemetry-generator/compare/v0.11.12...v0.11.13) - 2023-3-14
 ### Fixed
