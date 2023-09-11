@@ -1,7 +1,6 @@
 package topology
 
 import (
-	"fmt"
 	"github.com/lightstep/telemetry-generator/generatorreceiver/internal/flags"
 	"math"
 	"math/rand"
@@ -84,7 +83,6 @@ func (m *Metric) GetTags() map[string]string {
 		tags[k] = v
 	}
 
-	fmt.Println("JKART",tags)
 	return tags
 }
 
