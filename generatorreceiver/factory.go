@@ -3,8 +3,8 @@ package generatorreceiver
 import (
 	"context"
 	"go.opentelemetry.io/collector/component"
-	"go.opentelemetry.io/collector/config"
 	"go.opentelemetry.io/collector/consumer"
+	"go.opentelemetry.io/collector/receiver"
 	"time"
 )
 
@@ -16,35 +16,34 @@ const (
 )
 
 // NewFactory creates a factory for the receiver.
-func NewFactory() component.ReceiverFactory {
-	return component.NewReceiverFactory(
+func NewFactory() receiver.Factory {
+	return receiver.NewFactory(
 		typeStr,
 		createDefaultConfig,
-		component.WithTracesReceiver(createTracesReceiver, stability),
-		component.WithMetricsReceiver(createMetricsReceiver, stability))
+		receiver.WithTraces(createTracesReceiver, stability),
+		receiver.WithMetrics(createMetricsReceiver, stability))
 }
 
-func createDefaultConfig() config.Receiver {
+func createDefaultConfig() component.Config {
 	return &Config{
-		ReceiverSettings: config.NewReceiverSettings(config.NewComponentID(typeStr)),
-		Path:             DefaultTopoFile,
+		Path: DefaultTopoFile,
 	}
 }
 
 func createMetricsReceiver(
 	ctx context.Context,
-	params component.ReceiverCreateSettings,
-	cfg config.Receiver,
-	consumer consumer.Metrics) (component.MetricsReceiver, error) {
+	params receiver.CreateSettings,
+	cfg component.Config,
+	consumer consumer.Metrics) (receiver.Metrics, error) {
 	rcfg := cfg.(*Config)
 	return newMetricReceiver(rcfg, consumer, params.Logger, time.Now().Unix())
 }
 
 func createTracesReceiver(
 	ctx context.Context,
-	params component.ReceiverCreateSettings,
-	cfg config.Receiver,
-	consumer consumer.Traces) (component.TracesReceiver, error) {
+	params receiver.CreateSettings,
+	cfg component.Config,
+	consumer consumer.Traces) (receiver.Traces, error) {
 	rcfg := cfg.(*Config)
 	return newTraceReceiver(rcfg, consumer, params.Logger, time.Now().Unix())
 }

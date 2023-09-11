@@ -6,7 +6,7 @@ WORKDIR /build
 # Default tag is demo
 ARG TAG=local-dev
 
-RUN GO111MODULE=on go install go.opentelemetry.io/collector/cmd/builder@v0.60.0 
+RUN GO111MODULE=on go install go.opentelemetry.io/collector/cmd/builder@v0.69.1
 
 ADD . .
 # Substitute TAG into config file as version
@@ -30,6 +30,7 @@ COPY --from=builder /build/examples/* /otel/examples/
 
 ENV TOPO_FILE=/otel/examples/hipster_shop.yaml
 ENV OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=ingest.lightstep.com:443
+ENV OTEL_EXPORTER_OTLP_TRACES_ENDPOINT_INTERNAL=ingest.lightstep.com:443
 ENV OTEL_INSECURE=false
 
 ENTRYPOINT [ "./telemetry-generator" ]

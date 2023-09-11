@@ -1,9 +1,12 @@
 package topology
 
 import (
-	"github.com/lightstep/telemetry-generator/generatorreceiver/internal/flags"
 	"math/rand"
 	"time"
+
+	"go.opentelemetry.io/collector/pdata/pcommon"
+
+	"github.com/lightstep/telemetry-generator/generatorreceiver/internal/flags"
 )
 
 type LatencyPercentiles struct {
@@ -21,10 +24,17 @@ type LatencyPercentiles struct {
 		p999 time.Duration
 		p100 time.Duration
 	}
+	EmbeddedWeight      `json:",inline" yaml:",inline"`
 	flags.EmbeddedFlags `json:",inline" yaml:",inline"`
 }
 
 func (l *LatencyPercentiles) Sample() int64 {
+	if l == nil {
+		// This results from having a list where
+		// items are !ShouldGenerate() which leaves
+		// an empty list, the zeroP is returned.
+		return 0
+	}
 	uniform := func(timeA, timeB time.Duration) int64 {
 		min := float64(timeA.Nanoseconds())
 		max := float64(timeB.Nanoseconds())
@@ -32,13 +42,13 @@ func (l *LatencyPercentiles) Sample() int64 {
 	}
 	genNumber := rand.Float64()
 	switch {
-	case genNumber <= 0.5:
+	case genNumber < 0.5:
 		return uniform(l.durations.p0, l.durations.p50)
-	case genNumber <= 0.95:
+	case genNumber < 0.95:
 		return uniform(l.durations.p50, l.durations.p95)
-	case genNumber <= 0.99:
+	case genNumber < 0.99:
 		return uniform(l.durations.p95, l.durations.p99)
-	case genNumber <= 0.999:
+	case genNumber < 0.999:
 		return uniform(l.durations.p99, l.durations.p999)
 	default:
 		return uniform(l.durations.p999, l.durations.p100)
@@ -80,7 +90,7 @@ func (l *LatencyPercentiles) loadDurations() error {
 
 type LatencyConfigs []*LatencyPercentiles
 
-func (lcfg *LatencyConfigs) Sample() int64 {
+func (lcfg *LatencyConfigs) Sample(traceID pcommon.TraceID) int64 {
 	var defaultCfg *LatencyPercentiles
 	var enabled []*LatencyPercentiles
 	for _, cfg := range *lcfg {
@@ -91,7 +101,11 @@ func (lcfg *LatencyConfigs) Sample() int64 {
 		}
 	}
 	if len(enabled) > 0 {
-		return enabled[rand.Intn(len(enabled))].Sample()
+		picked := pickBasedOnWeight(enabled, traceID)
+
+		if picked != nil {
+			return picked.Sample()
+		}
 	}
 	return defaultCfg.Sample()
 }

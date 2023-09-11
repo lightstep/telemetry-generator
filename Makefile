@@ -25,7 +25,7 @@ push-tag:
 
 .PHONY: install-otel-builder
 install-otel-builder:
-	GO111module=on go install go.opentelemetry.io/collector/cmd/builder@v0.60.0
+	GO111module=on go install go.opentelemetry.io/collector/cmd/builder@v0.78.1
 
 .PHONY: build
 build: install-otel-builder
@@ -42,4 +42,6 @@ docker-run:
 	-e OTEL_EXPORTER_OTLP_TRACES_ENDPOINT_INTERNAL \
 	--env TOPO_FILE=/etc/otel/hipster_shop.yaml \
 	local-telemetry-generator-demo:latest
-	
+
+run-local:
+	dist/telemetry-generator --config config/collector-config.yml

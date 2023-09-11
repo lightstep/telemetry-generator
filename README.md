@@ -16,14 +16,14 @@ $ docker run -e LS_ACCESS_TOKEN --rm ghcr.io/lightstep/telemetry-generator:lates
 ```
 ### OpenTelemetry collector builder
 Install the [OpenTelemetry Collector Builder](https://github.com/open-telemetry/opentelemetry-collector/tree/main/cmd/builder):
-   1. `$ go install go.opentelemetry.io/collector/cmd/builder@v0.60.0`
+   1. `$ go install go.opentelemetry.io/collector/cmd/builder@v0.67.0`
 
 ### Get the code
 1. Clone the [telemetry generator repo](https://github.com/lightstep/telemetry-generator) to a directory of your choosing:
    1.  `$ cd ~/Code` (or wherever)
    1.  `$ git clone https://github.com/lightstep/telemetry-generator`
    1.  `$ cd telemetry-generator`
-1. Copy `hipster_shop.yaml` to `dev.yaml` for local development. Not strictly necessary but will potentially save heartache and hassle 😅 This file is in .gitignore, so it won't be included in your commits. If you want to share config changes, add them to a new example config file.
+1. Copy `hipster_shop.yaml` to `dev.yaml` for local development. Not strictly necessary (you can point the `TOPO_FILE` environment variable to any config file) but will potentially save heartache and hassle 😅 This file is in .gitignore, so it won't be included in your commits. If you want to share config changes, add them to a new example config file.
    `$ cp examples/hipster_shop.yaml examples/dev.yaml`
 
 ## Environment variables
@@ -38,6 +38,7 @@ To send demo telemetry data to Lightstep, you'll need an access token associated
 
 ```shell
 $ export LS_ACCESS_TOKEN="<your token>"
+$ export LS_ACCESS_TOKEN_INTERNAL="<your token>"
 ```
 
 ### Collector endpoint
@@ -46,6 +47,7 @@ The env var `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` determines the endpoint for dem
 
 ```shell
 $ export OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=ingest.lightstep.com:443
+$ export OTEL_EXPORTER_OTLP_TRACES_ENDPOINT_INTERNAL=ingest.lightstep.com:443
 ```
 
 ### Topo file (generatorreceiver config)
@@ -75,8 +77,9 @@ There are two options here, but if possible we recommend using the OpenTelemetry
 
 (You must first install the `builder`; see Prerequisites above.)
 ```shell
-$ builder --config config/builder-config.yml
-$ build/telemetry-generator --config config/collector-config.yml
+# Running this local will output the collector Go files into dist/
+$ make build
+$ make run-local
 ```
 
 When using the `builder`, you only need to re-run the first command for code changes; for config changes just re-run the second command. To run with a different topo file, change the `TOPO_FILE` environment variable.
@@ -101,8 +104,36 @@ These steps enable a new Docker image to be available with `docker pull ghcr.io/
 0. Make your code changes and add to a new PR, ensure to include an:
    * Update to VERSION in the file `VERSION`
    * Update to `CHANGELOG.md`
+   * Update to [Compatibility Matrix](#compatibility-matrix) below.
 1. Create PR, get approvals, merge changes
 2. Run `make add-tag` 
     * (This will run `git tag` under the hood using the version number in VERSION)
 3. Run `make push-tag`
     * (This will push the tags to Github. **THIS** is the operation that will kick off the GHA workflow, build  and push a new image out to GHCR.io)
+
+## Compatibility Matrix
+Telemetry generator should be built with the compatible open-telemetry Collector 
+builder binary, with [collector](https://github.com/open-telemetry/opentelemetry-collector)
+and [collector-contrib](https://github.com/open-telemetry/opentelemetry-collector-contrib) 
+components of the same version. Below is a matrix showing the correct collector 
+version for the 10 most recent telemetry-generator versions.
+
+
+| Telemetry Generator | OpenTelemetry Collector |
+|---------------------|-------------------------|
+| v0.13.0             | v0.83.0                 |
+| v0.12.0             | v0.78.1                 |
+| v0.11.13            | v0.69.1                 |
+| v0.11.12            | v0.69.1                 |
+| v0.11.11            | v0.69.1                 |
+| v0.11.10            | v0.69.1                 |
+| v0.11.9             | v0.68.0                 |
+| v0.11.8             | v0.67.0                 |
+| v0.11.7             | v0.60.0                 |
+| v0.11.6             | v0.60.0                 |
+| v0.11.5             | v0.60.0                 |
+| v0.11.4             | v0.60.0                 |
+| v0.11.3             | v0.60.0                 |
+| v0.11.2             | v0.60.0                 |
+| v0.11.1             | v0.60.0                 |
+| v0.11.0             | v0.60.0                 |

@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"math/rand"
 
+	"go.opentelemetry.io/collector/pdata/pcommon"
+
 	"github.com/lightstep/telemetry-generator/generatorreceiver/internal/flags"
 )
 
@@ -54,8 +56,13 @@ func (r *ServiceRoute) load(route string) error {
 			return nil
 		}
 	}
-	hasDefault := false
+	var hasDefault bool
+	var hasWeights bool
 	for _, cfg := range r.LatencyConfigs {
+		if cfg.Weight != 0 {
+			hasWeights = true
+		}
+
 		err := cfg.loadDurations()
 		if err != nil {
 			return fmt.Errorf("error parsing latencyPercentiles: %v", err)
@@ -74,13 +81,20 @@ func (r *ServiceRoute) load(route string) error {
 	if !hasDefault {
 		return fmt.Errorf("latencyConfigs must include exactly one default config (no flag_set or flag_unset)")
 	}
+
+	if !hasWeights {
+		// If there are no weights, everything should have the same weight.
+		for _, config := range r.LatencyConfigs {
+			config.Weight = 1
+		}
+	}
 	return nil
 }
 
-func (r *ServiceRoute) SampleLatency() int64 {
+func (r *ServiceRoute) SampleLatency(traceID pcommon.TraceID) int64 {
 	if r.LatencyConfigs == nil {
 		return rand.Int63n(r.MaxLatencyMillis * 1000000)
 	} else {
-		return r.LatencyConfigs.Sample()
+		return r.LatencyConfigs.Sample(traceID)
 	}
 }

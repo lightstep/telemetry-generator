@@ -3,16 +3,18 @@ package generatorreceiver
 import (
 	"context"
 	"fmt"
-	"github.com/lightstep/telemetry-generator/generatorreceiver/internal/cron"
 	"math/rand"
 	"time"
 
+	"go.opentelemetry.io/collector/component"
+	"go.opentelemetry.io/collector/consumer"
+	"go.opentelemetry.io/collector/receiver"
+	"go.uber.org/zap"
+
+	"github.com/lightstep/telemetry-generator/generatorreceiver/internal/cron"
 	"github.com/lightstep/telemetry-generator/generatorreceiver/internal/flags"
 	"github.com/lightstep/telemetry-generator/generatorreceiver/internal/generator"
 	"github.com/lightstep/telemetry-generator/generatorreceiver/internal/topology"
-	"go.opentelemetry.io/collector/component"
-	"go.opentelemetry.io/collector/consumer"
-	"go.uber.org/zap"
 )
 
 type generatorReceiver struct {
@@ -45,19 +47,22 @@ func (g generatorReceiver) loadTopoFile(topoInline string, path string) (topoFil
 func (g generatorReceiver) Start(ctx context.Context, host component.Host) error {
 	topoFile, err := g.loadTopoFile(g.topoInline, g.topoPath)
 	if err != nil {
-		host.ReportFatalError(err)
+		return fmt.Errorf("could not load topo file: %w", err)
 	}
 
 	err = validateConfiguration(*topoFile)
 	if err != nil {
-		host.ReportFatalError(err)
+		return fmt.Errorf("could not validate topo file: %w", err)
 	}
 
 	g.logger.Info("starting flag manager", zap.Int("flag_count", flags.Manager.FlagCount()))
 	cron.Start()
-	r := rand.New(rand.NewSource(g.randomSeed))
-	r.Seed(g.randomSeed)
-	rand.Seed(g.randomSeed)
+
+	// rand is used to generate seeds the underlying *rand.Rand
+	generatorRand := rand.New(rand.NewSource(g.randomSeed))
+
+	// Metrics generator uses the global rand.Rand
+	rand.Seed(generatorRand.Int63())
 
 	if g.server != nil {
 		err := g.server.Start(ctx, host)
@@ -106,22 +111,28 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 
 	}
 	if g.traceConsumer != nil {
-		for _, r := range topoFile.RootRoutes {
-			traceTicker := time.NewTicker(time.Duration(360000/r.TracesPerHour) * time.Millisecond)
+		for _, rootRoute := range topoFile.RootRoutes {
+			traceTicker := time.NewTicker(time.Duration(360000/rootRoute.TracesPerHour) * time.Millisecond)
 			g.tickers = append(g.tickers, traceTicker)
 			done := make(chan bool)
-			svc := r.Service
-			route := r.Route
-			r := r
+			svc := rootRoute.Service
+			route := rootRoute.Route
+			rootRoute := rootRoute
+
+			// rand.Rand is not safe to use in different go routines,
+			// create one for each go routine, but use the generatorRand to
+			// generate the seed.
+			routeRand := rand.New(rand.NewSource(generatorRand.Int63()))
+
 			go func() {
 				g.logger.Info("generating traces", zap.String("service", svc), zap.String("route", route))
-				traceGen := generator.NewTraceGenerator(topoFile.Topology, g.randomSeed, svc, route)
+				traceGen := generator.NewTraceGenerator(topoFile.Topology, routeRand, svc, route)
 				for {
 					select {
 					case <-done:
 						return
 					case <-traceTicker.C:
-						if r.ShouldGenerate() {
+						if rootRoute.ShouldGenerate() {
 							traces := traceGen.Generate(time.Now().UnixNano())
 							_ = g.traceConsumer.ConsumeTraces(context.Background(), *traces)
 						}
@@ -149,7 +160,6 @@ func (g *generatorReceiver) startMetricGenerator(ctx context.Context, host compo
 					host.ReportFatalError(err)
 				}
 			}
-
 		}
 	}()
 
@@ -168,7 +178,7 @@ func (g generatorReceiver) Shutdown(_ context.Context) error {
 
 func newMetricReceiver(config *Config,
 	consumer consumer.Metrics,
-	logger *zap.Logger, randomSeed int64) (component.MetricsReceiver, error) {
+	logger *zap.Logger, randomSeed int64) (receiver.Metrics, error) {
 
 	if consumer == nil {
 		return nil, component.ErrNilNextConsumer
@@ -194,7 +204,7 @@ func newMetricReceiver(config *Config,
 
 func newTraceReceiver(config *Config,
 	consumer consumer.Traces,
-	logger *zap.Logger, randomSeed int64) (component.TracesReceiver, error) {
+	logger *zap.Logger, randomSeed int64) (receiver.Traces, error) {
 
 	if consumer == nil {
 		return nil, component.ErrNilNextConsumer
