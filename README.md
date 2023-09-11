@@ -16,7 +16,7 @@ $ docker run -e LS_ACCESS_TOKEN --rm ghcr.io/lightstep/telemetry-generator:lates
 ```
 ### OpenTelemetry collector builder
 Install the [OpenTelemetry Collector Builder](https://github.com/open-telemetry/opentelemetry-collector/tree/main/cmd/builder):
-   1. `$ go install go.opentelemetry.io/collector/cmd/builder@v0.67.0`
+   1. `$ go install go.opentelemetry.io/collector/cmd/builder@v0.69.1`
 
 ### Get the code
 1. Clone the [telemetry generator repo](https://github.com/lightstep/telemetry-generator) to a directory of your choosing:
