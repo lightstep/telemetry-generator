@@ -18,7 +18,7 @@ topology:
       resourceAttrSets:
         - weight: 1
           kubernetes:
-            pod_count: 400
+            pod_count: 40
             restart:
               every: 10m
               jitter: 2m
@@ -592,4 +592,4 @@ rootRoutes:
 
 config:
   kubernetes:
-    pod_count: 400
+    pod_count: 40
