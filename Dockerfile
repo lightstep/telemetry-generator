@@ -28,7 +28,7 @@ COPY --from=builder /build/build/telemetry-generator .
 COPY --from=builder /build/config/collector-config.yml /etc/otel/config.yaml
 COPY --from=builder /build/examples/* /otel/examples/
 
-ENV TOPO_FILE=/etc/otel/hipster_shop.yaml
+ENV TOPO_FILE=/otel/examples/hipster_shop.yaml
 ENV OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=ingest.lightstep.com:443
 ENV OTEL_INSECURE=false
 

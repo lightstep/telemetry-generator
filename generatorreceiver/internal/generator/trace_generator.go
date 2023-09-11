@@ -100,8 +100,8 @@ func (g *TraceGenerator) createSpanForServiceRouteCall(traces *ptrace.Traces, se
 	ts.Tags.InsertTags(&attr) // add service and route tags to span attributes
 
 	for _, tg := range ts.TagGenerators {
-		tg.Random = g.random
-		for k, v := range tg.GenerateTags() {
+		tg.Init(g.random)
+		for k, v := range tg.GetTags() {
 			span.Attributes().PutString(k, v) // add generated tags to span attributes
 		}
 	}

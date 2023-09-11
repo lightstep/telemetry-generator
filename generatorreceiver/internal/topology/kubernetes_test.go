@@ -65,7 +65,7 @@ func TestMultiPod(t *testing.T) {
 	// (odds of this test failing randomly are 1 in 7**100 =~ 3 in 10^85
 	names := make(map[string]bool)
 	for i := 0; i < 100; i++ {
-		tags := k.GetK8sTags()
+		tags := k.GetRandomK8sTags()
 		names[tags["k8s.pod.name"]] = true
 	}
 	require.Greater(t, len(names), 1, "multiple pod names should be generated")

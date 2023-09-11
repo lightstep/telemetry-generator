@@ -12,7 +12,7 @@ For defaults, see `Dockerfile`.
 $ export LS_ACCESS_TOKEN=your token
 # can override to any other OTLP endpoint
 $ export OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=ingest.lightstep.com:443
-$ docker run -e LS_ACCESS_TOKEN --rm ghcr.io/lightstep//telemetry-generator:latest
+$ docker run -e LS_ACCESS_TOKEN --rm ghcr.io/lightstep/telemetry-generator:latest
 ```
 ### OpenTelemetry collector builder
 Install the [OpenTelemetry Collector Builder](https://github.com/open-telemetry/opentelemetry-collector/tree/main/cmd/builder):
@@ -58,10 +58,10 @@ If you're using the `builder` you'll want to point to `examples/<filename.yaml>`
 $ export TOPO_FILE=examples/dev.yaml
 ```
 
-For Docker builds, these files are copied to `/etc/otel/`, so set `TOPO_FILE` like this:
+For Docker builds, these files are copied to `/otel/examples`, so set `TOPO_FILE` like this:
 
 ```shell
-$ export TOPO_FILE=/etc/otel/dev.yaml
+$ export TOPO_FILE=/otel/examples/dev.yaml
 ```
 
 # Development Workflows

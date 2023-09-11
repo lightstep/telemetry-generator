@@ -139,12 +139,16 @@ func (k *Kubernetes) randomPod() *Pod {
 }
 
 // only called from tag generator!
-func (k *Kubernetes) GetK8sTags() map[string]string {
+func (k *Kubernetes) GetRandomK8sTags() map[string]string {
 	k.mutex.Lock()
 	defer k.mutex.Unlock()
 
 	pod := k.randomPod()
 	// ref: https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/resource/semantic_conventions/k8s.md
+	return k.GetK8sTags(pod)
+}
+
+func (k *Kubernetes) GetK8sTags(pod *Pod) map[string]string {
 	return map[string]string{
 		"k8s.cluster.name":    k.ClusterName,
 		"k8s.pod.name":        pod.PodName,
@@ -249,6 +253,7 @@ func (k *Kubernetes) GenerateMetrics() []Metric {
 	metrics := []Metric{}
 
 	for _, pod := range k.pods {
+		k8sTags := k.GetK8sTags(pod)
 		podMetrics := []Metric{
 			// kube_pod metrics
 			{
@@ -256,90 +261,90 @@ func (k *Kubernetes) GenerateMetrics() []Metric {
 				Type: "Gauge",
 				Min:  1,
 				Max:  1,
-				Tags: map[string]string{
+				Tags: mergeTags(k8sTags, map[string]string{
 					"phase": "Running",
 					"pod":   PodName,
-				},
+				}),
 			},
 			{
 				Name: "kube_pod_owner",
 				Type: "Gauge",
 				Min:  1,
 				Max:  1,
-				Tags: map[string]string{
+				Tags: mergeTags(k8sTags, map[string]string{
 					"pod":        PodName,
 					"namespace":  Namespace,
 					"owner_name": ReplicaSet,
 					"owner_kind": "ReplicaSet",
-				},
+				}),
 			},
 			{
 				Name: "kube_node_status_allocatable",
 				Type: "Gauge",
 				Min:  cpuTotal,
 				Max:  cpuTotal,
-				Tags: map[string]string{
+				Tags: mergeTags(k8sTags, map[string]string{
 					"resource": "cpu",
 					"pod":      PodName, // used to created multiple time series that will be summed up.
-				},
+				}),
 			},
 			{
 				Name: "kube_node_status_allocatable",
 				Type: "Gauge",
 				Min:  memTotal,
 				Max:  memTotal,
-				Tags: map[string]string{
+				Tags: mergeTags(k8sTags, map[string]string{
 					"resource": "memory",
 					"pod":      PodName, // used to created multiple time series that will be summed up.
-				},
+				}),
 			},
 			{
 				Name: "kube_pod_container_resource_requests",
 				Type: "Gauge",
 				Min:  k.Request.CPU,
 				Max:  k.Request.CPU,
-				Tags: map[string]string{
+				Tags: mergeTags(k8sTags, map[string]string{
 					"resource":  "cpu",
 					"namespace": Namespace,
 					"container": Container,
 					"pod":       PodName,
-				},
+				}),
 			},
 			{
 				Name: "kube_pod_container_resource_requests",
 				Type: "Gauge",
 				Min:  k.Request.Memory * megabyte,
 				Max:  k.Request.Memory * megabyte,
-				Tags: map[string]string{
+				Tags: mergeTags(k8sTags, map[string]string{
 					"resource":  "memory",
 					"namespace": Namespace,
 					"container": Container,
 					"pod":       PodName,
-				},
+				}),
 			},
 			{
 				Name: "kube_pod_container_resource_limits",
 				Type: "Gauge",
 				Min:  k.Limit.CPU,
 				Max:  k.Limit.CPU,
-				Tags: map[string]string{
+				Tags: mergeTags(k8sTags, map[string]string{
 					"resource":  "cpu",
 					"namespace": Namespace,
 					"container": Container,
 					"pod":       PodName,
-				},
+				}),
 			},
 			{
 				Name: "kube_pod_container_resource_limits",
 				Type: "Gauge",
 				Min:  k.Limit.Memory * megabyte,
 				Max:  k.Limit.Memory * megabyte,
-				Tags: map[string]string{
+				Tags: mergeTags(k8sTags, map[string]string{
 					"resource":  "memory",
 					"namespace": Namespace,
 					"container": Container,
 					"pod":       PodName,
-				},
+				}),
 			},
 			// node metrics
 			{
@@ -347,11 +352,11 @@ func (k *Kubernetes) GenerateMetrics() []Metric {
 				Type: "Sum",
 				Min:  k.Limit.CPU * 1.2,
 				Max:  k.Limit.CPU * 1.2,
-				Tags: map[string]string{
+				Tags: mergeTags(k8sTags, map[string]string{
 					"resource":      "cpu",
 					"net.host.name": PodName, // for this we assume each pod run on its own node.
 					"cpu":           "0",
-				},
+				}),
 			},
 			{
 				Name:   "node_cpu_seconds_total",
@@ -361,11 +366,11 @@ func (k *Kubernetes) GenerateMetrics() []Metric {
 				Max:    math.Min(cpuTarget*(1+cpuJitter), k.Limit.CPU),
 				Shape:  Average,
 				Jitter: k.Usage.CPU.Jitter,
-				Tags: map[string]string{
+				Tags: mergeTags(k8sTags, map[string]string{
 					"resource":      "cpu",
 					"net.host.name": PodName, // for this we assume each pod run on its own node.
 					"cpu":           "0",
-				},
+				}),
 			},
 
 			{
@@ -375,9 +380,9 @@ func (k *Kubernetes) GenerateMetrics() []Metric {
 				Max:    math.Min(memTotal-memTarget*(1-memJitter), k.Limit.Memory*megabyte),
 				Shape:  Average,
 				Jitter: k.Usage.Memory.Jitter,
-				Tags: map[string]string{
+				Tags: mergeTags(k8sTags, map[string]string{
 					"net.host.name": PodName, // for this we assume each pod run on its own node.
-				},
+				}),
 			},
 
 			{
@@ -386,9 +391,9 @@ func (k *Kubernetes) GenerateMetrics() []Metric {
 				Min:    memTotal,
 				Max:    memTotal,
 				Jitter: k.Usage.Memory.Jitter,
-				Tags: map[string]string{
+				Tags: mergeTags(k8sTags, map[string]string{
 					"net.host.name": PodName, // for this we assume each pod run on its own node.
-				},
+				}),
 			},
 			{
 				Name:   "container_fs_reads_total",
@@ -397,13 +402,13 @@ func (k *Kubernetes) GenerateMetrics() []Metric {
 				Max:    diskTarget * (1 + diskJitter),
 				Shape:  Average,
 				Jitter: k.Usage.Disk.Jitter,
-				Tags: map[string]string{
+				Tags: mergeTags(k8sTags, map[string]string{
 					"job":          "kubelet",
 					"metrics_path": "/metrics/cadvisor",
 					"container":    Container,
 					"device":       "/dev/sda",
 					"namespace":    Namespace,
-				},
+				}),
 			},
 			{
 				Name:   "container_fs_writes_total",
@@ -412,13 +417,13 @@ func (k *Kubernetes) GenerateMetrics() []Metric {
 				Max:    diskTarget * (1 + diskJitter),
 				Shape:  Average,
 				Jitter: k.Usage.Disk.Jitter,
-				Tags: map[string]string{
+				Tags: mergeTags(k8sTags, map[string]string{
 					"job":          "kubelet",
 					"metrics_path": "/metrics/cadvisor",
 					"container":    Container,
 					"device":       "/dev/sda",
 					"namespace":    Namespace,
-				},
+				}),
 			},
 			{
 				Name:   "container_fs_reads_bytes_total",
@@ -427,13 +432,13 @@ func (k *Kubernetes) GenerateMetrics() []Metric {
 				Max:    diskTarget * (1 + diskJitter),
 				Shape:  Average,
 				Jitter: k.Usage.Disk.Jitter,
-				Tags: map[string]string{
+				Tags: mergeTags(k8sTags, map[string]string{
 					"job":          "kubelet",
 					"metrics_path": "/metrics/cadvisor",
 					"container":    Container,
 					"device":       "/dev/sda",
 					"namespace":    Namespace,
-				},
+				}),
 			},
 			{
 				Name:   "container_fs_writes_bytes_total",
@@ -442,13 +447,13 @@ func (k *Kubernetes) GenerateMetrics() []Metric {
 				Max:    diskTarget * (1 + diskJitter),
 				Shape:  Average,
 				Jitter: k.Usage.Disk.Jitter,
-				Tags: map[string]string{
+				Tags: mergeTags(k8sTags, map[string]string{
 					"job":          "kubelet",
 					"metrics_path": "/metrics/cadvisor",
 					"container":    Container,
 					"device":       "/dev/sda",
 					"namespace":    Namespace,
-				},
+				}),
 			},
 			{
 				Name:   "container_memory_working_set_bytes",
@@ -459,13 +464,13 @@ func (k *Kubernetes) GenerateMetrics() []Metric {
 				Max:    math.Min(memTarget*(1+memJitter)+k.Limit.Memory*megabyte*(1-restart), k.Limit.Memory*megabyte),
 				Shape:  memoryShape,
 				Jitter: k.Usage.Memory.Jitter,
-				Tags: map[string]string{
+				Tags: mergeTags(k8sTags, map[string]string{
 					"pod":        PodName,
 					"container":  Container,
 					"image":      Service,
 					"namespace":  Namespace,
 					"deployment": Deployment,
-				},
+				}),
 			},
 			{
 				Name:   "container_network_receive_bytes_total",
@@ -474,9 +479,9 @@ func (k *Kubernetes) GenerateMetrics() []Metric {
 				Max:    networkTarget * (2000 + networkJitter),
 				Shape:  Average,
 				Jitter: k.Usage.Network.Jitter,
-				Tags: map[string]string{
+				Tags: mergeTags(k8sTags, map[string]string{
 					"image": Service,
-				},
+				}),
 			},
 			{
 				Name:   "container_network_transmit_bytes_total",
@@ -485,9 +490,9 @@ func (k *Kubernetes) GenerateMetrics() []Metric {
 				Max:    networkTarget * (2000 + networkJitter),
 				Shape:  Average,
 				Jitter: k.Usage.Network.Jitter,
-				Tags: map[string]string{
+				Tags: mergeTags(k8sTags, map[string]string{
 					"image": Service,
-				},
+				}),
 			},
 			{
 				Name:   "container_network_receive_packets_total",
@@ -496,9 +501,9 @@ func (k *Kubernetes) GenerateMetrics() []Metric {
 				Max:    networkTarget * (1 + networkJitter),
 				Shape:  Average,
 				Jitter: k.Usage.Network.Jitter,
-				Tags: map[string]string{
+				Tags: mergeTags(k8sTags, map[string]string{
 					"image": Service,
-				},
+				}),
 			},
 			{
 				Name:   "container_network_transmit_packets_total",
@@ -507,9 +512,9 @@ func (k *Kubernetes) GenerateMetrics() []Metric {
 				Max:    networkTarget * (1 + networkJitter),
 				Shape:  Average,
 				Jitter: k.Usage.Network.Jitter,
-				Tags: map[string]string{
+				Tags: mergeTags(k8sTags, map[string]string{
 					"image": Service,
-				},
+				}),
 			},
 
 			// container metrics
@@ -520,12 +525,12 @@ func (k *Kubernetes) GenerateMetrics() []Metric {
 				Max:    math.Min(cpuTarget*(1+cpuJitter), k.Limit.CPU),
 				Shape:  Average,
 				Jitter: k.Usage.CPU.Jitter,
-				Tags: map[string]string{
+				Tags: mergeTags(k8sTags, map[string]string{
 					"pod":       PodName,
 					"container": Container,
 					"image":     Service,
 					"namespace": Namespace,
-				},
+				}),
 			},
 			{
 				Name:   "container_fs_reads_total",
@@ -534,13 +539,13 @@ func (k *Kubernetes) GenerateMetrics() []Metric {
 				Max:    diskTarget * (1 + diskJitter),
 				Shape:  Average,
 				Jitter: k.Usage.Disk.Jitter,
-				Tags: map[string]string{
+				Tags: mergeTags(k8sTags, map[string]string{
 					"job":          "kubelet",
 					"metrics_path": "/metrics/cadvisor",
 					"container":    Container,
 					"device":       "/dev/sda",
 					"namespace":    Namespace,
-				},
+				}),
 			},
 			{
 				Name:   "container_fs_writes_total",
@@ -549,13 +554,13 @@ func (k *Kubernetes) GenerateMetrics() []Metric {
 				Max:    diskTarget * (1 + diskJitter),
 				Shape:  Average,
 				Jitter: k.Usage.Disk.Jitter,
-				Tags: map[string]string{
+				Tags: mergeTags(k8sTags, map[string]string{
 					"job":          "kubelet",
 					"metrics_path": "/metrics/cadvisor",
 					"container":    Container,
 					"device":       "/dev/sda",
 					"namespace":    Namespace,
-				},
+				}),
 			},
 			{
 				Name:   "container_fs_reads_bytes_total",
@@ -564,13 +569,13 @@ func (k *Kubernetes) GenerateMetrics() []Metric {
 				Max:    diskTarget * (1 + diskJitter),
 				Shape:  Average,
 				Jitter: k.Usage.Disk.Jitter,
-				Tags: map[string]string{
+				Tags: mergeTags(k8sTags, map[string]string{
 					"job":          "kubelet",
 					"metrics_path": "/metrics/cadvisor",
 					"container":    Container,
 					"device":       "/dev/sda",
 					"namespace":    Namespace,
-				},
+				}),
 			},
 			{
 				Name:   "container_fs_writes_bytes_total",
@@ -579,13 +584,13 @@ func (k *Kubernetes) GenerateMetrics() []Metric {
 				Max:    diskTarget * (1 + diskJitter),
 				Shape:  Average,
 				Jitter: k.Usage.Disk.Jitter,
-				Tags: map[string]string{
+				Tags: mergeTags(k8sTags, map[string]string{
 					"job":          "kubelet",
 					"metrics_path": "/metrics/cadvisor",
 					"container":    Container,
 					"device":       "/dev/sda",
 					"namespace":    Namespace,
-				},
+				}),
 			},
 			{
 				Name:   "container_memory_working_set_bytes",
@@ -596,12 +601,12 @@ func (k *Kubernetes) GenerateMetrics() []Metric {
 				Max:    math.Min(memTarget*(1+memJitter)+k.Limit.Memory*megabyte*(1-restart), k.Limit.Memory*megabyte),
 				Shape:  memoryShape,
 				Jitter: k.Usage.Memory.Jitter,
-				Tags: map[string]string{
+				Tags: mergeTags(k8sTags, map[string]string{
 					"pod":       PodName,
 					"container": Container,
 					"image":     Service,
 					"namespace": Namespace,
-				},
+				}),
 			},
 			{
 				Name:   "container_network_receive_bytes_total",
@@ -610,9 +615,9 @@ func (k *Kubernetes) GenerateMetrics() []Metric {
 				Max:    networkTarget * (2000 + networkJitter),
 				Shape:  Average,
 				Jitter: k.Usage.Network.Jitter,
-				Tags: map[string]string{
+				Tags: mergeTags(k8sTags, map[string]string{
 					"image": Service,
-				},
+				}),
 			},
 			{
 				Name:   "container_network_transmit_bytes_total",
@@ -621,9 +626,9 @@ func (k *Kubernetes) GenerateMetrics() []Metric {
 				Max:    networkTarget * (2000 + networkJitter),
 				Shape:  Average,
 				Jitter: k.Usage.Network.Jitter,
-				Tags: map[string]string{
+				Tags: mergeTags(k8sTags, map[string]string{
 					"image": Service,
-				},
+				}),
 			},
 			{
 				Name:   "container_network_receive_packets_total",
@@ -632,9 +637,9 @@ func (k *Kubernetes) GenerateMetrics() []Metric {
 				Max:    networkTarget * (1 + networkJitter),
 				Shape:  Average,
 				Jitter: k.Usage.Network.Jitter,
-				Tags: map[string]string{
+				Tags: mergeTags(k8sTags, map[string]string{
 					"image": Service,
-				},
+				}),
 			},
 			{
 				Name:   "container_network_transmit_packets_total",
@@ -643,9 +648,9 @@ func (k *Kubernetes) GenerateMetrics() []Metric {
 				Max:    networkTarget * (1 + networkJitter),
 				Shape:  Average,
 				Jitter: k.Usage.Network.Jitter,
-				Tags: map[string]string{
+				Tags: mergeTags(k8sTags, map[string]string{
 					"image": Service,
-				},
+				}),
 			},
 		}
 
@@ -668,3 +673,4 @@ func generateK8sName(n int) string {
 	}
 	return string(b)
 }
+

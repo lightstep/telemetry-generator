@@ -1,4 +1,4 @@
-TAG := "v$(shell cat ./VERSION)"
+dTAG := "v$(shell cat ./VERSION)"
 
 .PHONY: test
 test:
