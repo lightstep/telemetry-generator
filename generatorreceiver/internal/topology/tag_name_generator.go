@@ -6,20 +6,24 @@ import (
 )
 
 type Generator interface {
-	Generate() string
+	GenerateKey() string
+	GenerateValue() string
 }
 
-type TagNameGenerator struct {
+type RandomTagGenerator struct {
 	random *rand.Rand
 }
 
-func (rn *TagNameGenerator) Generate() string {
-	randomAdjective := ADJECTIVES[rn.random.Intn(len(ADJECTIVES))]
-	randomNoun := NOUNS[rn.random.Intn(len(NOUNS))]
+func (rtg *RandomTagGenerator) GenerateKey() string {
+	return fmt.Sprintf("%v-%v", rtg.randomString(ADJECTIVES), rtg.randomString(NOUNS))
+}
 
-	randomName := fmt.Sprintf("%v-%v", randomAdjective, randomNoun)
+func (rtg *RandomTagGenerator) GenerateValue() string {
+	return fmt.Sprintf("%v-%v", rtg.randomString(ADVERBS), rtg.randomString(VERBS))
+}
 
-	return randomName
+func (rtg *RandomTagGenerator) randomString(words []string) string {
+	return words[rtg.random.Intn(len(words))]
 }
 
 var (
@@ -42,4 +46,17 @@ var (
 		"sound", "sky", "shape", "surf", "thunder", "violet", "water", "wildflower",
 		"wave", "water", "resonance", "sun", "wood", "dream", "cherry", "tree", "fog",
 		"frost", "voice", "paper", "frog", "smoke", "star"}
+
+	VERBS = []string{"run","jump","sing","dance","write","read","swim","paint","cook","eat","sleep",
+		"drive","talk","listen","think","play","study","work","laugh","cry","climb","fly","build","plant",
+		"create","design","calculate","solve","program","code","investigate","explore","imagine","craft",
+		"sew","draw","sculpt","sing","type","analyze","communicate","collaborate","travel","relax",
+		"meditate","exercise","hike","capture","invent","inspire"}
+
+  ADVERBS = []string{"quickly","slowly","quietly","loudly","carefully","boldly","cautiously","anxiously",
+	  "happily","sadly","bravely","eagerly","gently","roughly","softly","smoothly","suddenly","gradually",
+	  "frequently","rarely","always","never","shortly","longingly","mysteriously","calmly","nervously","honestly",
+	  "deftly","warily","warmly","coolly","effortlessly","clumsily","politely","impolitely","seriously",
+	  "playfully","steadily","vigorously","sloppily","painstakingly","regularly","unusually","seldom","eventually",
+	  "readily","reluctantly","accidentally","intentionally","quickly"}
 )

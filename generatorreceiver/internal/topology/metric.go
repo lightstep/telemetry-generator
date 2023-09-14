@@ -62,9 +62,11 @@ type Metric struct {
 	Shape               Shape             `json:"shape" yaml:"shape"`
 	ShapeInterface      ShapeInterface    `json:"-" yaml:"-"`
 	Tags                map[string]string `json:"tags" yaml:"tags"`
+	TagGenerator       TagGenerator    `json:"tagGenerator,omitempty" yaml:"tagGenerator,omitempty"`
 	Jitter              float64           `json:"jitter" yaml:"jitter"`
 	flags.EmbeddedFlags `json:",inline" yaml:",inline"`
 	Pod                 *Pod
+	Random *rand.Rand
 }
 
 func (m *Metric) GetTags() map[string]string {
@@ -72,7 +74,16 @@ func (m *Metric) GetTags() map[string]string {
 		return m.Pod.ReplaceTags(m.Tags)
 	}
 
-	return m.Tags
+
+	tags := make(map[string]string)
+	for k,v := range m.Tags {
+		tags[k] = v
+	}
+	for k,v := range m.TagGenerator.GetRefreshedTags() {
+		tags[k] = v
+	}
+
+	return tags
 }
 
 func (m *Metric) InitMetric() {
@@ -98,6 +109,8 @@ func (m *Metric) InitMetric() {
 		m.ShapeInterface = &funcShape{SineValue}
 
 	}
+
+	m.TagGenerator.Init(m.Random)
 }
 
 func SineValue(phase float64) float64 {

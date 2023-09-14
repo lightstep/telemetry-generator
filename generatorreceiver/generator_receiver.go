@@ -150,7 +150,7 @@ func (g *generatorReceiver) startMetricGenerator(ctx context.Context, host compo
 	metricTicker := time.NewTicker(topology.DefaultMetricTickerPeriod)
 	go func() {
 		g.logger.Info("generating metrics", zap.String("service", serviceName), zap.String("name", m.Name), zap.String("flag_set", m.EmbeddedFlags.FlagSet), zap.String("flag_unset", m.EmbeddedFlags.FlagUnset))
-		metricGen := generator.NewMetricGenerator()
+		metricGen := generator.NewMetricGenerator(g.randomSeed)
 		for range metricTicker.C {
 			m.Pod.RestartIfNeeded(m.EmbeddedFlags, g.logger)
 

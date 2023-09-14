@@ -2,6 +2,7 @@ package generator
 
 import (
 	"time"
+	"math/rand"
 
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/pmetric"
@@ -11,15 +12,20 @@ import (
 
 type MetricGenerator struct {
 	metricCount int
+	random         *rand.Rand
 }
 
-func NewMetricGenerator() *MetricGenerator {
+func NewMetricGenerator(seed int64) *MetricGenerator {
+	r := rand.New(rand.NewSource(seed))
+	r.Seed(seed)
 	return &MetricGenerator{
 		metricCount: 0,
+		random: r,
 	}
 }
 
 func (g *MetricGenerator) Generate(metric *topology.Metric, serviceName string) (pmetric.Metrics, bool) {
+	metric.Random = g.random
 	metrics := pmetric.NewMetrics()
 
 	if !metric.ShouldGenerate() {

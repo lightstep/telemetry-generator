@@ -17,7 +17,7 @@ func (r *ResourceAttributeSet) GetAttributes() *TagMap {
 		tm[k] = v
 	}
 	if k8s := r.Kubernetes; k8s != nil {
-		for k, v := range k8s.GetK8sTags() {
+		for k, v := range k8s.GetRandomK8sTags() {
 			tm[k] = v
 		}
 	}

@@ -18,7 +18,7 @@ topology:
       resourceAttrSets:
         - weight: 1
           kubernetes:
-            pod_count: 7
+            pod_count: 40
             restart:
               every: 10m
               jitter: 2m
@@ -81,9 +81,9 @@ topology:
               tags:
                 starter: charmander
               tagGenerators:
-                - numTags: 50
-                  numVals: 3000
-                  valLength: 16
+                - numTags: 10
+                  numVals: 100
+                  valueVariability: 80
             - weight: 1
               tags:
                 starter: squirtle
@@ -189,7 +189,7 @@ topology:
             cloud.region: us-west-2
         - weight: 1
           kubernetes:
-            cluster_name: k8s-cluster-3
+            cluster_name: k8s-cluster-33
             request:
               cpu: 0.5
               memory: 512
@@ -241,7 +241,7 @@ topology:
       resourceAttrSets:
         - weight: 1
           kubernetes:
-            cluster_name: k8s-cluster-1
+            cluster_name: k8s-cluster-11
             request:
               cpu: 0.5
               memory: 512
@@ -454,6 +454,12 @@ topology:
           min: 0
           period: 5m
           shape: triangle
+          tags:
+            foo: bar
+          tagGenerator:
+            numTags: 10
+            numVals: 1000
+            valueVariability: 80
       routes:
         /api/make-payment:
           downstreamCalls:
@@ -482,6 +488,10 @@ topology:
           min: 0
           period: 5m
           shape: triangle
+          tagGenerator:
+            numTags: 10
+            numVals: 1000
+            valueVariability: 80
       routes:
         /api/make-payment:
           downstreamCalls:
@@ -582,4 +592,4 @@ rootRoutes:
 
 config:
   kubernetes:
-    pod_count: 1
+    pod_count: 40
