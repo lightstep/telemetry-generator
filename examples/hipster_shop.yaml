@@ -454,10 +454,11 @@ topology:
           min: 0
           period: 5m
           shape: triangle
-          tags:
-            foo: bar
           tagGenerator:
-            numTags: 10
+            tags:
+              - foo
+              - bar
+              - baz
             numVals: 1000
             valueVariability: 80
       routes:
