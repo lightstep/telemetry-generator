@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased](https://github.com/lightstep/telemetry-generator/compare/v0.13.0...HEAD)
 
+## [0.14.2](https://github.com/lightstep/telemetry-generator/compare/v0.14.1...v0.14.2) - 2023-8-16
+### Fixed
+* Update docker base image to `stable-slim`
+
 ## [0.14.1](https://github.com/lightstep/telemetry-generator/compare/v0.14.0...v0.14.1) - 2023-8-16
 ### Fixed
 * Do not use cache when building docker image

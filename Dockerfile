@@ -14,7 +14,7 @@ RUN sed -i -e "s/\${TAG}/$TAG/g" /build/config/builder-config.yml
 
 RUN builder --config /build/config/builder-config.yml 
 
-FROM debian:stretch-slim
+FROM debian:stable-slim
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates
