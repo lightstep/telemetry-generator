@@ -121,6 +121,7 @@ version for the 10 most recent telemetry-generator versions.
 
 | Telemetry Generator | OpenTelemetry Collector |
 |---------------------|-------------------------|
+| v0.14.2             | v0.83.0                 |
 | v0.14.1             | v0.83.0                 |
 | v0.14.0             | v0.83.0                 |
 | v0.13.0             | v0.83.0                 |
