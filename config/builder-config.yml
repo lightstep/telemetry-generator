@@ -4,7 +4,7 @@ dist:
     description: "Custom Lightstep Partner OpenTelemetry Collector distribution" # a long name for the application. Optional.
     output_path: build # the path to write the output (sources and binary). Optional.
     version: "${TAG}" # Builder config gets overriden by Docker build.
-    otelcol_version: "0.78.1"
+    otelcol_version: "0.88.0"
 
     # the version for your custom OpenTelemetry Collector. Optional. NOTE - this will be overriden by CI/CD during deployment.
 
@@ -12,19 +12,19 @@ receivers:
   - gomod: "github.com/lightstep/telemetry-generator/generatorreceiver v0.12.0"
     name: "generatorreceiver"
     path: "./generatorreceiver"
-  - gomod: "github.com/open-telemetry/opentelemetry-collector-contrib/receiver/prometheusreceiver v0.78.0"
+  - gomod: "github.com/open-telemetry/opentelemetry-collector-contrib/receiver/prometheusreceiver v0.88.0"
     name: "prometheusreceiver"
 exporters:
   - import: go.opentelemetry.io/collector/exporter/otlpexporter
-    gomod: go.opentelemetry.io/collector/exporter/otlpexporter v0.78.1
+    gomod: go.opentelemetry.io/collector/exporter/otlpexporter v0.88.0
   - import: go.opentelemetry.io/collector/exporter/loggingexporter
-    gomod: go.opentelemetry.io/collector/exporter/loggingexporter v0.78.1
+    gomod: go.opentelemetry.io/collector/exporter/loggingexporter v0.88.0
 processors:
-  - gomod: "github.com/open-telemetry/opentelemetry-collector-contrib/processor/spanmetricsprocessor v0.78.0"
+  - gomod: "github.com/open-telemetry/opentelemetry-collector-contrib/processor/spanmetricsprocessor v0.88.0"
     name: "spanmetricsprocessor"
   - import: go.opentelemetry.io/collector/processor/batchprocessor
-    gomod: go.opentelemetry.io/collector/processor/batchprocessor v0.78.1
+    gomod: go.opentelemetry.io/collector/processor/batchprocessor v0.88.0
   - import: go.opentelemetry.io/collector/processor/memorylimiterprocessor
-    gomod: go.opentelemetry.io/collector/processor/memorylimiterprocessor v0.78.1
-  - gomod: "github.com/open-telemetry/opentelemetry-collector-contrib/processor/attributesprocessor v0.78.0"
+    gomod: go.opentelemetry.io/collector/processor/memorylimiterprocessor v0.88.0
+  - gomod: "github.com/open-telemetry/opentelemetry-collector-contrib/processor/attributesprocessor v0.88.0"
     name: "attributesprocessor"
