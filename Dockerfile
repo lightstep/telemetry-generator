@@ -1,4 +1,4 @@
-FROM golang:1.19.1 as builder
+FROM golang:1.20 as builder
 
 RUN mkdir /build
 WORKDIR /build
@@ -6,7 +6,7 @@ WORKDIR /build
 # Default tag is demo
 ARG TAG=local-dev
 
-RUN GO111MODULE=on go install go.opentelemetry.io/collector/cmd/builder@v0.69.1
+RUN GO111MODULE=on go install go.opentelemetry.io/collector/cmd/builder@v0.88.0
 
 ADD . .
 # Substitute TAG into config file as version
