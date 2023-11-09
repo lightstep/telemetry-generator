@@ -134,7 +134,11 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 					case <-traceTicker.C:
 						if rootRoute.ShouldGenerate() {
 							traces := traceGen.Generate(time.Now().UnixNano())
-							_ = g.traceConsumer.ConsumeTraces(context.Background(), *traces)
+							err := g.traceConsumer.ConsumeTraces(context.Background(), *traces)
+							if err != nil {
+								g.logger.Error("consume error", zap.Error(err))
+							}
+
 						}
 					}
 				}
@@ -157,7 +161,7 @@ func (g *generatorReceiver) startMetricGenerator(ctx context.Context, host compo
 			if metrics, report := metricGen.Generate(&m, serviceName); report {
 				err := g.metricConsumer.ConsumeMetrics(ctx, metrics)
 				if err != nil {
-					host.ReportFatalError(err)
+					g.logger.Error("consume error", zap.Error(err))
 				}
 			}
 		}
