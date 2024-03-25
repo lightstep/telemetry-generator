@@ -33,7 +33,7 @@ func parseTopoFile(topoPath string) (*topology.File, error) {
 	if hasAnySuffix(lowerTopoPath, []string{".yaml", ".yml"}) {
 		err = yaml.Unmarshal(byteValue, &topo)
 	} else {
-		err = fmt.Errorf("Unrecognized topology file type: %s", topoPath)
+		err = fmt.Errorf("unrecognized topology file type: %s", topoPath)
 	}
 
 	if err != nil {

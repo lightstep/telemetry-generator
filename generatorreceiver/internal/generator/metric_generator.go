@@ -1,8 +1,8 @@
 package generator
 
 import (
-	"time"
 	"math/rand"
+	"time"
 
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/pmetric"
@@ -12,7 +12,7 @@ import (
 
 type MetricGenerator struct {
 	metricCount int
-	random         *rand.Rand
+	random      *rand.Rand
 }
 
 func NewMetricGenerator(seed int64) *MetricGenerator {
@@ -20,7 +20,7 @@ func NewMetricGenerator(seed int64) *MetricGenerator {
 	r.Seed(seed)
 	return &MetricGenerator{
 		metricCount: 0,
-		random: r,
+		random:      r,
 	}
 }
 
