@@ -62,6 +62,7 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 	generatorRand := rand.New(rand.NewSource(g.randomSeed))
 
 	// Metrics generator uses the global rand.Rand
+	// TODO: LS-60180 - rand.Seed is deprecated, use rand.NewSource
 	rand.Seed(generatorRand.Int63())
 
 	if g.server != nil {
