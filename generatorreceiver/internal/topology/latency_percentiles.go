@@ -36,9 +36,9 @@ func (l *LatencyPercentiles) Sample() int64 {
 		return 0
 	}
 	uniform := func(timeA, timeB time.Duration) int64 {
-		min := float64(timeA.Nanoseconds())
-		max := float64(timeB.Nanoseconds())
-		return int64(min + (max-min)*rand.Float64())
+		minimum := float64(timeA.Nanoseconds())
+		maximum := float64(timeB.Nanoseconds())
+		return int64(minimum + (maximum-minimum)*rand.Float64())
 	}
 	genNumber := rand.Float64()
 	switch {

@@ -28,7 +28,7 @@ type generatorReceiver struct {
 	server         *httpServer
 }
 
-func (g generatorReceiver) loadTopoFile(topoInline string, path string) (topoFile *topology.File, err error) {
+func (g generatorReceiver) loadTopoFile(path string) (topoFile *topology.File, err error) {
 	g.logger.Info("reading topo from file path", zap.String("path", g.topoPath))
 	topoFile, err = parseTopoFile(path)
 	if err != nil {
@@ -45,7 +45,7 @@ func (g generatorReceiver) loadTopoFile(topoInline string, path string) (topoFil
 }
 
 func (g generatorReceiver) Start(ctx context.Context, host component.Host) error {
-	topoFile, err := g.loadTopoFile(g.topoInline, g.topoPath)
+	topoFile, err := g.loadTopoFile(g.topoPath)
 	if err != nil {
 		return fmt.Errorf("could not load topo file: %w", err)
 	}
@@ -62,6 +62,7 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 	generatorRand := rand.New(rand.NewSource(g.randomSeed))
 
 	// Metrics generator uses the global rand.Rand
+	// TODO: LS-60180 - rand.Seed is deprecated, use rand.NewSource
 	rand.Seed(generatorRand.Int63())
 
 	if g.server != nil {
@@ -87,7 +88,7 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 
 			// Service defined metrics
 			for _, m := range s.Metrics {
-				metricTicker := g.startMetricGenerator(ctx, host, s.ServiceName, m)
+				metricTicker := g.startMetricGenerator(ctx, s.ServiceName, m)
 				g.tickers = append(g.tickers, metricTicker)
 			}
 
@@ -103,7 +104,7 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 					// keep the same flags as the resources.
 					k8sMetrics[i].EmbeddedFlags = resource.EmbeddedFlags
 
-					metricTicker := g.startMetricGenerator(ctx, host, s.ServiceName, k8sMetrics[i])
+					metricTicker := g.startMetricGenerator(ctx, s.ServiceName, k8sMetrics[i])
 					g.tickers = append(g.tickers, metricTicker)
 				}
 			}
@@ -149,7 +150,7 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 	return nil
 }
 
-func (g *generatorReceiver) startMetricGenerator(ctx context.Context, host component.Host, serviceName string, m topology.Metric) *time.Ticker {
+func (g *generatorReceiver) startMetricGenerator(ctx context.Context, serviceName string, m topology.Metric) *time.Ticker {
 	// TODO: do we actually need to generate every second?
 	metricTicker := time.NewTicker(topology.DefaultMetricTickerPeriod)
 	go func() {

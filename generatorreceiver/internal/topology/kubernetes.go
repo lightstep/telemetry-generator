@@ -250,7 +250,7 @@ func (k *Kubernetes) GenerateMetrics() []Metric {
 		memoryShape = Leaking
 	}
 
-	metrics := []Metric{}
+	var metrics []Metric
 
 	for _, pod := range k.pods {
 		k8sTags := k.GetK8sTags(pod)
@@ -673,4 +673,3 @@ func generateK8sName(n int) string {
 	}
 	return string(b)
 }
-

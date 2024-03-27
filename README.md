@@ -21,9 +21,9 @@ Install the [OpenTelemetry Collector Builder](https://github.com/open-telemetry/
 ### Get the code
 1. Clone the [telemetry generator repo](https://github.com/lightstep/telemetry-generator) to a directory of your choosing:
    1.  `$ cd ~/Code` (or wherever)
-   1.  `$ git clone https://github.com/lightstep/telemetry-generator`
-   1.  `$ cd telemetry-generator`
-1. Copy `hipster_shop.yaml` to `dev.yaml` for local development. Not strictly necessary (you can point the `TOPO_FILE` environment variable to any config file) but will potentially save heartache and hassle 😅 This file is in .gitignore, so it won't be included in your commits. If you want to share config changes, add them to a new example config file.
+   2. `$ git clone https://github.com/lightstep/telemetry-generator`
+   3. `$ cd telemetry-generator`
+2. Copy `hipster_shop.yaml` to `dev.yaml` for local development. Not strictly necessary (you can point the `TOPO_FILE` environment variable to any config file) but will potentially save heartache and hassle 😅 This file is in .gitignore, so it won't be included in your commits. If you want to share config changes, add them to a new example config file.
    `$ cp examples/hipster_shop.yaml examples/dev.yaml`
 
 ## Environment variables
@@ -101,14 +101,14 @@ When building with Docker, you need to re-run both steps for any code *or* confi
 ## Publishing a Release
 These steps enable a new Docker image to be available with `docker pull ghcr.io/lightstep/telemetry-generator:<tag>`
 
-0. Make your code changes and add to a new PR, ensure to include an:
+1. Make your code changes and add to a new PR, ensure to include an:
    * Update to VERSION in the file `VERSION`
    * Update to `CHANGELOG.md`
    * Update to [Compatibility Matrix](#compatibility-matrix) below.
-1. Create PR, get approvals, merge changes
-2. Run `make add-tag` 
+2. Create PR, get approvals, merge changes
+3. Run `make add-tag` 
     * (This will run `git tag` under the hood using the version number in VERSION)
-3. Run `make push-tag`
+4. Run `make push-tag`
     * (This will push the tags to Github. **THIS** is the operation that will kick off the GHA workflow, build  and push a new image out to GHCR.io)
 
 ## Compatibility Matrix
