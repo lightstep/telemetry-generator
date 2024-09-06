@@ -1,6 +1,7 @@
 package topology
 
 import (
+	"math/rand"
 	"testing"
 	"time"
 
@@ -52,7 +53,7 @@ func TestLatencyPercentiles_WorksWithoutWeights(t *testing.T) {
 		err := cfg.loadDurations()
 		require.NoError(t, err)
 	}
-
-	latency := cfgs.Sample(pcommon.NewTraceIDEmpty())
+	random := rand.New(rand.NewSource(123))
+	latency := cfgs.Sample(pcommon.NewTraceIDEmpty(), random)
 	require.Equal(t, 100*time.Millisecond, time.Duration(latency))
 }
