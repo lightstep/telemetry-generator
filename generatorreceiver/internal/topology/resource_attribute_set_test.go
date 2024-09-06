@@ -67,16 +67,16 @@ func TestResourceAttributeSet_GetAttributes(t *testing.T) {
 				ResourceAttributes: tt.resourceAttributes,
 			}
 
-			random := rand.New(rand.NewSource(123))
-
 			if k := resourceAttrSet.Kubernetes; k != nil {
-
+				random := rand.New(rand.NewSource(123))
 				k.CreatePods(tt.service, random)
 
 				// k8s.pod.name structure was copied from CreatePods()
+				random = rand.New(rand.NewSource(123))
 				tt.expected["k8s.pod.name"] = tt.service + "-" + generateK8sName(10, random) + "-" + generateK8sName(5, random)
 			}
 
+			random := rand.New(rand.NewSource(123))
 			require.Equal(t, tt.expected, *resourceAttrSet.GetAttributes(random))
 		})
 	}

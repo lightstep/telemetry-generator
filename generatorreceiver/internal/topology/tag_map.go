@@ -24,7 +24,8 @@ func (tm *TagMap) InsertTags(attr *pcommon.Map, random *rand.Rand) {
 		case bool:
 			attr.PutBool(key, val)
 		case []string:
-			attr.PutStr(key, val[random.Intn(len(val))])
+			r := random.Intn(len(val))
+			attr.PutStr(key, val[r])
 		default:
 			attr.PutStr(key, fmt.Sprint(val))
 		}

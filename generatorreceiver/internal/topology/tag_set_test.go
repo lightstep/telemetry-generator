@@ -35,6 +35,8 @@ func TestTagMap_InsertTag(t *testing.T) {
 	expectedAttr.PutStr("key2", "hi")
 	expectedAttr.PutDouble("key3", 123.123)
 	expectedAttr.PutInt("key4", 10)
+
+	randomGenerator = rand.New(rand.NewSource(123))
 	expectedAttr.PutStr("key5", csvTags[randomGenerator.Intn(len(csvTags))])
 
 	require.Equal(t, attr.AsRaw(), expectedAttr.AsRaw())
