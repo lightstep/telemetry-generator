@@ -61,10 +61,6 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 	// rand is used to generate seeds the underlying *rand.Rand
 	generatorRand := rand.New(rand.NewSource(g.randomSeed))
 
-	// Metrics generator uses the global rand.Rand
-	// TODO: LS-60180 - rand.Seed is deprecated, use rand.NewSource
-	rand.Seed(generatorRand.Int63())
-
 	if g.server != nil {
 		err := g.server.Start(ctx, host)
 		if err != nil {
@@ -79,7 +75,7 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 				continue
 			}
 			k.Cfg = topoFile.Config
-			k.CreatePods(s.ServiceName)
+			k.CreatePods(s.ServiceName, generatorRand)
 		}
 	}
 
@@ -88,7 +84,7 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 
 			// Service defined metrics
 			for _, m := range s.Metrics {
-				metricTicker := g.startMetricGenerator(ctx, s.ServiceName, m)
+				metricTicker := g.startMetricGenerator(ctx, s.ServiceName, m, generatorRand)
 				g.tickers = append(g.tickers, metricTicker)
 			}
 
@@ -104,7 +100,7 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 					// keep the same flags as the resources.
 					k8sMetrics[i].EmbeddedFlags = resource.EmbeddedFlags
 
-					metricTicker := g.startMetricGenerator(ctx, s.ServiceName, k8sMetrics[i])
+					metricTicker := g.startMetricGenerator(ctx, s.ServiceName, k8sMetrics[i], generatorRand)
 					g.tickers = append(g.tickers, metricTicker)
 				}
 			}
@@ -150,14 +146,19 @@ func (g generatorReceiver) Start(ctx context.Context, host component.Host) error
 	return nil
 }
 
-func (g *generatorReceiver) startMetricGenerator(ctx context.Context, serviceName string, m topology.Metric) *time.Ticker {
+func (g *generatorReceiver) startMetricGenerator(
+	ctx context.Context,
+	serviceName string,
+	m topology.Metric,
+	random *rand.Rand,
+) *time.Ticker {
 	// TODO: do we actually need to generate every second?
 	metricTicker := time.NewTicker(topology.DefaultMetricTickerPeriod)
 	go func() {
 		g.logger.Info("generating metrics", zap.String("service", serviceName), zap.String("name", m.Name), zap.String("flag_set", m.EmbeddedFlags.FlagSet), zap.String("flag_unset", m.EmbeddedFlags.FlagUnset))
 		metricGen := generator.NewMetricGenerator(g.randomSeed)
 		for range metricTicker.C {
-			m.Pod.RestartIfNeeded(m.EmbeddedFlags, g.logger)
+			m.Pod.RestartIfNeeded(m.EmbeddedFlags, g.logger, random)
 
 			if metrics, report := metricGen.Generate(&m, serviceName); report {
 				err := g.metricConsumer.ConsumeMetrics(ctx, metrics)

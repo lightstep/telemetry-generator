@@ -68,11 +68,10 @@ func TestResourceAttributeSet_GetAttributes(t *testing.T) {
 			}
 
 			if k := resourceAttrSet.Kubernetes; k != nil {
-				rand.Seed(123)
+				randomGenerator := rand.New(rand.NewSource(123))
 				k.CreatePods(tt.service)
 
 				// k8s.pod.name structure was copied from CreatePods()
-				rand.Seed(123)
 				tt.expected["k8s.pod.name"] = tt.service + "-" + generateK8sName(10) + "-" + generateK8sName(5)
 			}
 

@@ -77,7 +77,7 @@ func (g *TraceGenerator) createSpanForServiceRouteCall(traces *ptrace.Traces, se
 
 	resourceAttributeSet := serviceTier.GetResourceAttributeSet(traceId)
 	attrs := resource.Attributes()
-	resourceAttributeSet.GetAttributes().InsertTags(&attrs)
+	resourceAttributeSet.GetAttributes(g.random).InsertTags(&attrs, g.random)
 
 	rspan.ScopeSpans()
 	ils := rspan.ScopeSpans().AppendEmpty()
@@ -94,7 +94,7 @@ func (g *TraceGenerator) createSpanForServiceRouteCall(traces *ptrace.Traces, se
 
 	ts := serviceTier.GetTagSet(routeName, traceId) // ts is single TagSet consisting of tags from the service AND route
 	attr := span.Attributes()
-	ts.Tags.InsertTags(&attr) // add service and route tags to span attributes
+	ts.Tags.InsertTags(&attr, g.random) // add service and route tags to span attributes
 
 	for _, tg := range ts.TagGenerators {
 		tg.Init(g.random)
@@ -106,9 +106,9 @@ func (g *TraceGenerator) createSpanForServiceRouteCall(traces *ptrace.Traces, se
 	// TODO: this is still a bit weird - we're calling each downstream route
 	// after a sample of the current route's latency, which doesn't really
 	// make sense - but maybe it's realistic enough?
-	endTime := startTimeNanos + route.SampleLatency(traceId)
+	endTime := startTimeNanos + route.SampleLatency(traceId, g.random)
 	for _, c := range route.DownstreamCalls {
-		var childStartTimeNanos = startTimeNanos + route.SampleLatency(traceId)
+		var childStartTimeNanos = startTimeNanos + route.SampleLatency(traceId, g.random)
 
 		childSpan := g.createSpanForServiceRouteCall(traces, c.Service, c.Route, childStartTimeNanos, traceId, newSpanId)
 		val, ok := childSpan.Attributes().Get("error")

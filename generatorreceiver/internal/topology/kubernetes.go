@@ -75,20 +75,20 @@ type ResourceUsage struct {
 	Jitter float64 `json:"jitter" yaml:"jitter"`
 }
 
-func (k *Kubernetes) CreatePods(serviceName string) {
+func (k *Kubernetes) CreatePods(serviceName string, random *rand.Rand) {
 	k.mutex.Lock()
 	defer k.mutex.Unlock()
-	k.ReplicaSetName = serviceName + "-" + generateK8sName(10)
+	k.ReplicaSetName = serviceName + "-" + generateK8sName(10, random)
 	k.Namespace = serviceName
 	k.Service = serviceName
 	k.pods = make([]*Pod, k.GetPodCount())
 	for i := 0; i < len(k.pods); i++ {
 		k.pods[i] = &Pod{
 			StartTime:       time.Now(),
-			PodName:         k.ReplicaSetName + "-" + generateK8sName(5),
+			PodName:         k.ReplicaSetName + "-" + generateK8sName(5, random),
 			Container:       serviceName,
 			Kubernetes:      k,
-			RestartDuration: k.RestartDurationWithJitter(),
+			RestartDuration: k.RestartDurationWithJitter(random),
 		}
 	}
 }
@@ -103,7 +103,7 @@ func (k *Kubernetes) GetPodCount() int {
 	}
 }
 
-func (p *Pod) RestartIfNeeded(flags flags.EmbeddedFlags, logger *zap.Logger) bool {
+func (p *Pod) RestartIfNeeded(flags flags.EmbeddedFlags, logger *zap.Logger, random *rand.Rand) bool {
 	if p == nil || p.Kubernetes.Restart.Every == 0 {
 		return false
 	}
@@ -115,35 +115,35 @@ func (p *Pod) RestartIfNeeded(flags flags.EmbeddedFlags, logger *zap.Logger) boo
 	if flagTime.After(p.StartTime) {
 		// consider that the pod started at the time that a flag was enabled/disabled.
 		// TODO: restart with some jitter
-		p.restart(logger)
+		p.restart(logger, random)
 		return true
 	} else if time.Since(p.StartTime) >= p.RestartDuration {
 		// TODO: restart with some jitter
-		p.restart(logger)
+		p.restart(logger, random)
 		return true
 	}
 	return false
 
 }
 
-func (p *Pod) restart(logger *zap.Logger) {
+func (p *Pod) restart(logger *zap.Logger, random *rand.Rand) {
 	// this is locked by RestartIfNeeded
 	p.StartTime = time.Now()
-	p.RestartDuration = p.Kubernetes.RestartDurationWithJitter()
-	p.PodName = p.Kubernetes.ReplicaSetName + "-" + generateK8sName(5)
+	p.RestartDuration = p.Kubernetes.RestartDurationWithJitter(random)
+	p.PodName = p.Kubernetes.ReplicaSetName + "-" + generateK8sName(5, random)
 	logger.Info("pod restarted", zap.String("service", p.Kubernetes.Service), zap.String("pod", p.PodName))
 }
 
-func (k *Kubernetes) randomPod() *Pod {
-	return k.pods[rand.Intn(len(k.pods))]
+func (k *Kubernetes) randomPod(random *rand.Rand) *Pod {
+	return k.pods[random.Intn(len(k.pods))]
 }
 
 // only called from tag generator!
-func (k *Kubernetes) GetRandomK8sTags() map[string]string {
+func (k *Kubernetes) GetRandomK8sTags(random *rand.Rand) map[string]string {
 	k.mutex.Lock()
 	defer k.mutex.Unlock()
 
-	pod := k.randomPod()
+	pod := k.randomPod(random)
 	// ref: https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/resource/semantic_conventions/k8s.md
 	return k.GetK8sTags(pod)
 }
@@ -187,8 +187,8 @@ func (p *Pod) ReplaceTags(tags map[string]string) map[string]string {
 	return replaced
 }
 
-func (k *Kubernetes) RestartDurationWithJitter() time.Duration {
-	return k.Restart.Every + time.Duration(float64(k.Restart.Jitter)*(rand.Float64()-0.5))
+func (k *Kubernetes) RestartDurationWithJitter(random *rand.Rand) time.Duration {
+	return k.Restart.Every + time.Duration(float64(k.Restart.Jitter)*(random.Float64()-0.5))
 }
 
 func (k *Kubernetes) GenerateMetrics() []Metric {
@@ -664,12 +664,12 @@ func (k *Kubernetes) GenerateMetrics() []Metric {
 	return metrics
 }
 
-func generateK8sName(n int) string {
+func generateK8sName(nameLength int, random *rand.Rand) string {
 	var letters = []rune("bcdfghjklmnpqrstvwxz2456789")
 
-	b := make([]rune, n)
+	b := make([]rune, nameLength)
 	for i := range b {
-		b[i] = letters[rand.Intn(len(letters))]
+		b[i] = letters[random.Intn(len(letters))]
 	}
 	return string(b)
 }

@@ -28,7 +28,7 @@ type LatencyPercentiles struct {
 	flags.EmbeddedFlags `json:",inline" yaml:",inline"`
 }
 
-func (l *LatencyPercentiles) Sample() int64 {
+func (l *LatencyPercentiles) Sample(random *rand.Rand) int64 {
 	if l == nil {
 		// This results from having a list where
 		// items are !ShouldGenerate() which leaves
@@ -38,9 +38,9 @@ func (l *LatencyPercentiles) Sample() int64 {
 	uniform := func(timeA, timeB time.Duration) int64 {
 		minimum := float64(timeA.Nanoseconds())
 		maximum := float64(timeB.Nanoseconds())
-		return int64(minimum + (maximum-minimum)*rand.Float64())
+		return int64(minimum + (maximum-minimum)*random.Float64())
 	}
-	genNumber := rand.Float64()
+	genNumber := random.Float64()
 	switch {
 	case genNumber < 0.5:
 		return uniform(l.durations.p0, l.durations.p50)
@@ -90,7 +90,7 @@ func (l *LatencyPercentiles) loadDurations() error {
 
 type LatencyConfigs []*LatencyPercentiles
 
-func (lcfg *LatencyConfigs) Sample(traceID pcommon.TraceID) int64 {
+func (lcfg *LatencyConfigs) Sample(traceID pcommon.TraceID, random *rand.Rand) int64 {
 	var defaultCfg *LatencyPercentiles
 	var enabled []*LatencyPercentiles
 	for _, cfg := range *lcfg {
@@ -104,8 +104,8 @@ func (lcfg *LatencyConfigs) Sample(traceID pcommon.TraceID) int64 {
 		picked := pickBasedOnWeight(enabled, traceID)
 
 		if picked != nil {
-			return picked.Sample()
+			return picked.Sample(random)
 		}
 	}
-	return defaultCfg.Sample()
+	return defaultCfg.Sample(random)
 }

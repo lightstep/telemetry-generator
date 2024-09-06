@@ -91,10 +91,10 @@ func (r *ServiceRoute) load(route string) error {
 	return nil
 }
 
-func (r *ServiceRoute) SampleLatency(traceID pcommon.TraceID) int64 {
+func (r *ServiceRoute) SampleLatency(traceID pcommon.TraceID, random *rand.Rand) int64 {
 	if r.LatencyConfigs == nil {
-		return rand.Int63n(r.MaxLatencyMillis * 1000000)
+		return random.Int63n(r.MaxLatencyMillis * 1000000)
 	} else {
-		return r.LatencyConfigs.Sample(traceID)
+		return r.LatencyConfigs.Sample(traceID, random)
 	}
 }
