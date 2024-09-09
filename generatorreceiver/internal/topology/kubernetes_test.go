@@ -2,6 +2,7 @@ package topology
 
 import (
 	"github.com/stretchr/testify/require"
+	"math/rand"
 	"testing"
 	"time"
 )
@@ -59,13 +60,14 @@ func TestMultiPod(t *testing.T) {
 		},
 		PodCount: nPods,
 	}
-	k.CreatePods("some")
+	random := rand.New(rand.NewSource(123))
+	k.CreatePods("some", random)
 
 	// we should see more than one pod name in the tags
 	// (odds of this test failing randomly are 1 in 7**100 =~ 3 in 10^85
 	names := make(map[string]bool)
 	for i := 0; i < 100; i++ {
-		tags := k.GetRandomK8sTags()
+		tags := k.GetRandomK8sTags(random)
 		names[tags["k8s.pod.name"]] = true
 	}
 	require.Greater(t, len(names), 1, "multiple pod names should be generated")
@@ -90,7 +92,7 @@ func TestMultiPod(t *testing.T) {
 			},
 		},
 	}
-	k.CreatePods("some")
+	k.CreatePods("some", random)
 	require.Equal(t, 2, k.GetPodCount(), "pod count defaults to config value")
 	k = &Kubernetes{
 		ClusterName: "some-cluster",
@@ -99,6 +101,6 @@ func TestMultiPod(t *testing.T) {
 			Jitter: minute,
 		},
 	}
-	k.CreatePods("some")
+	k.CreatePods("some", random)
 	require.Equal(t, 1, k.GetPodCount(), "pod count defaults to 1 if no config value")
 }

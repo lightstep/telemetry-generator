@@ -9,7 +9,7 @@ import (
 
 type TagMap map[string]interface{}
 
-func (tm *TagMap) InsertTags(attr *pcommon.Map) {
+func (tm *TagMap) InsertTags(attr *pcommon.Map, random *rand.Rand) {
 	for key, val := range *tm {
 		switch val := val.(type) {
 		case float64:
@@ -24,7 +24,8 @@ func (tm *TagMap) InsertTags(attr *pcommon.Map) {
 		case bool:
 			attr.PutBool(key, val)
 		case []string:
-			attr.PutStr(key, val[rand.Intn(len(val))])
+			r := random.Intn(len(val))
+			attr.PutStr(key, val[r])
 		default:
 			attr.PutStr(key, fmt.Sprint(val))
 		}

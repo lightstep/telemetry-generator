@@ -2,6 +2,7 @@ package topology
 
 import (
 	"github.com/lightstep/telemetry-generator/generatorreceiver/internal/flags"
+	"math/rand"
 )
 
 type ResourceAttributeSet struct {
@@ -11,13 +12,13 @@ type ResourceAttributeSet struct {
 	flags.EmbeddedFlags `json:",inline" yaml:",inline"`
 }
 
-func (r *ResourceAttributeSet) GetAttributes() *TagMap {
+func (r *ResourceAttributeSet) GetAttributes(random *rand.Rand) *TagMap {
 	tm := make(TagMap)
 	for k, v := range r.ResourceAttributes {
 		tm[k] = v
 	}
 	if k8s := r.Kubernetes; k8s != nil {
-		for k, v := range k8s.GetRandomK8sTags() {
+		for k, v := range k8s.GetRandomK8sTags(random) {
 			tm[k] = v
 		}
 	}
