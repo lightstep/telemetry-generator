@@ -3,17 +3,6 @@ receivers:
   generator:
     path: "${TOPO_FILE}"
     inline: "${TOPO_INLINE}"
-  prometheus:
-    config:
-      scrape_configs:
-        - job_name: 'otel-collector'
-          scrape_interval: 5s
-          static_configs:
-            - targets: ['localhost:8888']
-          relabel_configs:
-          - replacement: "telemetry-generator"
-            target_label: "service"
-            action: replace
                
 processors:
   batch:
@@ -34,15 +23,7 @@ exporters:
       "lightstep-access-token": "${LS_ACCESS_TOKEN}"
     sending_queue:
       num_consumers: 20
-      queue_size: 10000  
-  # export internal metrics to monitoring project  
-  otlp/2:
-    endpoint: "${OTEL_EXPORTER_OTLP_TRACES_ENDPOINT_INTERNAL}"
-    tls:
-      insecure_skip_verify: true
-      insecure: "${OTEL_INSECURE}"
-    headers:
-      "lightstep-access-token": "${LS_ACCESS_TOKEN_INTERNAL}"         
+      queue_size: 10000      
 
 service:
   pipelines:
@@ -55,12 +36,6 @@ service:
       exporters:
       - otlp
       - logging
-#pipeline for the collectors own internal metrics      
-    metrics/2:
-      receivers:
-      - prometheus
-      exporters:
-      - otlp/2
     traces:
       receivers:
       - generator
@@ -70,3 +45,19 @@ service:
       exporters:
       - logging
       - otlp
+  telemetry:
+    resource:
+      service.name: telemetry-generator
+      service: telemetry-generator
+      metrics:
+        level: detailed
+        readers:
+          - periodic:
+              exporter:
+                otlp:
+                  endpoint: "${OTEL_EXPORTER_OTLP_TRACES_ENDPOINT_INTERNAL}"
+                  tls:
+                    insecure_skip_verify: true
+                    insecure: "${OTEL_INSECURE}"
+                  headers:
+                    "lightstep-access-token": "${LS_ACCESS_TOKEN_INTERNAL}"         
