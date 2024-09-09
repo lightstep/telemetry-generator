@@ -62,11 +62,11 @@ type Metric struct {
 	Shape               Shape             `json:"shape" yaml:"shape"`
 	ShapeInterface      ShapeInterface    `json:"-" yaml:"-"`
 	Tags                map[string]string `json:"tags" yaml:"tags"`
-	TagGenerator       TagGenerator    `json:"tagGenerator,omitempty" yaml:"tagGenerator,omitempty"`
+	TagGenerator        TagGenerator      `json:"tagGenerator,omitempty" yaml:"tagGenerator,omitempty"`
 	Jitter              float64           `json:"jitter" yaml:"jitter"`
 	flags.EmbeddedFlags `json:",inline" yaml:",inline"`
 	Pod                 *Pod
-	Random *rand.Rand
+	Random              *rand.Rand
 }
 
 func (m *Metric) GetTags() map[string]string {
@@ -74,12 +74,11 @@ func (m *Metric) GetTags() map[string]string {
 		return m.Pod.ReplaceTags(m.Tags)
 	}
 
-
 	tags := make(map[string]string)
-	for k,v := range m.Tags {
+	for k, v := range m.Tags {
 		tags[k] = v
 	}
-	for k,v := range m.TagGenerator.GetRefreshedTags() {
+	for k, v := range m.TagGenerator.GetRefreshedTags() {
 		tags[k] = v
 	}
 
@@ -159,7 +158,7 @@ func (m *Metric) GetValue() float64 {
 	v := m.Min + (m.Max-m.Min)*factor
 
 	// jitter deviation is calculated in percentage that ranges from [-m.Jitter/2, m.Jitter/2)%
-	j := 1 + rand.Float64()*m.Jitter - m.Jitter/2
+	j := 1 + m.Random.Float64()*m.Jitter - m.Jitter/2
 
 	v = v * j
 

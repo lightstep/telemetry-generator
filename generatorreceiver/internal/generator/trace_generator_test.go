@@ -109,7 +109,7 @@ func TestTraceGenerator_createSpanForServiceRouteCall2(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			traces := ptrace.NewTraces()
-			g := NewTraceGenerator(testTopology, rand.New(rand.NewSource(rand.Int63())), tt.args.serviceName, tt.args.routeName)
+			g := NewTraceGenerator(testTopology, rand.New(rand.NewSource(123)), tt.args.serviceName, tt.args.routeName)
 			genTraceID := g.genTraceId()
 			rootSpan := g.createSpanForServiceRouteCall(&traces, g.service, g.route, tt.args.startTimeNanos, genTraceID, pcommon.NewSpanIDEmpty())
 			convertedSpanStartTime := pcommon.NewTimestampFromTime(time.Unix(0, tt.args.startTimeNanos))

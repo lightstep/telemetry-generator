@@ -1,6 +1,9 @@
 package topology
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
 type Topology struct {
 	Services map[string]*ServiceTier `json:"services" yaml:"services"`
@@ -37,7 +40,7 @@ func (t *Topology) traverseServiceGraph(service string, route string, seenCalls 
 	seenCalls[service+route] = true
 	for _, c := range downstreamCalls {
 		if seenCalls[c.Service+c.Route] {
-			return fmt.Errorf(printServiceCycle(orderedCalls, c.Service+c.Route))
+			return errors.New(printServiceCycle(orderedCalls, c.Service+c.Route))
 		}
 
 		err := t.traverseServiceGraph(c.Service, c.Route, seenCalls, append(orderedCalls, c.Service+c.Route))
