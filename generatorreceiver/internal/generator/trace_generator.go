@@ -119,6 +119,14 @@ func (g *TraceGenerator) createSpanForServiceRouteCall(traces *ptrace.Traces, se
 		endTime = Max(endTime, int64(childSpan.EndTimestamp()))
 	}
 
+	// For some platforms the `error` attribute is not enough to mark a span as an error.
+	// They only look at the span status.
+	_, exists := span.Attributes().Get("error")
+	if exists {
+		span.Status().SetCode(ptrace.StatusCodeError)
+		span.Status().SetMessage("Error")
+	}
+
 	span.SetStartTimestamp(pcommon.NewTimestampFromTime(time.Unix(0, startTimeNanos)))
 	span.SetEndTimestamp(pcommon.NewTimestampFromTime(time.Unix(0, endTime)))
 	g.sequenceNumber += 1
